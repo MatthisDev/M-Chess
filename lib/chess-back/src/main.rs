@@ -2,6 +2,8 @@ use chess_back::game::Game;
 
 fn main() {
     let mut game = Game::init();
+    game.board.update_attack_info();
+    game.board.print_attack_info();
     game.board.print_board();
 
     // Effectuer un mouvement

@@ -27,13 +27,13 @@ impl Position {
         Ok(Position { row, col })
     }
 
-    /*fn to_algebraic(&self) -> String {
+    fn to_algebraic(&self) -> String {
         format!(
             "{}{}",
             ('a' as usize + self.col) as u8 as char,
             8 - self.row
         )
-    }*/
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -361,7 +361,36 @@ impl Board {
         println!("  a b c d e f g h");
     }
 
-    fn update_attack_info(&mut self) {
+    pub fn print_attack_info(&self) {
+        println!("Informations d'attaque sur l'échiquier :");
+        for row in 0..BOARD_SIZE {
+            for col in 0..BOARD_SIZE {
+                let position = Position::new(row, col);
+                let attack_info = &self.attack_info[row][col];
+                if !attack_info.attacked_by.is_empty() {
+                    println!("Position {} est attaquée par :", position.to_algebraic());
+                    for (attacker_position, attacker_piece) in &attack_info.attacked_by {
+                        let piece_char = match attacker_piece.piece_type {
+                            PieceType::King => 'K',
+                            PieceType::Queen => 'Q',
+                            PieceType::Rook => 'R',
+                            PieceType::Bishop => 'B',
+                            PieceType::Knight => 'N',
+                            PieceType::Pawn => 'P',
+                        };
+                        let color_char = if attacker_piece.color == Color::White {
+                            piece_char.to_ascii_uppercase()
+                        } else {
+                            piece_char.to_ascii_lowercase()
+                        };
+                        println!("  - {} à {}", color_char, attacker_position.to_algebraic());
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn update_attack_info(&mut self) {
         for row in 0..BOARD_SIZE {
             for col in 0..BOARD_SIZE {
                 self.attack_info[row][col].clear();
