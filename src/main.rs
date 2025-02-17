@@ -5,6 +5,8 @@ use axum::{
 use serde_json::json;
 use tower_http::services::fs::ServeDir;
 
+use game_lib::game::Game;
+
 #[tokio::main]
 async fn main() {
     let app = Router::new()
