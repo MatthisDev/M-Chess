@@ -3,13 +3,13 @@ use std::array::from_fn;
 const BOARD_SIZE: usize = 8;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-struct Position {
+pub struct Position {
     row: usize,
     col: usize,
 }
 
 impl Position {
-    fn new(row: usize, col: usize) -> Self {
+    pub fn new(row: usize, col: usize) -> Self {
         Position { row, col }
     }
 

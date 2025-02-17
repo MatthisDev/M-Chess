@@ -1,3 +1,5 @@
+mod game_lib;
+
 use axum::{
     routing::{get, get_service},
     Json, Router,
@@ -5,13 +7,11 @@ use axum::{
 use serde_json::json;
 use tower_http::services::fs::ServeDir;
 
-use game_lib::game::Game;
-
 #[tokio::main]
 async fn main() {
     let app = Router::new()
         .route("/api", get(api_handler))
-        .fallback_service(get_service(ServeDir::new("web")));
+        .fallback_service(get_service(ServeDir::new("web/dist")));
 
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
