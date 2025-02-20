@@ -1,4 +1,7 @@
+use crate::game_lib::board::Board;
 use crate::game_lib::game::*;
+use crate::game_lib::position::Position;
+
 enum Difficulty {
     Easy,
     Medium,
