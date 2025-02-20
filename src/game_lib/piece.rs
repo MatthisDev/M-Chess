@@ -1,7 +1,9 @@
-use crate::game_lib::board::Board;
+use crate::game_lib::board::{Board, BOARD_SIZE};
 use crate::game_lib::position::Position;
-const BOARD_SIZE: usize = 8;
 
+use super::position;
+
+// Color enum for teams
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Color {
     White,
@@ -18,23 +20,28 @@ pub enum PieceType {
     Pawn,
 }
 
+//class Piece
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Piece {
     pub color: Color,
     pub piece_type: PieceType,
-    pub has_moved: bool,
+    pub has_moved: bool, //for special moves
+    position: Position,
 }
 
 impl Piece {
-    pub fn new(color: Color, piece_type: PieceType) -> Self {
+    //create a piece
+    pub fn new(color: Color, piece_type: PieceType, position: Position) -> Self {
         Piece {
             color,
             piece_type,
             has_moved: false,
             //position
+            position,
         }
     }
 
+    //check moves for a Piece at (x,y) depending on his type
     pub fn valid_moves(&self, board: &Board, position: Position) -> Vec<Position> {
         match self.piece_type {
             PieceType::Pawn => self.valid_moves_pawn(board, position),
@@ -46,20 +53,22 @@ impl Piece {
         }
     }
 
+    //Pawn---------------------------------------------------------------------------------
     fn valid_moves_pawn(&self, board: &Board, position: Position) -> Vec<Position> {
-        let mut moves = Vec::new();
-        let direction = if self.color == Color::White { -1 } else { 1 };
+        let mut moves: Vec<Position> = Vec::new();
+        let direction: i32 = if self.color == Color::White { -1 } else { 1 };
 
-        // Mouvement simple vers l'avant
-        let forward = Position::new((position.row as i32 + direction) as usize, position.col);
+        //Check Simple move forward
+        let forward: Position =
+            Position::new((position.row as i32 + direction) as usize, position.col);
         if board.is_within_bounds(forward) && board.squares[forward.row][forward.col] == (-1, -1) {
             moves.push(forward);
 
-            // Mouvement de deux cases si le pion est à sa position initiale
+            //Check Double move forward if never moved
             if (self.color == Color::White && position.row == 6)
                 || (self.color == Color::Black && position.row == 1)
             {
-                let double_forward =
+                let double_forward: Position =
                     Position::new((position.row as i32 + 2 * direction) as usize, position.col);
                 if board.is_within_bounds(double_forward)
                     && board.squares[double_forward.row][double_forward.col] == (-1, -1)
@@ -69,9 +78,9 @@ impl Piece {
             }
         }
 
-        // Capture diagonale
+        // Check Diagonal capture
         for col_offset in &[-1, 1] {
-            let capture = Position::new(
+            let capture: Position = Position::new(
                 (position.row as i32 + direction) as usize,
                 (position.col as i32 + col_offset) as usize,
             );
@@ -91,12 +100,18 @@ impl Piece {
 
         //prise en passant
 
+        //check historique
+        //check à côté
+        //validation
+
         moves
     }
+    //-------------------------------------------------------------------------------------
 
+    //Knight-------------------------------------------------------------------------------
     fn valid_moves_knight(&self, board: &Board, position: Position) -> Vec<Position> {
-        let mut moves = Vec::new();
-        let offsets = [
+        let mut moves: Vec<Position> = Vec::new();
+        let offsets: [(i32, i32); 8] = [
             (-2, -1),
             (-2, 1),
             (2, -1),
@@ -108,7 +123,7 @@ impl Piece {
         ];
 
         for &(row_offset, col_offset) in &offsets {
-            let target = Position::new(
+            let target: Position = Position::new(
                 (position.row as i32 + row_offset) as usize,
                 (position.col as i32 + col_offset) as usize,
             );
@@ -126,36 +141,45 @@ impl Piece {
         }
         moves
     }
+    //------------------------------------------------------------------------------------
 
+    //Bishop------------------------------------------------------------------------------
     fn valid_moves_bishop(&self, board: &Board, position: Position) -> Vec<Position> {
-        let mut moves = Vec::new();
-        let offsets = [(-1, -1), (1, -1), (1, 1), (-1, 1)];
+        let mut moves: Vec<Position> = Vec::new();
+        let offsets: [(i32, i32); 4] = [(-1, -1), (1, -1), (1, 1), (-1, 1)];
 
         for &(row_offset, col_offset) in &offsets {
             self.explore_direction(board, position, row_offset, col_offset, &mut moves)
         }
         moves
     }
+    //-------------------------------------------------------------------------------------
 
+    //Rook---------------------------------------------------------------------------------
     fn valid_moves_rook(&self, board: &Board, position: Position) -> Vec<Position> {
-        let mut moves = Vec::new();
-        let offsets = [(-1, 0), (1, 0), (0, 1), (0, -1)];
+        let mut moves: Vec<Position> = Vec::new();
+        let offsets: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, 1), (0, -1)];
 
         for &(row_offset, col_offset) in &offsets {
             self.explore_direction(board, position, row_offset, col_offset, &mut moves)
         }
         moves
     }
+    //--------------------------------------------------------------------------------------
 
+    //Queen---------------------------------------------------------------------------------
+    //mix of Rook and Bishop
     fn valid_moves_queen(&self, board: &Board, position: Position) -> Vec<Position> {
-        let mut moves = self.valid_moves_bishop(board, position);
-        moves.extend(self.valid_moves_rook(board, position));
+        let mut moves: Vec<Position> = self.valid_moves_bishop(board, position);
+        moves.extend(self.valid_moves_rook(board, position)); //add rook moves to  bishop moves from this position
         moves
     }
+    //---------------------------------------------------------------------------------------
 
+    //King-----------------------------------------------------------------------------------
     fn valid_moves_king(&self, board: &Board, position: Position) -> Vec<Position> {
-        let mut moves = Vec::new();
-        let offsets = [
+        let mut moves: Vec<Position> = Vec::new();
+        let offsets: [(i32, i32); 8] = [
             (0, -1),
             (0, 1),
             (-1, 0),
@@ -166,8 +190,9 @@ impl Piece {
             (-1, -1),
         ];
 
+        //Normal moves without
         for &(row_offset, col_offset) in &offsets {
-            let target = Position::new(
+            let target: Position = Position::new(
                 (position.row as i32 + row_offset) as usize,
                 (position.col as i32 + col_offset) as usize,
             );
@@ -186,8 +211,12 @@ impl Piece {
 
         // Vérifier les roques possibles
         //ajouter condition pour roques
+        if !board.pieces[board.squares[position.row][position.col].0 as usize]
+            [board.squares[position.row][position.col].1 as usize]
+            .unwrap()
+            .has_moved
         {
-            let rook_positions = [
+            let rook_positions: [Position; 2] = [
                 Position::new(position.row, 0), // Tour côté dame
                 Position::new(position.row, 7), // Tour côté roi
             ];
@@ -207,9 +236,7 @@ impl Piece {
         moves
     }
 
-    // check toutes les cases de déplacement pour la tour et le fou
-    //tant que la case est dans le board ou si il y a une piece qui l'empêche d'aller plus loin
-    //si une piece le bloque, check si la pion peut-être mangé (couleur opposée)
+    //Check move for all cases in a direction until it a move is valid
     fn explore_direction(
         &self,
         board: &Board,
