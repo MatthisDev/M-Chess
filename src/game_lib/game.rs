@@ -34,7 +34,10 @@ impl Game {
     pub fn make_move_algebraic(&mut self, moves: &str) -> Result<bool, &'static str> {
         let (from_pos, to_pos) = Self::parse_move_str(moves);
 
-        if let Some(piece) = self.board.squares[from_pos.row][from_pos.col] {
+        if let Some(piece) = self.board.pieces
+            [self.board.squares[from_pos.row][from_pos.col].0 as usize]
+            [self.board.squares[from_pos.row][from_pos.col].1 as usize]
+        {
             if piece.piece_type == PieceType::King {
                 // Vérifier si le mouvement est un roque
                 let rook_positions = [
@@ -51,7 +54,9 @@ impl Game {
                         self.board.history.push((
                             from_pos,
                             to_pos,
-                            self.board.squares[from_pos.row][from_pos.col], //Option<Piece> de la case
+                            self.board.pieces
+                                [self.board.squares[from_pos.row][from_pos.col].0 as usize]
+                                [self.board.squares[from_pos.row][from_pos.col].1 as usize], //Option<Piece> de la case
                         ));
                         return Ok(true);
                     }
@@ -63,7 +68,8 @@ impl Game {
             self.board.history.push((
                 from_pos,
                 to_pos,
-                self.board.squares[from_pos.row][from_pos.col],
+                self.board.pieces[self.board.squares[from_pos.row][from_pos.col].0 as usize]
+                    [self.board.squares[from_pos.row][from_pos.col].1 as usize],
             ));
 
             if self.board.is_king_in_check(self.board.turn) {

@@ -52,7 +52,7 @@ impl Piece {
 
         // Mouvement simple vers l'avant
         let forward = Position::new((position.row as i32 + direction) as usize, position.col);
-        if board.is_within_bounds(forward) && board.squares[forward.row][forward.col].is_none() {
+        if board.is_within_bounds(forward) && board.squares[forward.row][forward.col] == (-1, -1) {
             moves.push(forward);
 
             // Mouvement de deux cases si le pion est à sa position initiale
@@ -62,7 +62,7 @@ impl Piece {
                 let double_forward =
                     Position::new((position.row as i32 + 2 * direction) as usize, position.col);
                 if board.is_within_bounds(double_forward)
-                    && board.squares[double_forward.row][double_forward.col].is_none()
+                    && board.squares[double_forward.row][double_forward.col] == (-1, -1)
                 {
                     moves.push(double_forward);
                 }
@@ -75,9 +75,13 @@ impl Piece {
                 (position.row as i32 + direction) as usize,
                 (position.col as i32 + col_offset) as usize,
             );
-            if board.is_within_bounds(capture) && board.squares[capture.row][capture.col].is_some()
+            if board.is_within_bounds(capture)
+                && board.squares[capture.row][capture.col] != (-1, -1)
             {
-                if let Some(piece) = board.squares[capture.row][capture.col] {
+                if let Some(piece) = board.pieces
+                    [board.squares[capture.row][capture.col].0 as usize]
+                    [board.squares[capture.row][capture.col].1 as usize]
+                {
                     if piece.color != self.color {
                         moves.push(capture);
                     }
@@ -109,7 +113,9 @@ impl Piece {
                 (position.col as i32 + col_offset) as usize,
             );
             if board.is_within_bounds(target) {
-                if let Some(piece) = board.squares[target.row][target.col] {
+                if let Some(piece) = board.pieces[board.squares[target.row][target.col].0 as usize]
+                    [board.squares[target.row][target.col].1 as usize]
+                {
                     if piece.color != self.color {
                         moves.push(target);
                     }
@@ -166,7 +172,9 @@ impl Piece {
                 (position.col as i32 + col_offset) as usize,
             );
             if board.is_within_bounds(target) && !board.is_attacked(target, self.color) {
-                if let Some(piece) = board.squares[target.row][target.col] {
+                if let Some(piece) = board.pieces[board.squares[target.row][target.col].0 as usize]
+                    [board.squares[target.row][target.col].1 as usize]
+                {
                     if piece.color != self.color {
                         moves.push(target);
                     }
@@ -217,7 +225,9 @@ impl Piece {
             if !board.is_within_bounds(position) {
                 break;
             }
-            if let Some(piece) = board.squares[position.row][position.col] {
+            if let Some(piece) = board.pieces[board.squares[position.row][position.col].0 as usize]
+                [board.squares[position.row][position.col].1 as usize]
+            {
                 if piece.color != self.color {
                     moves.push(position);
                 }
