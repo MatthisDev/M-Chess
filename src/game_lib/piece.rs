@@ -236,7 +236,8 @@ impl Piece {
                     if let Some(piece) = Piece::get_piece(&target, &board) { piece }
                     else { 
                         moves.push(target);
-                        continue };
+                        continue 
+                    };
 
                 if piece.color != self.color {
                     moves.push(target);
