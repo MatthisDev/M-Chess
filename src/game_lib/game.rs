@@ -30,28 +30,29 @@ impl Game {
 
         (from_pos, to_pos)
     }
-
+    
     fn caslte_situation(king: &Piece) -> bool {
         
         // Vérifier si le mouvement est un roque
         let rook_positions = [
-            Position::new(from_pos.row, 0), // Tour côté dame
-            Position::new(from_pos.row, 7), // Tour côté roi
+            Position::new(king.position.row, 0), // Tour côté dame
+            Position::new(king.position.row, 7), // Tour côté roi
         ];
 
         for rook_position in rook_positions.iter() {
 
-            if (to_pos == Position::new(from_pos.row, from_pos.col - 2) ||
-                to_pos == Position::new(from_pos.row, from_pos.col + 2)) &&
-                self.board.can_castle(from_pos, *rook_position)
-            {
-                self.board.perform_castle(from_pos, *rook_position);
+            if (to_pos == Position::new(king.position.row, king.position.col - 2) ||
+                to_pos == Position::new(king.position.row, king.position.col + 2)) &&
+                self.board.can_castle(&king.position, &rook_position) {
+
+                self.board.perform_castle(&king.position, &rook_position);
+                
+                // #FIXME
                 self.board.history.push((
                         from_pos,
                         to_pos,
-                        self.board.pieces
-                        [self.board.squares[from_pos.row][from_pos.col].0 as usize]
-                        [self.board.squares[from_pos.row][from_pos.col].1 as usize], //Option<Piece> de la case
+                        king.clone() // EXCEPTIONNELLE SITUATION
+                        //Option<Piece> de la case
                 ));
                 return true;
             }
@@ -59,41 +60,40 @@ impl Game {
 
         return false;
     }
-
+    
     pub fn make_move_algebraic(&mut self, moves: &str) -> Result<bool, &'static str> {
         let (from_pos, to_pos): (Position, Position) = Self::parse_move_str(moves);
-
-        let (i_from,j_from): (isize, isize) = self.board.squares[from_pos.row][from_pos.col];
         
-        // check if there is piece on the point
-        if i == -1 && j == -1 
-            {return Err("Invalid move: There is not piece here");}
-        
-        let (i_from,j_from): (usize, usize) = (i_from as usize, j_from as usize);
-
-        let piece: Piece = self.boad.pieces[i_from][j_from];
+        // get the piece and if there is not return an error
+        let piece: &Piece = 
+            if let Some(piece) = Piece::get_piece(&from_pos, &self.board) { piece }
+            else {return Err("Invalid move: There is not piece here");}
 
         // rock situtation
         if piece.piece_type == PieceType::King && castle_situation(&piece){
             return Ok(true);
         }
-
-        if self.board.is_valid_move(from_pos, to_pos) {
-            self.board.move_piece(from_pos, to_pos);
+        
+        // if the piece can move + is moved 
+        if self.board.move_piece(from_pos, to_pos) {
+            
             self.board.history.push((
                     from_pos,
                     to_pos,
-                    self.board.pieces[self.board.squares[from_pos.row][from_pos.col].0 as usize]
-                    [self.board.squares[from_pos.row][from_pos.col].1 as usize],
+                    piece.clone()
             ));
-
+            
+            // if the king is in check due to the move
             if self.board.is_king_in_check(self.board.turn) {
                 self.undo_move();
                 return Err("Le roi est toujours en échec après ce mouvement.");
             }
+
             println!("Success!");
 
+            // check if there is a checkmate condition
             if self.board.is_checkmate(self.board.turn) {
+
                 println!(
                     "Échec et mat! Le joueur {} a gagné.",
                     if self.board.turn == Color::White {
@@ -102,18 +102,20 @@ impl Game {
                         "Blanc"
                     }
                 );
+
                 // Game End
                 return Ok(false);
             }
+
             Ok(true)
         } else {
             Err("Mouvement invalide.")
         }
     }
-
+    
     fn undo_move(&mut self) {
         if let Some((from, to, _)) = self.board.history.pop() {
-            self.board.move_piece(to, from);
+            self.board.move_piece(&to, &from);
             self.board.turn = if self.board.turn == Color::White {
                 Color::Black
             } else {

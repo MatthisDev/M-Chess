@@ -24,7 +24,7 @@ impl Position {
         Position { row, col }
     }
 
-    //Convert a Position to a String
+    // Convert a Position to a String
     pub fn to_algebraic(&self) -> String {
         format!(
             "{}{}",
