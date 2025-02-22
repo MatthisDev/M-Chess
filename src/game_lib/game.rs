@@ -31,44 +31,59 @@ impl Game {
         (from_pos, to_pos)
     }
 
-    pub fn make_move_algebraic(&mut self, moves: &str) -> Result<bool, &'static str> {
-        let (from_pos, to_pos) = Self::parse_move_str(moves);
+    fn caslte_situation(king: &Piece) -> bool {
+        
+        // Vérifier si le mouvement est un roque
+        let rook_positions = [
+            Position::new(from_pos.row, 0), // Tour côté dame
+            Position::new(from_pos.row, 7), // Tour côté roi
+        ];
 
-        if let Some(piece) = self.board.pieces
-            [self.board.squares[from_pos.row][from_pos.col].0 as usize]
-            [self.board.squares[from_pos.row][from_pos.col].1 as usize]
-        {
-            if piece.piece_type == PieceType::King {
-                // Vérifier si le mouvement est un roque
-                let rook_positions = [
-                    Position::new(from_pos.row, 0), // Tour côté dame
-                    Position::new(from_pos.row, 7), // Tour côté roi
-                ];
+        for rook_position in rook_positions.iter() {
 
-                for rook_position in rook_positions.iter() {
-                    if self.board.can_castle(from_pos, *rook_position)
-                        && (to_pos == Position::new(from_pos.row, from_pos.col - 2)
-                            || to_pos == Position::new(from_pos.row, from_pos.col + 2))
-                    {
-                        self.board.perform_castle(from_pos, *rook_position);
-                        self.board.history.push((
-                            from_pos,
-                            to_pos,
-                            self.board.pieces
-                                [self.board.squares[from_pos.row][from_pos.col].0 as usize]
-                                [self.board.squares[from_pos.row][from_pos.col].1 as usize], //Option<Piece> de la case
-                        ));
-                        return Ok(true);
-                    }
-                }
+            if (to_pos == Position::new(from_pos.row, from_pos.col - 2) ||
+                to_pos == Position::new(from_pos.row, from_pos.col + 2)) &&
+                self.board.can_castle(from_pos, *rook_position)
+            {
+                self.board.perform_castle(from_pos, *rook_position);
+                self.board.history.push((
+                        from_pos,
+                        to_pos,
+                        self.board.pieces
+                        [self.board.squares[from_pos.row][from_pos.col].0 as usize]
+                        [self.board.squares[from_pos.row][from_pos.col].1 as usize], //Option<Piece> de la case
+                ));
+                return true;
             }
         }
+
+        return false;
+    }
+
+    pub fn make_move_algebraic(&mut self, moves: &str) -> Result<bool, &'static str> {
+        let (from_pos, to_pos): (Position, Position) = Self::parse_move_str(moves);
+
+        let (i_from,j_from): (isize, isize) = self.board.squares[from_pos.row][from_pos.col];
+        
+        // check if there is piece on the point
+        if i == -1 && j == -1 
+            {return Err("Invalid move: There is not piece here");}
+        
+        let (i_from,j_from): (usize, usize) = (i_from as usize, j_from as usize);
+
+        let piece: Piece = self.boad.pieces[i_from][j_from];
+
+        // rock situtation
+        if piece.piece_type == PieceType::King && castle_situation(&piece){
+            return Ok(true);
+        }
+
         if self.board.is_valid_move(from_pos, to_pos) {
             self.board.move_piece(from_pos, to_pos);
             self.board.history.push((
-                from_pos,
-                to_pos,
-                self.board.pieces[self.board.squares[from_pos.row][from_pos.col].0 as usize]
+                    from_pos,
+                    to_pos,
+                    self.board.pieces[self.board.squares[from_pos.row][from_pos.col].0 as usize]
                     [self.board.squares[from_pos.row][from_pos.col].1 as usize],
             ));
 
