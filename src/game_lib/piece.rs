@@ -138,7 +138,7 @@ impl Piece {
         for &(row_offset, col_offset) in &offsets {
             let target: Position = Position::new(
                 (position.row as i32 + row_offset) as usize,
-                (position.col as i32 + col_offset) as usize,
+                (position.col as i32 + col_offset) as usize
             );
 
             if board.is_within_bounds(&target) {

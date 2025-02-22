@@ -108,30 +108,37 @@ impl Board {
         for row in 0..BOARD_SIZE {
             print!("{} ", 8 - row);
             for col in 0..BOARD_SIZE {
-                if let Some(piece) = self.squares[row][col] {
-                    let piece_char = match piece.piece_type {
-                        PieceType::King => 'K',
-                        PieceType::Queen => 'Q',
-                        PieceType::Rook => 'R',
-                        PieceType::Bishop => 'B',
-                        PieceType::Knight => 'N',
-                        PieceType::Pawn => 'P',
-                    };
-                    let color_char = if piece.color == Color::White {
-                        piece_char.to_ascii_uppercase()
-                    } else {
-                        piece_char.to_ascii_lowercase()
-                    };
-                    print!("{} ", color_char);
-                } else {
+                
+                let position: Position = Position::new(row, col);
+                let piece: Option<&Piece> = Piece::get_piece(&position, &self);
+                // if there is no piece
+                if piece == None { 
                     print!(". ");
+                    continue;
                 }
+                
+                let piece: &Piece = piece.unwrap();
+                let piece_char = match piece.piece_type {
+                    PieceType::King => 'K',
+                    PieceType::Queen => 'Q',
+                    PieceType::Rook => 'R',
+                    PieceType::Bishop => 'B',
+                    PieceType::Knight => 'N',
+                    PieceType::Pawn => 'P',
+                };
+
+                let color_char = if piece.color == Color::White {
+                    piece_char.to_ascii_uppercase()
+                } else {
+                    piece_char.to_ascii_lowercase()
+                };
+                print!("{} ", color_char);
             }
             println!("{}", 8 - row);
         }
         println!("  a b c d e f g h");
     }
-    
+
     // TODO
     pub fn is_attacked(&self, position: &Position, color: Color) -> bool {
         todo!()
@@ -147,7 +154,7 @@ impl Board {
             else {return false}; // handle the case when there is no piece on the cell 
 
         if self.is_valid_move(piece, to) { 
-            
+
             let (i, j): (isize, isize) = self.squares[from.row][from.col];
 
             piece.has_moved = true;
@@ -198,7 +205,7 @@ impl Board {
         }
 
         let enemie_color: usize = if color == 1 {0} else {1};
-        
+
         // check if for each piece it's not put the king in check
         for enemies_i in 0..=15 {
             let enemie_piece: &Piece = &self.pieces[enemie_color][enemie_i];
@@ -220,25 +227,25 @@ impl Board {
     // True: if the move doesn't put the ennemie's team in chess
     // False: otherwise
     fn is_move_safe(&self, to: &Position, color: Color) -> bool {
-        
+
         let enemies_piece: &Piece =
             if let Some(enemies_piece) = Piece::get_piece(to, &self) { enemies_piece }
             else { return true };
-        
+
         if  enemies_piece.piece_type == PieceType::King &&
             enemies_piece.color == color {
                 return false; 
         }
-        
+
         return true;
     }
 
     pub fn can_castle(&self, king_position: &Position, rook_position: &Position) -> bool {
-        
+
         let king: &Piece =
             if let Some(king) = Piece::get_piece(king_position, &self) { king }
             else { panic!("Where is the king, not update board") };
-        
+
         // if the rook is at its default position we continue else we can not castle
         let rook: &Piece =
             if let Some(rook) = Piece::get_piece(rook_position, &self) { rook }
