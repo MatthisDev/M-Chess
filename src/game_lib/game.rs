@@ -1,6 +1,7 @@
 use crate::game_lib::board::{Board, BOARD_SIZE};
 use crate::game_lib::piece::{Color, PieceType};
 use crate::game_lib::position::Position;
+use crate::game_lib::piece::Piece;
 
 pub struct Game {
     pub board: Board,
@@ -31,7 +32,7 @@ impl Game {
         (from_pos, to_pos)
     }
     
-    fn caslte_situation(king: &Piece) -> bool {
+    fn castle_situation(&mut self, king: &Piece, to_pos: &Position) -> bool {
         
         // Vérifier si le mouvement est un roque
         let rook_positions = [
@@ -41,17 +42,17 @@ impl Game {
 
         for rook_position in rook_positions.iter() {
 
-            if (to_pos == Position::new(king.position.row, king.position.col - 2) ||
-                to_pos == Position::new(king.position.row, king.position.col + 2)) &&
+            if (*to_pos == Position::new(king.position.row, king.position.col - 2) ||
+                *to_pos == Position::new(king.position.row, king.position.col + 2)) &&
                 self.board.can_castle(&king.position, &rook_position) {
 
                 self.board.perform_castle(&king.position, &rook_position);
                 
                 // #FIXME
                 self.board.history.push((
-                        from_pos,
-                        to_pos,
-                        king.clone() // EXCEPTIONNELLE SITUATION
+                        king.position,
+                        *to_pos,
+                        Some(king.clone()) // EXCEPTIONNELLE SITUATION
                         //Option<Piece> de la case
                 ));
                 return true;
@@ -67,20 +68,20 @@ impl Game {
         // get the piece and if there is not return an error
         let piece: &Piece = 
             if let Some(piece) = Piece::get_piece(&from_pos, &self.board) { piece }
-            else {return Err("Invalid move: There is not piece here");}
+            else {return Err("Invalid move: There is not piece here")};
 
         // rock situtation
-        if piece.piece_type == PieceType::King && castle_situation(&piece){
+        if piece.piece_type == PieceType::King && self.castle_situation(&piece, &to_pos){
             return Ok(true);
         }
         
         // if the piece can move + is moved 
-        if self.board.move_piece(from_pos, to_pos) {
+        if self.board.move_piece(&from_pos, &to_pos) {
             
             self.board.history.push((
                     from_pos,
                     to_pos,
-                    piece.clone()
+                    Some(piece.clone())
             ));
             
             // if the king is in check due to the move

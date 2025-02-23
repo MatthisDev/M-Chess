@@ -26,7 +26,7 @@ pub struct Piece {
     pub color: Color,
     pub piece_type: PieceType,
     pub has_moved: bool, //for special moves
-    position: Position,
+    pub position: Position,
 }
 
 impl Piece {
@@ -41,11 +41,13 @@ impl Piece {
     }
     
     // get the piece from a specific position
-    pub fn get_piece(postion: &Position, board: &Board) -> Option<&Piece> {
+    pub fn get_piece<'a>(position: &Position, board: &'a Board) -> Option<&'a Piece> {
         let (i, j): (isize, isize) = board.squares[position.row][position.col];
         
         // when there is no piece
         if i == -1 || j == -1 {return None;}
+
+        let (i, j): (usize, usize) = (i as usize, j as usize);
 
         return Some(&board.pieces[i][j]);
     }
@@ -137,12 +139,12 @@ impl Piece {
 
         for &(row_offset, col_offset) in &offsets {
             let target: Position = Position::new(
-                (position.row as i32 + row_offset) as usize,
-                (position.col as i32 + col_offset) as usize
+                (self.position.row as i32 + row_offset) as usize,
+                (self.position.col as i32 + col_offset) as usize
             );
 
             if board.is_within_bounds(&target) {
-                let piece: Option<&Piece> = Piece::get_piece(&target);
+                let piece: Option<&Piece> = Piece::get_piece(&target, board);
                 
                 // no piece we just put in
                 if piece == None {
@@ -224,8 +226,8 @@ impl Piece {
         //Normal moves without
         for &(row_offset, col_offset) in &offsets {
             let target: Position = Position::new(
-                (position.row as i32 + row_offset) as usize,
-                (position.col as i32 + col_offset) as usize,
+                (self.position.row as i32 + row_offset) as usize,
+                (self.position.col as i32 + col_offset) as usize,
             );
             
             if board.is_within_bounds(&target) && !board.is_attacked(&target, self.color) {
@@ -255,8 +257,8 @@ impl Piece {
         
         // all position for a possible castle 
         let rook_positions: [Position; 2] = [
-            Position::new(position.row, 0), // Tour côté dame
-            Position::new(position.row, 7), // Tour côté roi
+            Position::new(self.position.row, 0), // Tour côté dame
+            Position::new(self.position.row, 7), // Tour côté roi
         ];
 
         for rook_position in rook_positions.iter() {
@@ -286,7 +288,7 @@ impl Piece {
         moves: &mut Vec<Position>,
     ) {
         // init position the piece position
-        let mut postion: Position = Position::new(self.position.row, self.position.col);
+        let mut position: Position = Position::new(self.position.row, self.position.col);
 
         loop {
 
@@ -300,7 +302,7 @@ impl Piece {
                 break;
             }
 
-            let piece: Option<&Piece> = Piece::get_piece(position, board);
+            let piece: Option<&Piece> = Piece::get_piece(&position, board);
 
             // if no piece then we add it to the vec and continue to other position
             if piece == None {

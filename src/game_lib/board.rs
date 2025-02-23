@@ -10,7 +10,7 @@ pub struct Board {
     // tableau des pions
     //  -Blanc
     //  -Noir
-    pub pieces: [[Option<Piece>; 16]; 2],
+    pub pieces: [[Piece; 16]; 2],
     pub turn: Color,
     pub history: Vec<(Position, Position, Option<Piece>)>,
 }
@@ -49,8 +49,8 @@ impl Board {
                 Piece::new(Color::White, PieceType::Pawn, Position::new(6, 7)),
                 Piece::new(Color::White, PieceType::Rook, Position::new(7, 0)),
                 Piece::new(Color::White, PieceType::Rook, Position::new(7, 7)),
-                Piece::new(Color::White, PieceType::Knigth, Position::new(7, 1)),
-                Piece::new(Color::White, PieceType::Knigth, Position::new(7, 6)),
+                Piece::new(Color::White, PieceType::Knight, Position::new(7, 1)),
+                Piece::new(Color::White, PieceType::Knight, Position::new(7, 6)),
                 Piece::new(Color::White, PieceType::Bishop, Position::new(7, 2)),
                 Piece::new(Color::White, PieceType::Bishop, Position::new(7, 5)),
                 Piece::new(Color::White, PieceType::Queen, Position::new(7, 3)),
@@ -61,8 +61,8 @@ impl Board {
         
         // Init Pawn
         for i in 0..BOARD_SIZE {
-            squares[1][i] = (0, i);
-            squares[6][i] = (1, i);
+            squares[1][i] = (0, i as isize);
+            squares[6][i] = (1, i as isize);
         }
 
         // Inint Rooks
@@ -149,7 +149,7 @@ impl Board {
     // we dont know if there is a piece on the "from" position
     pub fn move_piece(&mut self, from: &Position, to: &Position) -> bool {
 
-        let mut piece: &Piece =
+        let mut piece: &mut Piece =
             if let Some(piece) = Piece::get_piece(from, &self) { piece } 
             else {return false}; // handle the case when there is no piece on the cell 
 
@@ -193,9 +193,9 @@ impl Board {
 
     pub fn is_king_in_check(&self, color: Color) -> bool {
         // get the king 
-        let king: &Piece = &self.pieces[color][15];
+        let king: &Piece = &self.pieces[color as usize][15];
 
-        self.is_attacked(king.position);
+        self.is_attacked(&king.position, king.color)
     }
 
     // Check if one color is in checkmate
@@ -204,11 +204,11 @@ impl Board {
             return false;
         }
 
-        let enemie_color: usize = if color == 1 {0} else {1};
+        let enemie_color: usize = if color as i32 == 1 {0} else {1};
 
         // check if for each piece it's not put the king in check
         for enemies_i in 0..=15 {
-            let enemie_piece: &Piece = &self.pieces[enemie_color][enemie_i];
+            let enemie_piece: &Piece = &self.pieces[enemie_color][enemies_i];
 
             let valid_moves: Vec<Position> = enemie_piece.valid_moves(&self);
 
