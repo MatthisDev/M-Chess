@@ -51,7 +51,7 @@ impl Piece {
 
         let (i, j): (usize, usize) = (i as usize, j as usize);
 
-        return Some(&board.pieces[i][j]);
+        Some(&board.pieces[i][j])
     }
 
     //check moves for a Piece at (x,y) depending on his type
@@ -79,24 +79,28 @@ impl Piece {
 
         // TODO: It's here where we upgrade the PAWN => If the move is out_of_bound - 1 => UPGRADE
         // if we are out of the board and there is nothing on the cell
-        if board.is_within_bounds(&forward) && board.squares[forward.row][forward.col] == (-1, -1) {
-            moves.push(forward);
+        if board.is_within_bounds(&forward) {
+            if board.squares[forward.row][forward.col] == (-1, -1) {
+                moves.push(forward);
 
-            //Check Double move forward if never moved
-            //If the move +1 or -1 is not possible then the move + 2
-            if (self.color == Color::White && self.position.row == 6)
-                || (self.color == Color::Black && self.position.row == 1)
-            {
-                let double_forward: Position = Position::new(
-                    (self.position.row as i32 + 2 * direction) as usize,
-                    self.position.col,
-                );
+                //Check Double move forward if never moved
+                //If the move +1 or -1 is not possible then the move + 2
+                if (self.color == Color::White && self.position.row == 6)
+                    || (self.color == Color::Black && self.position.row == 1)
+                {
+                    let double_forward: Position = Position::new(
+                        (self.position.row as i32 + 2 * direction) as usize,
+                        self.position.col,
+                    );
 
-                // If there is nothing on the cell the move is possible. (no need to check the out of board)
-                if board.squares[double_forward.row][double_forward.col] == (-1, -1) {
-                    moves.push(double_forward);
+                    // If there is nothing on the cell the move is possible. (no need to check the out of board)
+                    if board.squares[double_forward.row][double_forward.col] == (-1, -1) {
+                        moves.push(double_forward);
+                    }
                 }
             }
+        } else {
+            moves.push(self.position);
         }
 
         // Check Diagonal capture
@@ -167,7 +171,7 @@ impl Piece {
 
             if board.is_within_bounds(&target) {
                 let piece_option: Option<&Piece> = Piece::get_piece(&target, board);
-                let piece: Option<&Piece> = piece_option.as_deref();
+                let piece: Option<&Piece> = piece_option;
 
                 // no piece we just put in
                 if piece.is_none() {
@@ -275,7 +279,7 @@ impl Piece {
 
         for rook_position in rook_positions.iter() {
             // check if the condition are valid for a castle
-            if board.can_castle(&self.position, &rook_position) {
+            if board.can_castle(&self.position, rook_position) {
                 // new king position for castle
                 let new_king_position = if rook_position.col < self.position.col {
                     Position::new(self.position.row, self.position.col - 2)
@@ -313,7 +317,7 @@ impl Piece {
             }
 
             let piece_option: Option<&Piece> = Piece::get_piece(&position, board);
-            let piece: Option<&Piece> = piece_option.as_deref();
+            let piece: Option<&Piece> = piece_option;
 
             // if no piece then we add it to the vec and continue to other position
             if piece.is_none() {

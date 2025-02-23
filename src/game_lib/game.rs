@@ -42,15 +42,15 @@ impl Game {
         for rook_position in rook_positions.iter() {
             if (*to_pos == Position::new(king.position.row, king.position.col - 2)
                 || *to_pos == Position::new(king.position.row, king.position.col + 2))
-                && self.board.can_castle(&king.position, &rook_position)
+                && self.board.can_castle(&king.position, rook_position)
             {
-                self.board.perform_castle(&king.position, &rook_position);
+                self.board.perform_castle(&king.position, rook_position);
 
                 return true;
             }
         }
 
-        return false;
+        false
     }
 
     pub fn make_move_algebraic(&mut self, moves: &str) -> Result<bool, &'static str> {
@@ -66,7 +66,7 @@ impl Game {
         };
 
         // rock situtation
-        if piece.piece_type == PieceType::King && self.castle_situation(&piece, &to_pos) {
+        if piece.piece_type == PieceType::King && self.castle_situation(piece, &to_pos) {
             return Ok(true);
         }
 

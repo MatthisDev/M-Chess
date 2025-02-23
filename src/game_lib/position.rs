@@ -25,7 +25,7 @@ impl Position {
     }
 
     // Convert a Position to a String
-    pub fn to_algebraic(&self) -> String {
+    pub fn to_algebraic(self) -> String {
         format!(
             "{}{}",
             ('a' as usize + self.col) as u8 as char,

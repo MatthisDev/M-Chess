@@ -113,7 +113,7 @@ impl Board {
             for col in 0..BOARD_SIZE {
                 let position: Position = Position::new(row, col);
                 let piece_option: Option<&Piece> = Piece::get_piece(&position, self);
-                let piece: Option<&Piece> = piece_option.as_deref();
+                let piece: Option<&Piece> = piece_option;
 
                 // if there is no piece
                 if piece.is_none() {
@@ -160,28 +160,46 @@ impl Board {
                 return false;
             }
         };
+        if piece.piece_type == PieceType::Pawn {
+            if self.is_valid_move(piece, to) {
+                if from == to {
+                    // call upgrade
+                    let (i, j): (isize, isize) = self.squares[from.row][from.col];
 
-        if self.is_valid_move(piece, to) {
-            let (i, j): (isize, isize) = self.squares[from.row][from.col];
-
-            self.pieces[i as usize][j as usize].has_moved = true;
-            self.pieces[i as usize][j as usize].position.row = to.row;
-            self.pieces[i as usize][j as usize].position.col = to.col;
-
-            // update the case where the piece is now
-            self.squares[to.row][to.col] = (i, j);
-            // remove the old case where the piece moved
-            self.squares[from.row][from.col] = (-1, -1);
-
-            // change the turn
-            self.turn = if self.turn == Color::White {
-                Color::Black
+                    //self.pieces[i as usize][j as usize].piece_type = get_type()=>input de l'api??;
+                } else {
+                    self.move_(from, to);
+                }
+                true
             } else {
-                Color::White
-            };
-            return true;
+                false
+            }
+        } else if self.is_valid_move(piece, to) {
+            self.move_(from, to);
+            true
+        } else {
+            false
         }
-        false
+    }
+
+    fn move_(&mut self, from: &Position, to: &Position) {
+        let (i, j): (isize, isize) = self.squares[from.row][from.col];
+
+        self.pieces[i as usize][j as usize].has_moved = true;
+        self.pieces[i as usize][j as usize].position.row = to.row;
+        self.pieces[i as usize][j as usize].position.col = to.col;
+
+        // update the case where the piece is now
+        self.squares[to.row][to.col] = (i, j);
+        // remove the old case where the piece moved
+        self.squares[from.row][from.col] = (-1, -1);
+
+        // change the turn
+        self.turn = if self.turn == Color::White {
+            Color::Black
+        } else {
+            Color::White
+        };
     }
 
     // look at if piece can do the move
@@ -190,7 +208,7 @@ impl Board {
         let valid_moves: Vec<Position> = piece.valid_moves(self);
 
         // if the move to do is in the valid move
-        valid_moves.contains(&to)
+        valid_moves.contains(to)
     }
 
     pub fn is_within_bounds(&self, position: &Position) -> bool {
@@ -245,7 +263,7 @@ impl Board {
             return false;
         }
 
-        return true;
+        true
     }
 
     pub fn can_castle(&self, king_position: &Position, rook_position: &Position) -> bool {
@@ -356,8 +374,4 @@ impl Board {
             Color::White
         };
     }
-
-    //fn upgrade()
-    //
-    //
 }
