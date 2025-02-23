@@ -41,7 +41,7 @@ impl Piece {
     }
     
     // get the piece from a specific position
-    pub fn get_piece<'a>(position: &Position, board: &'a Board) -> Option<&'a Piece> {
+    pub fn get_piece<'a>(position: &Position, board: &'a mut Board) -> Option<&'a mut Piece> {
         let (i, j): (isize, isize) = board.squares[position.row][position.col];
         
         // when there is no piece
@@ -49,11 +49,11 @@ impl Piece {
 
         let (i, j): (usize, usize) = (i as usize, j as usize);
 
-        return Some(&board.pieces[i][j]);
+        return Some(&mut board.pieces[i][j]);
     }
     
     //check moves for a Piece at (x,y) depending on his type
-    pub fn valid_moves(&self, board: &Board) -> Vec<Position> {
+    pub fn valid_moves(&self, board: &mut Board) -> Vec<Position> {
         match self.piece_type {
             PieceType::Pawn => self.valid_moves_pawn(board),
             PieceType::Knight => self.valid_moves_knight(board),
@@ -65,7 +65,7 @@ impl Piece {
     }
     
     //Pawn---------------------------------------------------------------------------------
-    fn valid_moves_pawn(&self, board: &Board) -> Vec<Position> {
+    fn valid_moves_pawn(&self, board: &mut Board) -> Vec<Position> {
         let mut moves: Vec<Position> = Vec::new();
         let direction: i32 = if self.color == Color::White { -1 } else { 1 };
 
@@ -124,7 +124,7 @@ impl Piece {
     }
     //-------------------------------------------------------------------------------------
     //Knight-------------------------------------------------------------------------------
-    fn valid_moves_knight(&self, board: &Board) -> Vec<Position> {
+    fn valid_moves_knight(&self, board: &mut Board) -> Vec<Position> {
         let mut moves: Vec<Position> = Vec::new();
         let offsets: [(i32, i32); 8] = [
             (-2, -1),
@@ -144,10 +144,11 @@ impl Piece {
             );
 
             if board.is_within_bounds(&target) {
-                let piece: Option<&Piece> = Piece::get_piece(&target, board);
+                let piece_option: Option<&mut Piece> = Piece::get_piece(&target, board);
+                let piece: Option<&Piece> = piece_option.as_deref();
                 
                 // no piece we just put in
-                if piece == None {
+                if piece.is_none(){
                     moves.push(target);
                     continue;
                 }
@@ -165,7 +166,7 @@ impl Piece {
 
     //------------------------------------------------------------------------------------
     //Bishop------------------------------------------------------------------------------
-    fn valid_moves_bishop(&self, board: &Board) -> Vec<Position> {
+    fn valid_moves_bishop(&self, board: &mut Board) -> Vec<Position> {
         let mut moves: Vec<Position> = Vec::new();
         
         let offsets: [(i32, i32); 4] = [
@@ -183,7 +184,7 @@ impl Piece {
     }
     //-------------------------------------------------------------------------------------
     //Rook---------------------------------------------------------------------------------
-    fn valid_moves_rook(&self, board: &Board) -> Vec<Position> {
+    fn valid_moves_rook(&self, board: &mut Board) -> Vec<Position> {
         let mut moves: Vec<Position> = Vec::new();
         
         let offsets: [(i32, i32); 4] = [
@@ -202,14 +203,14 @@ impl Piece {
     //--------------------------------------------------------------------------------------
     //Queen---------------------------------------------------------------------------------
     //mix of Rook and Bishop
-    fn valid_moves_queen(&self, board: &Board) -> Vec<Position> {
+    fn valid_moves_queen(&self, board: &mut Board) -> Vec<Position> {
         let mut moves: Vec<Position> = self.valid_moves_bishop(board);
         moves.extend(self.valid_moves_rook(board)); //add rook moves to  bishop moves from this position
         moves
     }
     //---------------------------------------------------------------------------------------
     //King-----------------------------------------------------------------------------------
-    fn valid_moves_king(&self, board: &Board) -> Vec<Position> {
+    fn valid_moves_king(&self, board: &mut Board) -> Vec<Position> {
         let mut moves: Vec<Position> = Vec::new();
 
         let offsets: [(i32, i32); 8] = [
@@ -235,7 +236,7 @@ impl Piece {
                 // get the piece if there is no piece just add the position
                 // TODO we add the position but no check if it's push the king in check
                 let piece: &Piece =
-                    if let Some(piece) = Piece::get_piece(&target, &board) { piece }
+                    if let Some(piece) = Piece::get_piece(&target, board) { piece }
                     else { 
                         moves.push(target);
                         continue 
@@ -282,7 +283,7 @@ impl Piece {
     //Check move for all cases in a direction until it a move is valid
     fn explore_direction(
         &self,
-        board: &Board,
+        board: &mut Board,
         row_offset: i32,
         col_offset: i32,
         moves: &mut Vec<Position>,
@@ -302,10 +303,11 @@ impl Piece {
                 break;
             }
 
-            let piece: Option<&Piece> = Piece::get_piece(&position, board);
+            let piece_option: Option<&mut Piece> = Piece::get_piece(&position, board);
+            let piece: Option<&Piece> = piece_option.as_deref();
 
             // if no piece then we add it to the vec and continue to other position
-            if piece == None {
+            if piece.is_none(){
                 moves.push(position);
                 continue;
             }

@@ -67,7 +67,7 @@ impl Game {
         
         // get the piece and if there is not return an error
         let piece: &Piece = 
-            if let Some(piece) = Piece::get_piece(&from_pos, &self.board) { piece }
+            if let Some(piece) = Piece::get_piece(&from_pos, &mut self.board) { piece }
             else {return Err("Invalid move: There is not piece here")};
 
         // rock situtation

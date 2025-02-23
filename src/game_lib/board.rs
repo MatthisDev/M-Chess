@@ -103,16 +103,18 @@ impl Board {
 
     // #FIXME
     // display in the terminal the board
-    pub fn print_board(&self) {
+    pub fn print_board(&mut self) {
         println!("  a b c d e f g h");
         for row in 0..BOARD_SIZE {
             print!("{} ", 8 - row);
             for col in 0..BOARD_SIZE {
                 
                 let position: Position = Position::new(row, col);
-                let piece: Option<&Piece> = Piece::get_piece(&position, &self);
+                let piece_option: Option<&mut Piece> = Piece::get_piece(&position, self);
+                let piece: Option<&Piece> = piece_option.as_deref();
+
                 // if there is no piece
-                if piece == None { 
+                if piece.is_none(){ 
                     print!(". ");
                     continue;
                 }
@@ -149,13 +151,18 @@ impl Board {
     // we dont know if there is a piece on the "from" position
     pub fn move_piece(&mut self, from: &Position, to: &Position) -> bool {
 
-        let mut piece: &mut Piece =
-            if let Some(piece) = Piece::get_piece(from, &self) { piece } 
-            else {return false}; // handle the case when there is no piece on the cell 
+        let mut piece = {
+            // Scope temporaire pour l'emprunt mutable de `self`
+            if let Some(piece) = Piece::get_piece(from, self) {
+                piece
+            } else {
+                return false;
+            }
+        };
 
-        if self.is_valid_move(piece, to) { 
+        if Board::is_valid_move(self, piece, to) { 
 
-            let (i, j): (isize, isize) = self.squares[from.row][from.col];
+            let (mut i, mut j): (isize, isize) = self.squares[from.row][from.col];
 
             piece.has_moved = true;
             piece.position.row = to.row;
@@ -178,10 +185,10 @@ impl Board {
     }
 
     // look at if piece can do the move
-    pub fn is_valid_move(&self, piece: &Piece, to: &Position) -> bool {
+    pub fn is_valid_move(&mut self, piece: &Piece, to: &Position) -> bool {
 
         // get all the valid moves on this postion
-        let valid_moves: Vec<Position> = piece.valid_moves(&self);
+        let valid_moves: Vec<Position> = piece.valid_moves(self);
 
         // if the move to do is in the valid move
         valid_moves.contains(&to)
@@ -199,7 +206,7 @@ impl Board {
     }
 
     // Check if one color is in checkmate
-    pub fn is_checkmate(&self, color: Color) -> bool {
+    pub fn is_checkmate(&mut self, color: Color) -> bool {
         if !self.is_king_in_check(color) {
             return false;
         }
@@ -210,7 +217,7 @@ impl Board {
         for enemies_i in 0..=15 {
             let enemie_piece: &Piece = &self.pieces[enemie_color][enemies_i];
 
-            let valid_moves: Vec<Position> = enemie_piece.valid_moves(&self);
+            let valid_moves: Vec<Position> = enemie_piece.valid_moves(self);
 
             // check if for all the valid move there is one move that put the king in check
             for mv in valid_moves {
@@ -226,10 +233,10 @@ impl Board {
     // #FIXME (concept issue)
     // True: if the move doesn't put the ennemie's team in chess
     // False: otherwise
-    fn is_move_safe(&self, to: &Position, color: Color) -> bool {
+    fn is_move_safe(&mut self, to: &Position, color: Color) -> bool {
 
         let enemies_piece: &Piece =
-            if let Some(enemies_piece) = Piece::get_piece(to, &self) { enemies_piece }
+            if let Some(enemies_piece) = Piece::get_piece(to, self) { enemies_piece }
             else { return true };
 
         if  enemies_piece.piece_type == PieceType::King &&
@@ -240,15 +247,15 @@ impl Board {
         return true;
     }
 
-    pub fn can_castle(&self, king_position: &Position, rook_position: &Position) -> bool {
+    pub fn can_castle(&mut self, king_position: &Position, rook_position: &Position) -> bool {
 
         let king: &Piece =
-            if let Some(king) = Piece::get_piece(king_position, &self) { king }
+            if let Some(king) = Piece::get_piece(king_position, self) { king }
             else { panic!("Where is the king, not update board") };
 
         // if the rook is at its default position we continue else we can not castle
         let rook: &Piece =
-            if let Some(rook) = Piece::get_piece(rook_position, &self) { rook }
+            if let Some(rook) = Piece::get_piece(rook_position, self) { rook }
             else { return false };
 
         // Vérifier que le roi et la tour n'ont pas bougé
