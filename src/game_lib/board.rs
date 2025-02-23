@@ -12,7 +12,7 @@ pub struct Board {
     //  -Noir
     pub pieces: [[Piece; 16]; 2],
     pub turn: Color,
-    pub history: Vec<(Position, Position, Option<Piece>)>,
+    pub history: Vec<(Position, Position, PieceType, (usize, usize))>,
 }
 
 impl Board {
@@ -21,7 +21,8 @@ impl Board {
             [[(-1, -1); BOARD_SIZE]; BOARD_SIZE];
 
         //pieces [0] => Black //piece [1] =>White
-        let mut pieces: [[Piece; 16]; 2] = [[
+        let mut pieces: [[Piece; 16]; 2] = [
+            [
                 Piece::new(Color::Black, PieceType::Pawn, Position::new(1, 0)),
                 Piece::new(Color::Black, PieceType::Pawn, Position::new(1, 1)),
                 Piece::new(Color::Black, PieceType::Pawn, Position::new(1, 2)),
@@ -38,7 +39,8 @@ impl Board {
                 Piece::new(Color::Black, PieceType::Bishop, Position::new(0, 5)),
                 Piece::new(Color::Black, PieceType::Queen, Position::new(0, 3)),
                 Piece::new(Color::Black, PieceType::King, Position::new(0, 4)),
-                ],[
+            ],
+            [
                 Piece::new(Color::White, PieceType::Pawn, Position::new(6, 0)),
                 Piece::new(Color::White, PieceType::Pawn, Position::new(6, 1)),
                 Piece::new(Color::White, PieceType::Pawn, Position::new(6, 2)),
@@ -55,10 +57,11 @@ impl Board {
                 Piece::new(Color::White, PieceType::Bishop, Position::new(7, 5)),
                 Piece::new(Color::White, PieceType::Queen, Position::new(7, 3)),
                 Piece::new(Color::White, PieceType::King, Position::new(7, 4)),
-                ]]; 
-        
+            ],
+        ];
+
         // Put each piece in its cell on the board
-        
+
         // Init Pawn
         for i in 0..BOARD_SIZE {
             squares[1][i] = (0, i as isize);
@@ -86,7 +89,7 @@ impl Board {
         squares[7][2] = (1, 12); // white
         squares[7][5] = (1, 13); // white
 
-        // Init Kings and Queens 
+        // Init Kings and Queens
         squares[0][3] = (0, 14); // black
         squares[0][4] = (0, 15); // black
 
@@ -108,17 +111,16 @@ impl Board {
         for row in 0..BOARD_SIZE {
             print!("{} ", 8 - row);
             for col in 0..BOARD_SIZE {
-                
                 let position: Position = Position::new(row, col);
-                let piece_option: Option<&mut Piece> = Piece::get_piece(&position, self);
+                let piece_option: Option<&Piece> = Piece::get_piece(&position, self);
                 let piece: Option<&Piece> = piece_option.as_deref();
 
                 // if there is no piece
-                if piece.is_none(){ 
+                if piece.is_none() {
                     print!(". ");
                     continue;
                 }
-                
+
                 let piece: &Piece = piece.unwrap();
                 let piece_char = match piece.piece_type {
                     PieceType::King => 'K',
@@ -150,8 +152,7 @@ impl Board {
     // must be to position in args because:
     // we dont know if there is a piece on the "from" position
     pub fn move_piece(&mut self, from: &Position, to: &Position) -> bool {
-
-        let mut piece = {
+        let piece = {
             // Scope temporaire pour l'emprunt mutable de `self`
             if let Some(piece) = Piece::get_piece(from, self) {
                 piece
@@ -160,13 +161,12 @@ impl Board {
             }
         };
 
-        if Board::is_valid_move(self, piece, to) { 
+        if self.is_valid_move(piece, to) {
+            let (i, j): (isize, isize) = self.squares[from.row][from.col];
 
-            let (mut i, mut j): (isize, isize) = self.squares[from.row][from.col];
-
-            piece.has_moved = true;
-            piece.position.row = to.row;
-            piece.position.col = to.col;
+            self.pieces[i as usize][j as usize].has_moved = true;
+            self.pieces[i as usize][j as usize].position.row = to.row;
+            self.pieces[i as usize][j as usize].position.col = to.col;
 
             // update the case where the piece is now
             self.squares[to.row][to.col] = (i, j);
@@ -185,8 +185,7 @@ impl Board {
     }
 
     // look at if piece can do the move
-    pub fn is_valid_move(&mut self, piece: &Piece, to: &Position) -> bool {
-
+    pub fn is_valid_move(&self, piece: &Piece, to: &Position) -> bool {
         // get all the valid moves on this postion
         let valid_moves: Vec<Position> = piece.valid_moves(self);
 
@@ -199,31 +198,33 @@ impl Board {
     }
 
     pub fn is_king_in_check(&self, color: Color) -> bool {
-        // get the king 
+        // get the king
         let king: &Piece = &self.pieces[color as usize][15];
 
         self.is_attacked(&king.position, king.color)
     }
 
     // Check if one color is in checkmate
-    pub fn is_checkmate(&mut self, color: Color) -> bool {
+    pub fn is_checkmate(&self, color: Color) -> bool {
         if !self.is_king_in_check(color) {
             return false;
         }
 
-        let enemie_color: usize = if color as i32 == 1 {0} else {1};
+        let enemie_color: usize = if color as i32 == 1 { 0 } else { 1 };
 
         // check if for each piece it's not put the king in check
         for enemies_i in 0..=15 {
-            let enemie_piece: &Piece = &self.pieces[enemie_color][enemies_i];
+            let enemie_piece: &Piece = { &self.pieces[enemie_color][enemies_i] };
 
-            let valid_moves: Vec<Position> = enemie_piece.valid_moves(self);
+            let valid_moves: Vec<Position> = { enemie_piece.valid_moves(self) };
 
             // check if for all the valid move there is one move that put the king in check
             for mv in valid_moves {
-                // if the move is safe 
+                // if the move is safe
                 // FIXME
-                if !self.is_move_safe(&mv, color) {return true;}
+                if !self.is_move_safe(&mv, color) {
+                    return true;
+                }
             }
         }
 
@@ -233,30 +234,32 @@ impl Board {
     // #FIXME (concept issue)
     // True: if the move doesn't put the ennemie's team in chess
     // False: otherwise
-    fn is_move_safe(&mut self, to: &Position, color: Color) -> bool {
+    fn is_move_safe(&self, to: &Position, color: Color) -> bool {
+        let enemies_piece: &Piece = if let Some(enemies_piece) = Piece::get_piece(to, self) {
+            enemies_piece
+        } else {
+            return true;
+        };
 
-        let enemies_piece: &Piece =
-            if let Some(enemies_piece) = Piece::get_piece(to, self) { enemies_piece }
-            else { return true };
-
-        if  enemies_piece.piece_type == PieceType::King &&
-            enemies_piece.color == color {
-                return false; 
+        if enemies_piece.piece_type == PieceType::King && enemies_piece.color == color {
+            return false;
         }
 
         return true;
     }
 
-    pub fn can_castle(&mut self, king_position: &Position, rook_position: &Position) -> bool {
-
-        let king: &Piece =
-            if let Some(king) = Piece::get_piece(king_position, self) { king }
-            else { panic!("Where is the king, not update board") };
-
+    pub fn can_castle(&self, king_position: &Position, rook_position: &Position) -> bool {
+        let king: &Piece = if let Some(king) = Piece::get_piece(king_position, self) {
+            king
+        } else {
+            panic!("Where is the king, not update board")
+        };
         // if the rook is at its default position we continue else we can not castle
-        let rook: &Piece =
-            if let Some(rook) = Piece::get_piece(rook_position, self) { rook }
-            else { return false };
+        let rook: &Piece = if let Some(rook) = Piece::get_piece(rook_position, self) {
+            rook
+        } else {
+            return false;
+        };
 
         // Vérifier que le roi et la tour n'ont pas bougé
         if king.has_moved || rook.has_moved {
@@ -271,11 +274,11 @@ impl Board {
         };
 
         // for each cell between the king and the rook
-        for col in min_col..max_col { 
+        for col in min_col..max_col {
             let pos = Position::new(king.position.row, col);
 
             // we check if there is piece on it
-            if self.squares[king.position.row][col] != (-1, -1){
+            if self.squares[king.position.row][col] != (-1, -1) {
                 return false;
             }
             // and if not, if the cell is attacked
@@ -293,7 +296,6 @@ impl Board {
     }
 
     pub fn perform_castle(&mut self, king_position: &Position, rook_position: &Position) {
-
         let new_king_position: Position = if rook_position.col < king_position.col {
             // Grand roque
             Position::new(king_position.row, king_position.col - 2)
@@ -310,9 +312,49 @@ impl Board {
             Position::new(rook_position.row, rook_position.col - 2)
         };
 
+        //get pieces
+        let (x_king, y_king): (isize, isize) = self.squares[king_position.row][king_position.col];
+        let mut king = self.pieces[x_king as usize][y_king as usize];
+        let (x_rook, y_rook): (isize, isize) = self.squares[rook_position.row][rook_position.col];
+        let mut rook = self.pieces[x_rook as usize][y_rook as usize];
+
+        //update history
+        self.history.push((
+            king.position,
+            new_king_position,
+            PieceType::King,
+            (x_king as usize, y_king as usize), // EXCEPTIONNELLE SITUATION
+                                                //Option<Piece> de la case
+        ));
+
+        self.history.push((
+            rook.position,
+            new_rook_position,
+            PieceType::Rook,
+            (x_rook as usize, y_rook as usize), // EXCEPTIONNELLE SITUATION
+                                                //Option<Piece> de la case
+        ));
         // Déplacer le roi et la tour
-        self.move_piece(king_position, &new_king_position);
-        self.move_piece(rook_position, &new_rook_position);
+        king.has_moved = true;
+        king.position.row = new_king_position.row;
+        king.position.col = new_king_position.col;
+
+        // update the case where the king is now
+        self.squares[new_king_position.row][new_king_position.col] = (x_king, y_king);
+        // remove the old case where the king moved
+        self.squares[king_position.row][king_position.col] = (-1, -1);
+
+        // update the case where the rook is now
+        self.squares[new_rook_position.row][new_rook_position.col] = (x_rook, y_rook);
+        // remove the old case where the rook moved
+        self.squares[rook_position.row][rook_position.col] = (-1, -1);
+
+        // change the turn
+        self.turn = if self.turn == Color::White {
+            Color::Black
+        } else {
+            Color::White
+        };
     }
 
     //fn upgrade()
