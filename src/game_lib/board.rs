@@ -229,6 +229,8 @@ impl Board {
         self.is_attacked(&king.position, king.color)
     }
 
+
+    // FIXME
     // Check if one color is in checkmate => no moves available and attacked
     //color of the king of the team to play
     pub fn is_checkmate(&self, color: Color) -> bool {
@@ -241,7 +243,11 @@ impl Board {
         //=> à utiliser pour le path <=> is_checkmate sans le check ('_')
         //TODO remove la suite + faire les comment au dessus
 
-        false
+        let king = self.pieces[color as usize][15];
+        let set_of_move = king.valid_moves(self);
+        
+        // if the king can move
+        return set_of_move.len() == 0;
     }
 
     pub fn is_pat(&self, color: Color) -> bool {

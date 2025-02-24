@@ -66,6 +66,34 @@ impl Piece {
         }
     }
 
+    /*     
+    fn put_in_check(&mut self, target: &Position, board: &mut Board) -> bool {
+        // magic value = -1 FIXME
+        if board.squares[target.col][target.row] == (-1, -1) {
+
+            let save_1: Position = self.position.clone();
+            let (x,y ) = board.squares[self.position.row][self.position.col];
+
+            board.squares[target.row][target.col] = (x, y);
+            board.squares[self.position.row][self.position.col] = (-1, -1);
+
+            
+        }
+        // need to save temp
+        else{
+            let target_position = board.squares[target.row][target.col];
+            
+            let save_1: Position = self.position.clone();
+            let (x,y ) = board.squares[self.position.row][self.position.col];
+
+            board.squares[target.row][target.col] = (x, y);
+            board.squares[self.position.row][self.position.col] = (-1, -1);
+        }
+
+        true
+    }
+    */
+
     //Pawn---------------------------------------------------------------------------------
     fn valid_moves_pawn(&self, board: &Board) -> Vec<Position> {
         let mut moves: Vec<Position> = Vec::new();
@@ -80,9 +108,10 @@ impl Piece {
         // TODO: It's here where we upgrade the PAWN => If the move is out_of_bound - 1 => UPGRADE
         // if we are out of the board and there is nothing on the cell
         if board.is_within_bounds(&forward) {
+
             if board.squares[forward.row][forward.col] == (-1, -1) {
                 moves.push(forward);
-
+                
                 //Check Double move forward if never moved
                 //If the move +1 or -1 is not possible then the move + 2
                 if (self.color == Color::White && self.position.row == 6)

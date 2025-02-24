@@ -23,7 +23,7 @@ impl Game {
 
         // cannot send
         if count != 6 || &move_piece[2..=3] != "->" {
-            panic!("parse_move_str: invalid send string");
+            panic!("parse_move_str: invalid send string: <{move_piece}>");
         }
 
         let from_pos: Position = Position::from_algebraic(&move_piece[0..=1]);
@@ -108,6 +108,12 @@ impl Game {
 
                 // Game End
                 return Ok(false);
+            }
+
+            // PAT SITUATION
+            if self.board.is_pat(self.board.turn) {
+                println!("PAT! AUCUN JOUEUR GAGNE.");
+                return Ok(false);      
             }
 
             Ok(true)
