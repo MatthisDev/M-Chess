@@ -25,17 +25,89 @@
             .black {
                 background-color: rgb(41, 41, 41);
             }
+            .tabs {
+                display: flex;
+                justify-content: space-around;
+                margin-bottom: 20px;
+                background-color: #f1f1f1;
+                padding: 10px;
+            }
+            .tabs button {
+                padding: 10px 20px;
+                cursor: pointer;
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 5px;
+            }
+            .tabs button:hover {
+                background-color: #45a049;
+            }
+            .tab-content {
+                display: none;
+            }
+            .tab-content.active {
+                display: block;
+            }
         </style>
     </head>
     <body>
-        <div id="app"></div>
-        <script type="module">
-            import init, { run_app } from './pkg/m_chess.js';
+        <div class="tabs">
+            <button onclick="showTab('game')">Game</button>
+            <button onclick="showTab('presentation')">Presentation</button>
+            <button onclick="showTab('download')">Download</button>
+        </div>
+        <div id="game" class="tab-content">
+            <div id="app"></div>
+        </div>
+        <div id="presentation" class="tab-content">
+            <h2>Presentation</h2>
+            <p>Information about the group and the project.</p>
+        </div>
+        <div id="download" class="tab-content">
+            <h2>Download</h2>
+            <a href="path/to/download">Download the game</a>
+        </div>
+        <script>
+            // Define appInitialized in a non-module script
+            let appInitialized = false;
+
+            // Define showTab in a non-module script
+            window.showTab = function(tabId) {
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.getElementById(tabId).classList.add('active');
+
+                if (tabId === 'game' && !appInitialized) {
+                    main();
+                }
+            };
+
+            // Define main in a non-module script
             async function main() {
-                await init();
-                run_app();
+                await window.init();
+                window.start_app();
+                appInitialized = true;
             }
-            main();
+        </script>
+        <script type="module">
+            import init, { start_app } from './pkg/m_chess.js';
+
+            // Attach init and start_app to the window object
+            window.init = init;
+            window.start_app = start_app;
+
+            // Set the initial active tab
+            document.addEventListener('DOMContentLoaded', () => {
+                document.getElementById('presentation').classList.add('active');
+            });
+
+            // Ensure init is defined before calling main
+            document.addEventListener('DOMContentLoaded', async () => {
+                await init();
+                start_app();
+            });
         </script>
     </body>
 </html>

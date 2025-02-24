@@ -1,3 +1,4 @@
+use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
 enum Msg {
@@ -150,6 +151,11 @@ impl Model {
     }
 }
 
-fn main() {
+#[wasm_bindgen]
+pub fn start_app() {
     yew::start_app::<Model>();
+}
+
+fn main() {
+    // La fonction main est nécessaire pour que le compilateur Rust soit satisfait.
 }
