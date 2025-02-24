@@ -104,7 +104,6 @@ impl Board {
         }
     }
 
-    // #FIXME
     // display in the terminal the board
     pub fn print_board(&mut self) {
         println!("  a b c d e f g h");
@@ -143,9 +142,20 @@ impl Board {
         println!("  a b c d e f g h");
     }
 
-    // TODO
+    //color of the king to check
     pub fn is_attacked(&self, position: &Position, color: Color) -> bool {
-        todo!()
+        let ennemy_color = if color == Color::Black {
+            Color::White
+        } else {
+            Color::Black
+        };
+        for i in 0..16 {
+            let ennemy_moves = self.pieces[ennemy_color as usize][i].valid_moves(self);
+            if ennemy_moves.contains(position) {
+                return true;
+            }
+        }
+        false
     }
 
     // move a piece to a position
@@ -193,16 +203,12 @@ impl Board {
         self.squares[to.row][to.col] = (i, j);
         // remove the old case where the piece moved
         self.squares[from.row][from.col] = (-1, -1);
-
-        // change the turn
-        self.turn = if self.turn == Color::White {
-            Color::Black
-        } else {
-            Color::White
-        };
     }
 
     // look at if piece can do the move
+    //FIXME
+    //don't take moves that put the king in mate
+
     pub fn is_valid_move(&self, piece: &Piece, to: &Position) -> bool {
         // get all the valid moves on this postion
         let valid_moves: Vec<Position> = piece.valid_moves(self);
@@ -215,6 +221,7 @@ impl Board {
         position.row < BOARD_SIZE && position.col < BOARD_SIZE
     }
 
+    //color of the king to check
     pub fn is_king_in_check(&self, color: Color) -> bool {
         // get the king
         let king: &Piece = &self.pieces[color as usize][15];
@@ -222,47 +229,28 @@ impl Board {
         self.is_attacked(&king.position, king.color)
     }
 
-    // Check if one color is in checkmate
+    // Check if one color is in checkmate => no moves available and attacked
+    //color of the king of the team to play
     pub fn is_checkmate(&self, color: Color) -> bool {
         if !self.is_king_in_check(color) {
             return false;
         }
-
-        let enemie_color: usize = if color as i32 == 1 { 0 } else { 1 };
-
-        // check if for each piece it's not put the king in check
-        for enemies_i in 0..=15 {
-            let enemie_piece: &Piece = { &self.pieces[enemie_color][enemies_i] };
-
-            let valid_moves: Vec<Position> = { enemie_piece.valid_moves(self) };
-
-            // check if for all the valid move there is one move that put the king in check
-            for mv in valid_moves {
-                // if the move is safe
-                // FIXME
-                if !self.is_move_safe(&mv, color) {
-                    return true;
-                }
-            }
-        }
+        //Sous fonction pour check si les moves du roi sont safes
+        //pour chaques positions de ses valid moves si
+        //      dans les valids moves d'au moins un pions adverse
+        //=> à utiliser pour le path <=> is_checkmate sans le check ('_')
+        //TODO remove la suite + faire les comment au dessus
 
         false
     }
 
-    // #FIXME (concept issue)
-    // True: if the move doesn't put the ennemie's team in chess
-    // False: otherwise
-    fn is_move_safe(&self, to: &Position, color: Color) -> bool {
-        let enemies_piece: &Piece = if let Some(enemies_piece) = Piece::get_piece(to, self) {
-            enemies_piece
-        } else {
-            return true;
-        };
-
-        if enemies_piece.piece_type == PieceType::King && enemies_piece.color == color {
-            return false;
+    pub fn is_pat(&self, color: Color) -> bool {
+        for i in 0..16 {
+            let piece_moves = self.pieces[color as usize][i].valid_moves(self);
+            if !piece_moves.is_empty() {
+                return false;
+            }
         }
-
         true
     }
 

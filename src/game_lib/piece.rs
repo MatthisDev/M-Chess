@@ -249,7 +249,6 @@ impl Piece {
 
             if board.is_within_bounds(&target) && !board.is_attacked(&target, self.color) {
                 // get the piece if there is no piece just add the position
-                // TODO we add the position but no check if it's push the king in check
                 let piece: &Piece = if let Some(piece) = Piece::get_piece(&target, board) {
                     piece
                 } else {

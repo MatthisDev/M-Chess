@@ -45,7 +45,6 @@ impl Game {
                 && self.board.can_castle(&king.position, rook_position)
             {
                 self.board.perform_castle(&king.position, rook_position);
-
                 return true;
             }
         }
@@ -64,6 +63,8 @@ impl Game {
                 return Err("Invalid move: There is not piece here");
             }
         };
+        //TODO
+        // if self.board.is_king_in_check(turn) => if pion != roi || move protège le roi => false
 
         // rock situtation
         if piece.piece_type == PieceType::King && self.castle_situation(piece, &to_pos) {
@@ -82,6 +83,14 @@ impl Game {
             if self.board.is_king_in_check(self.board.turn) {
                 self.undo_move();
                 return Err("Le roi est toujours en échec après ce mouvement.");
+            }
+            // change the turn
+            else {
+                self.board.turn = if self.board.turn == Color::White {
+                    Color::Black
+                } else {
+                    Color::White
+                };
             }
 
             println!("Success!");
