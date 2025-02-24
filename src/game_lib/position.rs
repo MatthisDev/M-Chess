@@ -14,14 +14,18 @@ impl Position {
     }
 
     // convert a slice to a Position
-    pub fn from_algebraic(algebraic: &str) -> Position {
+    pub fn from_algebraic(algebraic: &str) -> Result<Position, &'static str> {
+        if !algebraic.chars().nth(0).unwrap().is_ascii_lowercase() || !algebraic.chars().nth(1).unwrap().is_ascii_digit() {
+            return Err("parse_move_str: invalid send string: <{move_piece}>");
+        }
         let col: usize = algebraic.chars().next().unwrap() as usize - 'a' as usize;
         let row: usize = 8 - (algebraic.chars().nth(1).unwrap() as usize - '0' as usize);
 
         if col >= BOARD_SIZE || row >= BOARD_SIZE {
-            panic!("Invalid algebraic notation");
+            return Err("parse_move_str: invalid send string: <{move_piece}>");
         }
-        Position { row, col }
+
+        Ok(Position { row, col })
     }
 
     // Convert a Position to a String

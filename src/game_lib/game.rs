@@ -18,18 +18,25 @@ impl Game {
      * - <coo1>-><coo2>
      * - coo1 or coo2: [a-h][1-8]
      */
-    fn parse_move_str(move_piece: &str) -> (Position, Position) {
+    fn parse_move_str(move_piece: &str) -> Result<(Position, Position), &'static str>{
         let count: usize = move_piece.chars().count();
 
         // cannot send
         if count != 6 || &move_piece[2..=3] != "->" {
-            panic!("parse_move_str: invalid send string: <{move_piece}>");
+            return Err("parse_move_str: invalid send string: <{move_piece}>");
         }
 
-        let from_pos: Position = Position::from_algebraic(&move_piece[0..=1]);
-        let to_pos: Position = Position::from_algebraic(&move_piece[4..=5]);
+        let from_pos: Result<Position, &str> = Position::from_algebraic(&move_piece[0..=1]);
+        let to_pos = Position::from_algebraic(&move_piece[4..=5]);
+        
+        if from_pos.is_err() || to_pos.is_err() {
+            return Err("parse_move_str: invalid send string: <{move_piece}>");
+        }
 
-        (from_pos, to_pos)
+        let from_pos = from_pos.unwrap();
+        let to_pos = to_pos.unwrap(); 
+
+        Ok((from_pos, to_pos))
     }
 
     fn castle_situation(&mut self, king: &Piece, to_pos: &Position) -> bool {
@@ -53,7 +60,10 @@ impl Game {
     }
 
     pub fn make_move_algebraic(&mut self, moves: &str) -> Result<bool, &'static str> {
-        let (from_pos, to_pos): (Position, Position) = Self::parse_move_str(moves);
+        let res = Self::parse_move_str(moves);
+        if res.is_err() { return Err("parse_move_str: invalid send string: <{move_piece}>"); }
+
+        let (from_pos, to_pos) = res.unwrap();
 
         // get the piece and if there is not return an error
         let piece: &Piece = {
@@ -63,6 +73,8 @@ impl Game {
                 return Err("Invalid move: There is not piece here");
             }
         };
+
+        if piece.color != self.board.turn { return Err("Mouvement invalide."); }
         //TODO
         // if self.board.is_king_in_check(turn) => if pion != roi || move protège le roi => false
 
@@ -70,19 +82,22 @@ impl Game {
         if piece.piece_type == PieceType::King && self.castle_situation(piece, &to_pos) {
             return Ok(true);
         }
-
         // if the piece can move + is moved
         if self.board.move_piece(&from_pos, &to_pos) {
+            
             //get piece coo in the pieces Vec of the board
             let (x, y): (isize, isize) = self.board.squares[to_pos.row][to_pos.col];
             self.board
                 .history
                 .push((from_pos, to_pos, piece.piece_type, (x as usize, y as usize)));
-
+            
+            
             // if the king is in check due to the move
             if self.board.is_king_in_check(self.board.turn) {
+        
                 self.undo_move();
                 return Err("Le roi est toujours en échec après ce mouvement.");
+            
             }
             // change the turn
             else {
@@ -92,9 +107,9 @@ impl Game {
                     Color::White
                 };
             }
-
+            
             println!("Success!");
-
+            
             // check if there is a checkmate condition
             if self.board.is_checkmate(self.board.turn) {
                 println!(
@@ -109,7 +124,7 @@ impl Game {
                 // Game End
                 return Ok(false);
             }
-
+            
             // PAT SITUATION
             if self.board.is_pat(self.board.turn) {
                 println!("PAT! AUCUN JOUEUR GAGNE.");

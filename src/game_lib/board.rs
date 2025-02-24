@@ -149,7 +149,7 @@ impl Board {
         } else {
             Color::Black
         };
-        for i in 0..16 {
+        for i in 0..15 {
             let ennemy_moves = self.pieces[ennemy_color as usize][i].valid_moves(self);
             if ennemy_moves.contains(position) {
                 return true;
@@ -170,6 +170,7 @@ impl Board {
                 return false;
             }
         };
+
         if piece.piece_type == PieceType::Pawn {
             if self.is_valid_move(piece, to) {
                 if from == to {
