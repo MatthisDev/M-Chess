@@ -59,7 +59,12 @@ impl Component for Model {
         board[62] = Some(Piece::BlackKnight);
         board[63] = Some(Piece::BlackRook);
 
-        Self { link, board, selected: None, last_move: None }
+        Self {
+            link,
+            board,
+            selected: None,
+            last_move: None,
+        }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
@@ -150,12 +155,13 @@ impl Model {
         }
     }
 }
-
-#[wasm_bindgen]
-pub fn start_app() {
-    yew::start_app::<Model>();
-}
+use yew::utils;
 
 fn main() {
-    // La fonction main est nécessaire pour que le compilateur Rust soit satisfait.
+    let element = utils::document()
+        .query_selector("div#app")
+        .unwrap()
+        .unwrap();
+
+    App::<Model>::new().mount(element);
 }

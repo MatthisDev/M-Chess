@@ -1,113 +1,91 @@
 <!doctype html>
 <html>
-    <head>
-        <meta charset="utf-8" />
-        <title>M-Chess</title>
-        <style>
-            .chessboard {
-                display: grid;
-                grid-template-columns: repeat(8, 50px);
-                grid-template-rows: repeat(8, 50px);
-                align-items: center;
-                justify-content: center;
-            }
-            .square {
-                width: 50px;
-                height: 50px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 24px;
-            }
-            .white {
-                background-color: rgb(173, 173, 173);
-            }
-            .black {
-                background-color: rgb(41, 41, 41);
-            }
-            .tabs {
-                display: flex;
-                justify-content: space-around;
-                margin-bottom: 20px;
-                background-color: #f1f1f1;
-                padding: 10px;
-            }
-            .tabs button {
-                padding: 10px 20px;
-                cursor: pointer;
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                border-radius: 5px;
-            }
-            .tabs button:hover {
-                background-color: #45a049;
-            }
-            .tab-content {
-                display: none;
-            }
-            .tab-content.active {
-                display: block;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="tabs">
-            <button onclick="showTab('game')">Game</button>
-            <button onclick="showTab('presentation')">Presentation</button>
-            <button onclick="showTab('download')">Download</button>
-        </div>
-        <div id="game" class="tab-content">
-            <div id="app"></div>
-        </div>
-        <div id="presentation" class="tab-content">
-            <h2>Presentation</h2>
-            <p>Information about the group and the project.</p>
-        </div>
-        <div id="download" class="tab-content">
-            <h2>Download</h2>
-            <a href="path/to/download">Download the game</a>
-        </div>
-        <script>
-            // Define appInitialized in a non-module script
-            let appInitialized = false;
 
-            // Define showTab in a non-module script
-            window.showTab = function(tabId) {
-                document.querySelectorAll('.tab-content').forEach(tab => {
-                    tab.classList.remove('active');
-                });
-                document.getElementById(tabId).classList.add('active');
+<head>
+    <meta charset="utf-8" />
+    <title>M-Chess</title>
+    <style>
+        .chessboard {
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-template-rows: repeat(8, 50px);
+            align-items: center;
+            justify-content: center;
+        }
 
-                if (tabId === 'game' && !appInitialized) {
-                    main();
-                }
-            };
+        .square {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
 
-            // Define main in a non-module script
-            async function main() {
-                await window.init();
-                window.start_app();
-                appInitialized = true;
-            }
-        </script>
-        <script type="module">
-            import init, { start_app } from './pkg/m_chess.js';
+        .white {
+            background-color: rgb(173, 173, 173);
+        }
 
-            // Attach init and start_app to the window object
-            window.init = init;
-            window.start_app = start_app;
+        .black {
+            background-color: rgb(41, 41, 41);
+        }
 
-            // Set the initial active tab
-            document.addEventListener('DOMContentLoaded', () => {
-                document.getElementById('presentation').classList.add('active');
+        .tabs {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            background-color: #f1f1f1;
+            padding: 10px;
+        }
+
+        .tabs button {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .tabs button:hover {
+            background-color: #45a049;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="tabs">
+        <button onclick="showTab('app')">Game</button>
+        <button onclick="showTab('presentation')">Presentation</button>
+        <button onclick="showTab('download')">Download</button>
+    </div>
+    <div id="app" class="tab-content active"></div>
+    <div id="presentation" class="tab-content">
+        <h2>Presentation</h2>
+        <p>Information about the group and the project.</p>
+    </div>
+    <div id="download" class="tab-content">
+        <h2>Download</h2>
+        <a href="path/to/download">Download the game</a>
+    </div>
+
+    <script>
+        // Define showTab in a non-module script
+        window.showTab = function (tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
             });
+            document.getElementById(tabId).classList.add('active');
+        };
+    </script>
+</body>
 
-            // Ensure init is defined before calling main
-            document.addEventListener('DOMContentLoaded', async () => {
-                await init();
-                start_app();
-            });
-        </script>
-    </body>
 </html>

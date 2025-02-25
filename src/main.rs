@@ -18,7 +18,6 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-// Basic API handler that responds with a JSON object
 async fn api_handler() -> Json<serde_json::Value> {
-    Json(json!({ "message": "Hello, API!" }))
+    Json(json!({ "message": "Hello, World!" }))
 }
