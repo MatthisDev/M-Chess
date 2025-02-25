@@ -22,7 +22,7 @@ fn t_game() {
                 .read_line(&mut move_user)
                 .expect("Échec de la lecture de l'entrée");
 
-        finish_game = game.make_move_algebraic(&move_user[0..6]);
+        finish_game = game.make_move_algebraic(&move_user);
         
         Command::new("clear").status().expect("Ca veut pas clear");
         game.board.print_board();

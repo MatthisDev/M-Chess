@@ -26,6 +26,8 @@ impl Game {
             return Err("parse_move_str: invalid send string: <{move_piece}>");
         }
 
+        let move_piece = &move_piece[0..6];
+
         let from_pos: Result<Position, &str> = Position::from_algebraic(&move_piece[0..=1]);
         let to_pos = Position::from_algebraic(&move_piece[4..=5]);
         

@@ -54,6 +54,8 @@ impl Piece {
         Some(&board.pieces[i][j])
     }
 
+//    pub fn remove_piece(postion: &Positiob
+
     //check moves for a Piece at (x,y) depending on his type
     pub fn valid_moves(&self, board: &Board) -> Vec<Position> {
         match self.piece_type {
@@ -105,7 +107,8 @@ impl Piece {
             self.position.col,
         );
 
-        // TODO: It's here where we upgrade the PAWN => If the move is out_of_bound - 1 => UPGRADE
+        // TODO: It's here where we upgrade the PAWN => 
+        // If the move is out_of_bound - 1 => UPGRADE
         // if we are out of the board and there is nothing on the cell
         if board.is_within_bounds(&forward) {
 
@@ -122,7 +125,8 @@ impl Piece {
                         self.position.col,
                     );
 
-                    // If there is nothing on the cell the move is possible. (no need to check the out of board)
+                    // If there is nothing on the cell the move is possible. 
+                    // (no need to check the out of board)
                     if board.squares[double_forward.row][double_forward.col] == (-1, -1) {
                         moves.push(double_forward);
                     }
