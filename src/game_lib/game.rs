@@ -22,7 +22,7 @@ impl Game {
         let count: usize = move_piece.chars().count();
 
         // cannot send
-        if count != 6 || &move_piece[2..=3] != "->" {
+        if count < 6 || &move_piece[2..=3] != "->" {
             return Err("parse_move_str: invalid send string: <{move_piece}>");
         }
 
