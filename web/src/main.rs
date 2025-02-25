@@ -1,3 +1,4 @@
+use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
 enum Msg {
@@ -58,7 +59,12 @@ impl Component for Model {
         board[62] = Some(Piece::BlackKnight);
         board[63] = Some(Piece::BlackRook);
 
-        Self { link, board, selected: None, last_move: None }
+        Self {
+            link,
+            board,
+            selected: None,
+            last_move: None,
+        }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
@@ -149,7 +155,13 @@ impl Model {
         }
     }
 }
+use yew::utils;
 
 fn main() {
-    yew::start_app::<Model>();
+    let element = utils::document()
+        .query_selector("div#app")
+        .unwrap()
+        .unwrap();
+
+    App::<Model>::new().mount(element);
 }
