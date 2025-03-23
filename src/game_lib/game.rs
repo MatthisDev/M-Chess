@@ -5,12 +5,33 @@ use crate::game_lib::position::Position;
 
 pub struct Game {
     pub board: Board,
+    pub nb_turn: usize
 }
 
 impl Game {
-    pub fn init() -> Self {
+    /// Take `bool` and create an instance of [`Game`]
+    ///
+    /// custom:
+    /// - True = init an empty board. You must add pieces.
+    /// - False = init an classic board. You cannot add new pieces.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use M_Chess::game_lib::game::Game; 
+    ///
+    /// let mut game1 = Game::init(false); 
+    /// game1.board.print_board(); // classic/full board
+    ///
+    /// let mut game2 = Game::init(true);
+    /// game2.board.print_board(); // empty board
+    /// ```
+    ///
+    /// # See more
+    /// [`Board::add_piece`] and [`Board::remove_piece`]
+    pub fn init(custom: bool) -> Self {
         Game {
-            board: Board::init(),
+            board: if custom {Board::empty_init()} else {Board::full_init()},
+            nb_turn: 0
         }
     }
     /*
@@ -40,7 +61,7 @@ impl Game {
 
         Ok((from_pos, to_pos))
     }
-
+    
     fn castle_situation(&mut self, king: &Piece, to_pos: &Position) -> bool {
         // Vérifier si le mouvement est un roque
         let rook_positions = [
@@ -60,7 +81,25 @@ impl Game {
 
         false
     }
-
+    
+    /// Try to move a [`Piece`] on the [`Board`] instance.\
+    /// Take a `String` with the format `"from_cell->to_cell"`. And cell's regex is [a-h][0-8]
+    ///
+    /// Return `Result<bool, &'static str>`
+    /// - `Ok(true)` for valid moves
+    /// - `Ok(false)` for check mat or pat moves
+    /// - `Error(...)` for invalid moves
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use M_Chess::game_lib::game::Game;
+    ///
+    /// let mut game = Game::init(false);
+    /// game.make_move_algebraic("e2->e4"); // Ok(True)
+    /// game.make_move_algebraic("e3->e4"); // Error(...)
+    /// ```
+    #[inline]
     pub fn make_move_algebraic(&mut self, moves: &str) -> Result<bool, &'static str> {
         let res = Self::parse_move_str(moves);
         if res.is_err() { return Err("parse_move_str: invalid send string: <{move_piece}>"); }

@@ -39,7 +39,7 @@ impl Piece {
             position,
         }
     }
-
+    
     // get the piece from a specific position
     pub fn get_piece<'a>(position: &Position, board: &'a Board) -> Option<&'a Piece> {
         let (i, j): (isize, isize) = board.squares[position.row][position.col];
@@ -53,8 +53,6 @@ impl Piece {
 
         Some(&board.pieces[i][j])
     }
-
-//    pub fn remove_piece(postion: &Positiob
 
     //check moves for a Piece at (x,y) depending on his type
     pub fn valid_moves(&self, board: &Board) -> Vec<Position> {

@@ -3,6 +3,7 @@ use crate::game_lib::position::Position;
 use std::array::from_fn;
 
 pub const BOARD_SIZE: usize = 8;
+pub const NONE: usize = 52;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Board {
@@ -16,7 +17,62 @@ pub struct Board {
 }
 
 impl Board {
-    pub fn init() -> Self {
+    pub fn empty_init() -> Board {
+        // init empty board
+        let mut squares: [[(isize, isize); BOARD_SIZE]; BOARD_SIZE] =
+            [[(-1, -1); BOARD_SIZE]; BOARD_SIZE];
+
+        //pieces [0] => Black //piece [1] =>White
+        let mut pieces: [[Piece; 16]; 2] = [
+            [
+                Piece::new(Color::Black, PieceType::Pawn, Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::Pawn, Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::Pawn, Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::Pawn, Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::Pawn, Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::Pawn, Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::Pawn, Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::Pawn, Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::Rook, Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::Rook, Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::Knight, Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::Knight, Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::Bishop, Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::Bishop, Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::Queen, Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::King, Position::new(NONE, NONE)),
+            ],
+            [
+                Piece::new(Color::White, PieceType::Pawn, Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::Pawn, Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::Pawn, Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::Pawn, Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::Pawn, Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::Pawn, Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::Pawn, Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::Pawn, Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::Rook, Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::Rook, Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::Knight, Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::Knight, Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::Bishop, Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::Bishop, Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::Queen, Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::King, Position::new(NONE, NONE)),
+            ],
+        ];
+
+        Board {
+            squares,
+            pieces,
+            turn: Color::White,
+            history: Vec::new(),
+        }
+    
+    }
+
+    pub fn full_init() -> Board{
+
         let mut squares: [[(isize, isize); BOARD_SIZE]; BOARD_SIZE] =
             [[(-1, -1); BOARD_SIZE]; BOARD_SIZE];
 
@@ -141,21 +197,158 @@ impl Board {
         }
         println!("  a b c d e f g h");
     }
+    
+    // In the list of one type piece find a piece which is unused.
+    fn find_unused_piece(&mut self, icolor: usize, ipiece: usize, pos: Position) -> Result<usize, &'static str>{
 
-    //color of the king to check
-    pub fn is_attacked(&self, position: &Position, color: Color) -> bool {
-        let ennemy_color = if color == Color::Black {
-            Color::White
-        } else {
-            Color::Black
-        };
-        for i in 0..15 {
-            let ennemy_moves = self.pieces[ennemy_color as usize][i].valid_moves(self);
-            if ennemy_moves.contains(position) {
-                return true;
+        let min: usize;
+        let max: usize;
+        match ipiece {
+            0 => {
+                min = 0;
+                max = 7;
+            },
+            8 => {
+                min = 8;
+                max = 9;
+            },
+            10 => {
+                min = 10;
+                max = 11;
+            },
+            12 => {
+                min = 12;
+                max = 13;
+            },
+            14 => {
+                min = 14;
+                max = 14;
+            },
+            15 => {
+                min = 15;
+                max = 15;
+            }
+            _ => return Err("Wrong string format"),
+        }
+
+        for i in min..=max {
+            if self.pieces[icolor][i].position.row == NONE ||
+                self.pieces[icolor][i].position.col == NONE {
+                return Ok(i);
             }
         }
-        false
+        
+        Err("max of this piece")
+    }
+
+    /// Take a [`String`] in the grid and add a piece if the cell is empty.\
+    /// String format: {b/w}{k/q/r/b/n/p}[a-h][0-8]
+    ///
+    ///
+    /// # Example
+    /// ```no_run
+    /// use M_Chess::game_lib::game::Game;
+    ///
+    /// let mut game = Game::init(true); // empty board
+    ///
+    /// // add black Knight in e3
+    /// game.board.add_piece("bne3"); // => Ok(true)
+    /// // cannot add in a full cell
+    /// game.board.add_piece("bne3"); // => Ok(false)
+    /// game.board.add_piece("sfwf"); // => Err("Wrong string format")
+    /// ```
+    ///
+    /// # Complexity
+    /// `O(n)`
+    pub fn add_piece(&mut self, piece_str: &str) -> Result<bool, &'static str> {
+        if piece_str.chars().count() != 4 {
+            return Err("Wrong string format");
+        }
+
+        // get color index for board.Pieces
+        let icolor: usize;
+        match &piece_str[..=0] {
+            "b" => icolor = 0,
+            "w" => icolor = 1,
+            _ => return Err("Wrong string format"),
+        }
+
+        // get piece index for board.Pieces
+        let ipiece: usize;
+        match &piece_str[1..=1] {
+            "p" => ipiece = 0,
+            "r" => ipiece = 8,
+            "n" => ipiece = 10,
+            "b" => ipiece = 12,
+            "q" => ipiece = 14,
+            "k" => ipiece = 15,
+            _ => return Err("Wrong string format"),
+        }
+
+        // get the position
+        let board_pos: Position = 
+            match Position::from_algebraic(&piece_str[2..=3]) {
+                Ok(val) => val,
+                Err(err) => return Err("Wrong string format")
+            };
+
+        // if there already a piece 
+        if self.squares[board_pos.row][board_pos.col] != (-1, -1) {
+            return Ok(false);
+        }
+        
+        let i: usize = 
+            match self.find_unused_piece(icolor, ipiece, board_pos) {
+                Ok(val) => val,
+                Err(err) => return Ok(false)
+            };
+        
+        // add the piece on the board and link squares and pieces togather
+        self.squares[board_pos.row][board_pos.col] = (icolor as isize, i as isize);
+        self.pieces[icolor][i].position = board_pos;
+
+        Ok(true)
+    }
+
+    /// Take a [`String`] in the grid and remove a piece if the cell contains it.
+    /// String format: [a-h][0-8]
+    ///
+    /// # Example
+    /// ```no_run
+    /// use M_Chess::game_lib::game::Game;
+    ///
+    /// let mut game = Game::init(false); // classic board
+    ///
+    /// game.board.remove_piece("e2"); // => Ok(true)
+    /// // cannot remove if the cell is empty
+    /// game.board.remove_piece("e2"); // => Ok(false)
+    /// game.board.remove_piece("32"); // => Err(_)
+    /// ```
+    ///
+    /// # Complexity
+    /// `O(1)`
+    pub fn remove_piece(&mut self, str_position: &str) -> Result<bool, &'static str>{
+        if str_position.chars().count() != 2 {
+            return Err("Wrong string format");     
+        }
+        
+        // get the position on the board
+        let board_pos: Position =
+            match Position::from_algebraic(str_position) {
+                Ok(val) => val,
+                Err(_) => return Err("Wrong string format"),
+            };
+     
+        let (icolor, i) = self.squares[board_pos.row][board_pos.col];
+        if icolor == -1 || i == -1 {
+            return Ok(false);
+        }
+
+        self.pieces[icolor][i].position.row = NONE;
+        self.pieces[icolor][i].position.col = NONE;
+        self.squares[board_pos.row][board_pos.col] = (-1, -1);
+
+        return 
     }
 
     // move a piece to a position
@@ -206,10 +399,25 @@ impl Board {
         self.squares[from.row][from.col] = (-1, -1);
     }
 
+    //color of the king to check
+    pub fn is_attacked(&self, position: &Position, color: Color) -> bool {
+        let ennemy_color = if color == Color::Black {
+            Color::White
+        } else {
+            Color::Black
+        };
+        for i in 0..15 {
+            let ennemy_moves = self.pieces[ennemy_color as usize][i].valid_moves(self);
+            if ennemy_moves.contains(position) {
+                return true;
+            }
+        }
+        false
+    }
+
     // look at if piece can do the move
     //FIXME
     //don't take moves that put the king in mate
-
     pub fn is_valid_move(&self, piece: &Piece, to: &Position) -> bool {
         // get all the valid moves on this postion
         let valid_moves: Vec<Position> = piece.valid_moves(self);
@@ -230,7 +438,6 @@ impl Board {
         self.is_attacked(&king.position, king.color)
     }
 
-
     // FIXME
     // Check if one color is in checkmate => no moves available and attacked
     //color of the king of the team to play
@@ -246,7 +453,7 @@ impl Board {
 
         let king = self.pieces[color as usize][15];
         let set_of_move = king.valid_moves(self);
-        
+
         // if the king can move
         return set_of_move.len() == 0;
     }
@@ -333,19 +540,19 @@ impl Board {
 
         //update history
         self.history.push((
-            king.position,
-            new_king_position,
-            PieceType::King,
-            (x_king as usize, y_king as usize), // EXCEPTIONNELLE SITUATION
-                                                //Option<Piece> de la case
+                king.position,
+                new_king_position,
+                PieceType::King,
+                (x_king as usize, y_king as usize), // EXCEPTIONNELLE SITUATION
+                                                    //Option<Piece> de la case
         ));
 
         self.history.push((
-            rook.position,
-            new_rook_position,
-            PieceType::Rook,
-            (x_rook as usize, y_rook as usize), // EXCEPTIONNELLE SITUATION
-                                                //Option<Piece> de la case
+                rook.position,
+                new_rook_position,
+                PieceType::Rook,
+                (x_rook as usize, y_rook as usize), // EXCEPTIONNELLE SITUATION
+                                                    //Option<Piece> de la case
         ));
         // Déplacer le roi et la tour
         king.has_moved = true;

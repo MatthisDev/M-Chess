@@ -3,48 +3,70 @@ use std::io;
 use std::process::Command;
 
 
-#[test]
+// #[test]
 fn t_game() {
-    let mut game = Game::init();
+
+    let mut game = Game::init(false);
 
     game.board.print_board();
-    
+
     let mut finish_game: Result<bool, &'static str> = Ok(true);
 
-    while finish_game == Ok(true) || finish_game == Err("Mouvement invalide.") || finish_game == Err("parse_move_str: invalid send string: <{move_piece}>"){
+    while finish_game == Ok(true) || 
+          finish_game == Err("Mouvement invalide.") || 
+          finish_game == Err("parse_move_str: invalid send string: <{move_piece}>"){
 
-        let mut move_user = String::new();
+                let mut move_user = String::new();
 
-        println!("Au {:?} de jouer", game.board.turn);
-        println!("Entrez votre movement: <position de depart>-><position d'arrivee>");
+                println!("Au {:?} de jouer", game.board.turn);
+                println!("Entrez votre movement: <position de depart>-><position d'arrivee>");
 
-        io::stdin()
-                .read_line(&mut move_user)
-                .expect("Échec de la lecture de l'entrée");
+                io::stdin()
+                    .read_line(&mut move_user)
+                    .expect("Échec de la lecture de l'entrée");
 
-        finish_game = game.make_move_algebraic(&move_user);
-        
-        Command::new("clear").status().expect("Ca veut pas clear");
-        game.board.print_board();
-    } 
+                finish_game = game.make_move_algebraic(&move_user);
 
+                Command::new("clear").status().expect("Ca veut pas clear");
+                game.board.print_board();
+        } 
+    
     /* 
     // Effectuer un mouvement
     if game.make_move_algebraic("e2->e4").is_ok() {
-        game.board.print_board();
+    game.board.print_board();
     }
     println!("turn:{:?}", game.board.turn);
     if game.make_move_algebraic("d7->d5").is_ok() {
-        game.board.print_board();
+    game.board.print_board();
     }
     println!("turn:{:?}", game.board.turn);
     if game.make_move_algebraic("e4->d5").is_ok() {
-        game.board.print_board();
+    game.board.print_board();
     }
     println!("turn:{:?}", game.board.turn);
     if game.make_move_algebraic("d8->d5").is_ok() {
-        game.board.print_board();
+    game.board.print_board();
     }
     */
+
+}
+
+#[test]
+fn t_game_custum() {
+
+    let mut game = Game::init(true);
+    // Game::
     
+    
+    // try to add
+    assert_eq!(game.board.add_piece("bpe1"), Ok(true));
+    assert_eq!(game.board.add_piece("bpe1"), Ok(false)); // there is already a piece there
+    assert_eq!(game.board.add_piece("sjfd").is_err(), true);
+    // assert_eq!(
+    
+    // try to remove
+    assert_eq!(game.board.remove_piece("e1"), Ok(true));
+    assert_eq!(game.board.remove_piece("e2"), Ok(false)); // nothing there
+    assert_eq!(game.board.remove_piece("").is_err(), true);
 }
