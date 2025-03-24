@@ -39,6 +39,28 @@ impl Piece {
             position,
         }
     }
+
+    pub fn to_string(&self) -> String {
+        let mut str_piece: String = String::new(); 
+        
+        if self.color == Color::Black {
+            str_piece.push('b');
+        }        
+        else {
+            str_piece.push('w');
+        }
+
+        match self.piece_type {
+            PieceType::Pawn => str_piece.push('p'),
+            PieceType::Knight => str_piece.push('k'),
+            PieceType::Bishop => str_piece.push('b'),
+            PieceType::Rook => str_piece.push('r'),
+            PieceType::Queen => str_piece.push('q'),
+            _ => str_piece.push('k')
+        }
+         
+        str_piece
+    }
     
     // get the piece from a specific position
     pub fn get_piece<'a>(position: &Position, board: &'a Board) -> Option<&'a Piece> {
@@ -52,6 +74,19 @@ impl Piece {
         let (i, j): (usize, usize) = (i as usize, j as usize);
 
         Some(&board.pieces[i][j])
+    }
+    
+    pub fn get_piece_mut<'a>(position: &Position, board: &'a mut Board) -> Option<&'a mut Piece> {
+        let (i, j): (isize, isize) = board.squares[position.row][position.col];
+
+        // when there is no piece
+        if i == -1 || j == -1 {
+            return None;
+        }
+
+        let (i, j): (usize, usize) = (i as usize, j as usize);
+
+        Some(&mut board.pieces[i][j])
     }
 
     //check moves for a Piece at (x,y) depending on his type

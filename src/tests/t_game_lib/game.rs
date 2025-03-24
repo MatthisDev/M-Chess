@@ -51,13 +51,19 @@ fn t_game() {
     */
 
 }
+#[test]
+fn t_get_list_moves () {
+
+    let mut game = Game::init(false);
+
+    assert_eq!(game.get_list_moves("e2".to_string()), Ok(vec!["e3".to_string(), "e4".to_string()]));
+    assert_eq!(game.get_list_moves("e3".to_string()), Ok(Vec::<String>::new()));
+}
 
 #[test]
-fn t_game_custum() {
+fn t_game_custom() {
 
     let mut game = Game::init(true);
-    // Game::
-    
     
     // try to add
     assert_eq!(game.board.add_piece("bpe1"), Ok(true));
@@ -69,4 +75,19 @@ fn t_game_custum() {
     assert_eq!(game.board.remove_piece("e1"), Ok(true));
     assert_eq!(game.board.remove_piece("e2"), Ok(false)); // nothing there
     assert_eq!(game.board.remove_piece("").is_err(), true);
+}
+
+#[test]
+fn t_game_get_board() {
+    let mut game = Game::init(false);
+
+    let board = game.board.get();
+
+    for i in 0..8_usize {
+        print!("|");
+        for j in 0..8_usize {
+            print!("{:?}|",board[i][j]);
+        }
+        print!("\n");
+    }
 }

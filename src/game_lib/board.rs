@@ -343,12 +343,13 @@ impl Board {
         if icolor == -1 || i == -1 {
             return Ok(false);
         }
-
+        
+        let (icolor, i) = (icolor as usize, i as usize);
         self.pieces[icolor][i].position.row = NONE;
         self.pieces[icolor][i].position.col = NONE;
         self.squares[board_pos.row][board_pos.col] = (-1, -1);
 
-        return 
+        Ok(true)
     }
 
     // move a piece to a position
@@ -397,6 +398,53 @@ impl Board {
         self.squares[to.row][to.col] = (i, j);
         // remove the old case where the piece moved
         self.squares[from.row][from.col] = (-1, -1);
+    }
+    
+    /// Return a matrix of a board. Each cell contains a [`String`].
+    /// String format:
+    /// - empty: ".."
+    /// - piece: {b/w}{p/n/b/r/q/k}
+    ///
+    /// # Example
+    /// ```no_run
+    /// use M_Chess::game_lib::game::Game;
+    /// use M_Chess::game_lib::board::BOARD_SIZE;
+    ///
+    /// let mut game = Game::init(false);
+    ///
+    /// let str_board: [[String; BOARD_SIZE]; BOARD_SIZE] = game.board.get();
+    ///
+    /// // |"br"|"bk"|"bb"|"bq"|"bk"|"bb"|"bk"|"br"|
+    /// // |"bp"|"bp"|"bp"|"bp"|"bp"|"bp"|"bp"|"bp"|
+    /// // |".."|".."|".."|".."|".."|".."|".."|".."|
+    /// // |".."|".."|".."|".."|".."|".."|".."|".."|
+    /// // |".."|".."|".."|".."|".."|".."|".."|".."|
+    /// // |".."|".."|".."|".."|".."|".."|".."|".."|
+    /// // |"wp"|"wp"|"wp"|"wp"|"wp"|"wp"|"wp"|"wp"|
+    /// // |"wr"|"wk"|"wb"|"wq"|"wk"|"wb"|"wk"|"wr"|
+    /// 
+    ///
+    /// ```
+    pub fn get(&self) -> [[String; BOARD_SIZE]; BOARD_SIZE] {
+        let mut str_board: [[String; BOARD_SIZE]; BOARD_SIZE] =
+            std::array::from_fn(|_| std::array::from_fn(|_| String::from("..")));
+
+        // iter on each cell of the board
+        for i in 0..BOARD_SIZE {
+            for j in 0..BOARD_SIZE {
+                let (icolor, ipiece) = self.squares[i][j];
+                if (icolor, ipiece) == (-1, -1) {
+                    continue;
+                }
+                
+                let (icolor, ipiece) = (icolor as usize, ipiece as usize);
+                let piece: &Piece = &self.pieces[icolor][ipiece];
+                
+                str_board[i][j] = piece.to_string();
+            }
+        }
+
+        str_board
     }
 
     //color of the king to check

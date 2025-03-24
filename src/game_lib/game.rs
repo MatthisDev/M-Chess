@@ -88,7 +88,7 @@ impl Game {
     /// Return `Result<bool, &'static str>`
     /// - `Ok(true)` for valid moves
     /// - `Ok(false)` for check mat or pat moves
-    /// - `Error(...)` for invalid moves
+    /// - `Err(_)` for invalid moves
     ///
     /// # Example
     ///
@@ -97,7 +97,7 @@ impl Game {
     ///
     /// let mut game = Game::init(false);
     /// game.make_move_algebraic("e2->e4"); // Ok(True)
-    /// game.make_move_algebraic("e3->e4"); // Error(...)
+    /// game.make_move_algebraic("e3->e4"); // Error(_)
     /// ```
     #[inline]
     pub fn make_move_algebraic(&mut self, moves: &str) -> Result<bool, &'static str> {
@@ -177,6 +177,60 @@ impl Game {
             Err("Mouvement invalide.")
         }
     }
+    
+    /// Take a `&str` with the format `"cell"`. 
+    ///
+    /// Return a `Vec` of all the movement possible for a cell.\
+    /// If the cell is empty or the `Piece` is the wrong color. Then the list will be empty.\
+    /// If the king is in check then the list is all the movement for this `Piece` that cover the king.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use M_Chess::game_lib::game::Game;
+    ///
+    /// let mut game = Game::init(false);
+    ///
+    /// game.get_list_moves("e2".to_string()); // => ["e3", "e4"]
+    /// game.get_list_moves("e3".to_string()); // => []
+    /// game.get_list_moves("e32".to_string()); // => Err(_)
+    /// ```
+    pub fn get_list_moves(&self, cell: String) -> Result<Vec<String>, &'static str>{
+         
+        let mut result: Vec<String> = Vec::<String>::new();
+
+        if cell.chars().count() != 2 {
+            return Err("Wrong string format");
+        }
+        
+        // convert into Position
+        let position: Position =
+            match Position::from_algebraic(&cell) {
+                Ok(val) => val,
+                Err(_) => return Err("Wrong string format")
+            };
+        
+        // get the piece and if there is no piece just return an empty list
+        let piece: &Piece = 
+            match Piece::get_piece(&position, &self.board) {
+                Some(val) => val,
+                None => return Ok(vec![])
+            };
+        
+        if piece.color != self.board.turn {
+            return Ok(vec![]);
+        }
+
+        let lst_moves: Vec<Position> = piece.valid_moves(&self.board);
+
+        for i in lst_moves.iter() {
+            // convert Position -> String
+            result.push(i.to_algebraic());
+        }
+
+        Ok(result)
+    }
+    
 
     fn undo_move(&mut self) {
         //undo until color change => for exeptional cases as castle or hysto empty
