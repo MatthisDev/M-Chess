@@ -9,6 +9,14 @@ pub enum Color {
     White,
     Black,
 }
+impl Color {
+    pub fn opposite(&self) -> Color {
+        match self {
+            Color::White => Color::Black,
+            Color::Black => Color::White,
+        }
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum PieceType {
@@ -18,6 +26,19 @@ pub enum PieceType {
     Bishop,
     Knight,
     Pawn,
+}
+
+impl PieceType {
+    pub fn get_value(&self) -> i32 {
+        match self {
+            PieceType::King => 1000,
+            PieceType::Queen => 9,
+            PieceType::Rook => 5,
+            PieceType::Bishop => 3,
+            PieceType::Knight => 3,
+            PieceType::Pawn => 1,
+        }
+    }
 }
 
 //class Piece
