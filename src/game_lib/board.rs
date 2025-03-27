@@ -68,11 +68,9 @@ impl Board {
             turn: Color::White,
             history: Vec::new(),
         }
-    
     }
 
-    pub fn full_init() -> Board{
-
+    pub fn full_init() -> Board {
         let mut squares: [[(isize, isize); BOARD_SIZE]; BOARD_SIZE] =
             [[(-1, -1); BOARD_SIZE]; BOARD_SIZE];
 
@@ -197,33 +195,37 @@ impl Board {
         }
         println!("  a b c d e f g h");
     }
-    
-    // In the list of one type piece find a piece which is unused.
-    fn find_unused_piece(&mut self, icolor: usize, ipiece: usize, pos: Position) -> Result<usize, &'static str>{
 
+    // In the list of one type piece find a piece which is unused.
+    fn find_unused_piece(
+        &mut self,
+        icolor: usize,
+        ipiece: usize,
+        pos: Position,
+    ) -> Result<usize, &'static str> {
         let min: usize;
         let max: usize;
         match ipiece {
             0 => {
                 min = 0;
                 max = 7;
-            },
+            }
             8 => {
                 min = 8;
                 max = 9;
-            },
+            }
             10 => {
                 min = 10;
                 max = 11;
-            },
+            }
             12 => {
                 min = 12;
                 max = 13;
-            },
+            }
             14 => {
                 min = 14;
                 max = 14;
-            },
+            }
             15 => {
                 min = 15;
                 max = 15;
@@ -232,12 +234,13 @@ impl Board {
         }
 
         for i in min..=max {
-            if self.pieces[icolor][i].position.row == NONE ||
-                self.pieces[icolor][i].position.col == NONE {
+            if self.pieces[icolor][i].position.row == NONE
+                || self.pieces[icolor][i].position.col == NONE
+            {
                 return Ok(i);
             }
         }
-        
+
         Err("max of this piece")
     }
 
@@ -286,23 +289,21 @@ impl Board {
         }
 
         // get the position
-        let board_pos: Position = 
-            match Position::from_algebraic(&piece_str[2..=3]) {
-                Ok(val) => val,
-                Err(err) => return Err("Wrong string format")
-            };
+        let board_pos: Position = match Position::from_algebraic(&piece_str[2..=3]) {
+            Ok(val) => val,
+            Err(err) => return Err("Wrong string format"),
+        };
 
-        // if there already a piece 
+        // if there already a piece
         if self.squares[board_pos.row][board_pos.col] != (-1, -1) {
             return Ok(false);
         }
-        
-        let i: usize = 
-            match self.find_unused_piece(icolor, ipiece, board_pos) {
-                Ok(val) => val,
-                Err(err) => return Ok(false)
-            };
-        
+
+        let i: usize = match self.find_unused_piece(icolor, ipiece, board_pos) {
+            Ok(val) => val,
+            Err(err) => return Ok(false),
+        };
+
         // add the piece on the board and link squares and pieces togather
         self.squares[board_pos.row][board_pos.col] = (icolor as isize, i as isize);
         self.pieces[icolor][i].position = board_pos;
@@ -327,23 +328,22 @@ impl Board {
     ///
     /// # Complexity
     /// `O(1)`
-    pub fn remove_piece(&mut self, str_position: &str) -> Result<bool, &'static str>{
+    pub fn remove_piece(&mut self, str_position: &str) -> Result<bool, &'static str> {
         if str_position.chars().count() != 2 {
-            return Err("Wrong string format");     
+            return Err("Wrong string format");
         }
-        
+
         // get the position on the board
-        let board_pos: Position =
-            match Position::from_algebraic(str_position) {
-                Ok(val) => val,
-                Err(_) => return Err("Wrong string format"),
-            };
-     
+        let board_pos: Position = match Position::from_algebraic(str_position) {
+            Ok(val) => val,
+            Err(_) => return Err("Wrong string format"),
+        };
+
         let (icolor, i) = self.squares[board_pos.row][board_pos.col];
         if icolor == -1 || i == -1 {
             return Ok(false);
         }
-        
+
         let (icolor, i) = (icolor as usize, i as usize);
         self.pieces[icolor][i].position.row = NONE;
         self.pieces[icolor][i].position.col = NONE;
@@ -399,7 +399,7 @@ impl Board {
         // remove the old case where the piece moved
         self.squares[from.row][from.col] = (-1, -1);
     }
-    
+
     /// Return a matrix of a board. Each cell contains a [`String`].
     /// String format:
     /// - empty: ".."
@@ -422,7 +422,7 @@ impl Board {
     /// // |".."|".."|".."|".."|".."|".."|".."|".."|
     /// // |"wp"|"wp"|"wp"|"wp"|"wp"|"wp"|"wp"|"wp"|
     /// // |"wr"|"wk"|"wb"|"wq"|"wk"|"wb"|"wk"|"wr"|
-    /// 
+    ///
     ///
     /// ```
     pub fn get(&self) -> [[String; BOARD_SIZE]; BOARD_SIZE] {
@@ -436,10 +436,10 @@ impl Board {
                 if (icolor, ipiece) == (-1, -1) {
                     continue;
                 }
-                
+
                 let (icolor, ipiece) = (icolor as usize, ipiece as usize);
                 let piece: &Piece = &self.pieces[icolor][ipiece];
-                
+
                 str_board[i][j] = piece.to_string();
             }
         }
@@ -503,7 +503,7 @@ impl Board {
         let set_of_move = king.valid_moves(self);
 
         // if the king can move
-        return set_of_move.len() == 0;
+        set_of_move.is_empty()
     }
 
     pub fn is_pat(&self, color: Color) -> bool {
@@ -588,19 +588,19 @@ impl Board {
 
         //update history
         self.history.push((
-                king.position,
-                new_king_position,
-                PieceType::King,
-                (x_king as usize, y_king as usize), // EXCEPTIONNELLE SITUATION
-                                                    //Option<Piece> de la case
+            king.position,
+            new_king_position,
+            PieceType::King,
+            (x_king as usize, y_king as usize), // EXCEPTIONNELLE SITUATION
+                                                //Option<Piece> de la case
         ));
 
         self.history.push((
-                rook.position,
-                new_rook_position,
-                PieceType::Rook,
-                (x_rook as usize, y_rook as usize), // EXCEPTIONNELLE SITUATION
-                                                    //Option<Piece> de la case
+            rook.position,
+            new_rook_position,
+            PieceType::Rook,
+            (x_rook as usize, y_rook as usize), // EXCEPTIONNELLE SITUATION
+                                                //Option<Piece> de la case
         ));
         // Déplacer le roi et la tour
         king.has_moved = true;
@@ -623,5 +623,12 @@ impl Board {
         } else {
             Color::White
         };
+    }
+
+    pub fn is_game_over(&self) -> bool {
+        self.is_checkmate(Color::White)
+            || self.is_checkmate(Color::Black)
+            || self.is_pat(Color::White)
+            || self.is_pat(Color::Black)
     }
 }
