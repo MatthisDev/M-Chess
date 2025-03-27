@@ -3,6 +3,7 @@ use crate::game_lib::game::*;
 use crate::game_lib::piece::Color;
 use crate::game_lib::position::Position;
 
+use super::board::NONE;
 use super::position;
 
 enum Difficulty {
@@ -42,7 +43,7 @@ impl AI {
 
             // Get all possible moves for the maximizing player
             for piece in board.pieces[Color::White as usize].iter() {
-                if piece.position.row == 15 || piece.position.col == 15 {
+                if piece.position.row == NONE || piece.position.col == NONE {
                     //todo! change value of eaten pieces
                     continue; // Skip unused pieces
                 }
@@ -66,7 +67,7 @@ impl AI {
 
             // Get all possible moves for the minimizing player
             for piece in board.pieces[Color::Black as usize].iter() {
-                if piece.position.row == 15 || piece.position.col == 15 {
+                if piece.position.row == NONE || piece.position.col == NONE {
                     //todo!  change value of eaten pieces
                     continue; // Skip unused pieces
                 }
@@ -94,7 +95,7 @@ impl AI {
 
         // Iterate over all possible moves for the AI's pieces
         for piece in board.pieces[Color::White as usize].iter() {
-            if piece.position.row == 15 || piece.position.col == 15 {
+            if piece.position.row == NONE || piece.position.col == NONE {
                 //todo! change value of eaten pieces
                 continue; // Skip unused pieces
             }

@@ -13,7 +13,7 @@ pub struct Board {
     //  -Noir
     pub pieces: [[Piece; 16]; 2],
     pub turn: Color,
-    pub history: Vec<(Position, Position, PieceType, (usize, usize))>,
+    pub history: Vec<(Position, Position, PieceType, (usize, usize), (bool))>,
 }
 
 impl Board {
@@ -250,7 +250,7 @@ impl Board {
     ///
     /// # Example
     /// ```no_run
-    /// use M_Chess::game_lib::game::Game;
+    /// use m_chess::game_lib::game::Game;
     ///
     /// let mut game = Game::init(true); // empty board
     ///
@@ -316,7 +316,7 @@ impl Board {
     ///
     /// # Example
     /// ```no_run
-    /// use M_Chess::game_lib::game::Game;
+    /// use m_chess::game_lib::game::Game;
     ///
     /// let mut game = Game::init(false); // classic board
     ///
@@ -355,13 +355,17 @@ impl Board {
     // move a piece to a position
     // must be to position in args because:
     // we dont know if there is a piece on the "from" position
-    pub fn move_piece(&mut self, from: &Position, to: &Position) -> bool {
+    pub fn move_piece(
+        &mut self,
+        from: &Position,
+        to: &Position,
+    ) -> Result<(bool, (isize, isize)), &'static str> {
         let piece = {
             // Scope temporaire pour l'emprunt mutable de `self`
             if let Some(piece) = Piece::get_piece(from, self) {
                 piece
             } else {
-                return false;
+                return Ok((false, (NONE as isize, NONE as isize)));
             }
         };
 
@@ -373,31 +377,43 @@ impl Board {
 
                     //self.pieces[i as usize][j as usize].piece_type = get_type()=>input de l'api??;
                 } else {
-                    self.move_(from, to);
+                    return Ok((true, self.move_(from, to)));
                 }
-                true
+                Ok((true, (NONE as isize, NONE as isize)))
             } else {
-                false
+                Ok((false, (NONE as isize, NONE as isize)))
             }
         } else if self.is_valid_move(piece, to) {
-            self.move_(from, to);
-            true
+            Ok((true, self.move_(from, to)))
         } else {
-            false
+            Ok((false, (NONE as isize, NONE as isize)))
         }
     }
 
-    fn move_(&mut self, from: &Position, to: &Position) {
+    fn move_(&mut self, from: &Position, to: &Position) -> (isize, isize) {
         let (i, j): (isize, isize) = self.squares[from.row][from.col];
+        let mut eat = (NONE as isize, NONE as isize);
 
         self.pieces[i as usize][j as usize].has_moved = true;
         self.pieces[i as usize][j as usize].position.row = to.row;
         self.pieces[i as usize][j as usize].position.col = to.col;
 
+        //remove eaten piece from the board
+        //TODO  Checkif works well
+        if self.squares[to.row][to.col] != (-1, -1) {
+            let (icolor, ipiece) = self.squares[to.row][to.col];
+            self.pieces[icolor as usize][ipiece as usize].position.row = NONE;
+            self.pieces[icolor as usize][ipiece as usize].position.col = NONE;
+
+            eat = (icolor, ipiece);
+        }
+
         // update the case where the piece is now
         self.squares[to.row][to.col] = (i, j);
         // remove the old case where the piece moved
         self.squares[from.row][from.col] = (-1, -1);
+
+        eat
     }
 
     /// Return a matrix of a board. Each cell contains a [`String`].
@@ -407,8 +423,8 @@ impl Board {
     ///
     /// # Example
     /// ```no_run
-    /// use M_Chess::game_lib::game::Game;
-    /// use M_Chess::game_lib::board::BOARD_SIZE;
+    /// use m_chess::game_lib::game::Game;
+    /// use m_chess::game_lib::board::BOARD_SIZE;
     ///
     /// let mut game = Game::init(false);
     ///
@@ -592,7 +608,7 @@ impl Board {
             new_king_position,
             PieceType::King,
             (x_king as usize, y_king as usize), // EXCEPTIONNELLE SITUATION
-                                                //Option<Piece> de la case
+            false,                              //Option<Piece> de la case
         ));
 
         self.history.push((
@@ -600,7 +616,7 @@ impl Board {
             new_rook_position,
             PieceType::Rook,
             (x_rook as usize, y_rook as usize), // EXCEPTIONNELLE SITUATION
-                                                //Option<Piece> de la case
+            false,                              //Option<Piece> de la case
         ));
         // Déplacer le roi et la tour
         king.has_moved = true;

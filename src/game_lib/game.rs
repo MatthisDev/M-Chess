@@ -1,11 +1,11 @@
-use crate::game_lib::board::{Board, BOARD_SIZE};
+use crate::game_lib::board::{self, Board, BOARD_SIZE, NONE};
 use crate::game_lib::piece::Piece;
 use crate::game_lib::piece::{Color, PieceType};
 use crate::game_lib::position::Position;
 
 pub struct Game {
     pub board: Board,
-    pub nb_turn: usize
+    pub nb_turn: usize,
 }
 
 impl Game {
@@ -17,9 +17,9 @@ impl Game {
     ///
     /// # Example
     /// ```no_run
-    /// use M_Chess::game_lib::game::Game; 
+    /// use m_chess::game_lib::game::Game;
     ///
-    /// let mut game1 = Game::init(false); 
+    /// let mut game1 = Game::init(false);
     /// game1.board.print_board(); // classic/full board
     ///
     /// let mut game2 = Game::init(true);
@@ -30,8 +30,12 @@ impl Game {
     /// [`Board::add_piece`] and [`Board::remove_piece`]
     pub fn init(custom: bool) -> Self {
         Game {
-            board: if custom {Board::empty_init()} else {Board::full_init()},
-            nb_turn: 0
+            board: if custom {
+                Board::empty_init()
+            } else {
+                Board::full_init()
+            },
+            nb_turn: 0,
         }
     }
     /*
@@ -39,7 +43,7 @@ impl Game {
      * - <coo1>-><coo2>
      * - coo1 or coo2: [a-h][1-8]
      */
-    fn parse_move_str(move_piece: &str) -> Result<(Position, Position), &'static str>{
+    fn parse_move_str(move_piece: &str) -> Result<(Position, Position), &'static str> {
         let count: usize = move_piece.chars().count();
 
         // cannot send
@@ -51,17 +55,17 @@ impl Game {
 
         let from_pos: Result<Position, &str> = Position::from_algebraic(&move_piece[0..=1]);
         let to_pos = Position::from_algebraic(&move_piece[4..=5]);
-        
+
         if from_pos.is_err() || to_pos.is_err() {
             return Err("parse_move_str: invalid send string: <{move_piece}>");
         }
 
         let from_pos = from_pos.unwrap();
-        let to_pos = to_pos.unwrap(); 
+        let to_pos = to_pos.unwrap();
 
         Ok((from_pos, to_pos))
     }
-    
+
     fn castle_situation(&mut self, king: &Piece, to_pos: &Position) -> bool {
         // Vérifier si le mouvement est un roque
         let rook_positions = [
@@ -81,7 +85,7 @@ impl Game {
 
         false
     }
-    
+
     /// Try to move a [`Piece`] on the [`Board`] instance.\
     /// Take a `String` with the format `"from_cell->to_cell"`. And cell's regex is [a-h][0-8]
     ///
@@ -93,7 +97,7 @@ impl Game {
     /// # Example
     ///
     /// ```no_run
-    /// use M_Chess::game_lib::game::Game;
+    /// use m_chess::game_lib::game::Game;
     ///
     /// let mut game = Game::init(false);
     /// game.make_move_algebraic("e2->e4"); // Ok(True)
@@ -102,7 +106,9 @@ impl Game {
     #[inline]
     pub fn make_move_algebraic(&mut self, moves: &str) -> Result<bool, &'static str> {
         let res = Self::parse_move_str(moves);
-        if res.is_err() { return Err("parse_move_str: invalid send string: <{move_piece}>"); }
+        if res.is_err() {
+            return Err("parse_move_str: invalid send string: <{move_piece}>");
+        }
 
         let (from_pos, to_pos) = res.unwrap();
 
@@ -115,7 +121,9 @@ impl Game {
             }
         };
 
-        if piece.color != self.board.turn { return Err("Mouvement invalide."); }
+        if piece.color != self.board.turn {
+            return Err("Mouvement invalide.");
+        }
         //TODO
         // if self.board.is_king_in_check(turn) => if pion != roi || move protège le roi => false
 
@@ -124,21 +132,32 @@ impl Game {
             return Ok(true);
         }
         // if the piece can move + is moved
-        if self.board.move_piece(&from_pos, &to_pos) {
-            
+        if let Ok((has_move, eat)) = self.board.move_piece(&from_pos, &to_pos) {
             //get piece coo in the pieces Vec of the board
             let (x, y): (isize, isize) = self.board.squares[to_pos.row][to_pos.col];
-            self.board
-                .history
-                .push((from_pos, to_pos, piece.piece_type, (x as usize, y as usize)));
-            
-            
+            if eat != (NONE as isize, NONE as isize)
+            //eat a piece while moving
+            {
+                self.board.history.push((
+                    to_pos,
+                    Position::new(NONE, NONE),
+                    self.board.pieces[eat.0 as usize][eat.1 as usize].piece_type,
+                    (eat.0 as usize, eat.1 as usize),
+                    true,
+                ));
+            }
+            self.board.history.push((
+                from_pos,
+                to_pos,
+                piece.piece_type,
+                (x as usize, y as usize),
+                false,
+            ));
+
             // if the king is in check due to the move
             if self.board.is_king_in_check(self.board.turn) {
-        
                 self.undo_move();
                 return Err("Le roi est toujours en échec après ce mouvement.");
-            
             }
             // change the turn
             else {
@@ -148,9 +167,9 @@ impl Game {
                     Color::White
                 };
             }
-            
+
             println!("Success!");
-            
+
             // check if there is a checkmate condition
             if self.board.is_checkmate(self.board.turn) {
                 println!(
@@ -165,11 +184,11 @@ impl Game {
                 // Game End
                 return Ok(false);
             }
-            
+
             // PAT SITUATION
             if self.board.is_pat(self.board.turn) {
                 println!("PAT! AUCUN JOUEUR GAGNE.");
-                return Ok(false);      
+                return Ok(false);
             }
 
             Ok(true)
@@ -177,8 +196,8 @@ impl Game {
             Err("Mouvement invalide.")
         }
     }
-    
-    /// Take a `&str` with the format `"cell"`. 
+
+    /// Take a `&str` with the format `"cell"`.
     ///
     /// Return a `Vec` of all the movement possible for a cell.\
     /// If the cell is empty or the `Piece` is the wrong color. Then the list will be empty.\
@@ -187,7 +206,7 @@ impl Game {
     /// # Example
     ///
     /// ```no_run
-    /// use M_Chess::game_lib::game::Game;
+    /// use m_chess::game_lib::game::Game;
     ///
     /// let mut game = Game::init(false);
     ///
@@ -195,28 +214,25 @@ impl Game {
     /// game.get_list_moves("e3".to_string()); // => []
     /// game.get_list_moves("e32".to_string()); // => Err(_)
     /// ```
-    pub fn get_list_moves(&self, cell: String) -> Result<Vec<String>, &'static str>{
-         
+    pub fn get_list_moves(&self, cell: String) -> Result<Vec<String>, &'static str> {
         let mut result: Vec<String> = Vec::<String>::new();
 
         if cell.chars().count() != 2 {
             return Err("Wrong string format");
         }
-        
+
         // convert into Position
-        let position: Position =
-            match Position::from_algebraic(&cell) {
-                Ok(val) => val,
-                Err(_) => return Err("Wrong string format")
-            };
-        
+        let position: Position = match Position::from_algebraic(&cell) {
+            Ok(val) => val,
+            Err(_) => return Err("Wrong string format"),
+        };
+
         // get the piece and if there is no piece just return an empty list
-        let piece: &Piece = 
-            match Piece::get_piece(&position, &self.board) {
-                Some(val) => val,
-                None => return Ok(vec![])
-            };
-        
+        let piece: &Piece = match Piece::get_piece(&position, &self.board) {
+            Some(val) => val,
+            None => return Ok(vec![]),
+        };
+
         if piece.color != self.board.turn {
             return Ok(vec![]);
         }
@@ -230,15 +246,19 @@ impl Game {
 
         Ok(result)
     }
-    
 
     fn undo_move(&mut self) {
         //undo until color change => for exeptional cases as castle or hysto empty
-        while let Some((from, to, ptype, (x, y))) = self.board.history.pop() {
+        while let Some((from, to, ptype, (x, y), eaten)) = self.board.history.pop() {
             if self.board.pieces[x][y].color != self.board.turn {
                 self.board.move_piece(&to, &from);
             } else {
-                self.board.history.push((from, to, ptype, (x, y)));
+                if eaten {
+                    self.board.squares[from.row][from.col] = (x as isize, y as isize);
+                    //  Assuiming that the piece that was eaten was the first one added to the pieces vec
+                    // so the piece that eat it has already been reversed
+                }
+                self.board.history.push((from, to, ptype, (x, y), eaten));
                 break;
             }
         }

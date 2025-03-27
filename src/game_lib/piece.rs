@@ -41,12 +41,11 @@ impl Piece {
     }
 
     pub fn to_string(&self) -> String {
-        let mut str_piece: String = String::new(); 
-        
+        let mut str_piece: String = String::new();
+
         if self.color == Color::Black {
             str_piece.push('b');
-        }        
-        else {
+        } else {
             str_piece.push('w');
         }
 
@@ -56,12 +55,12 @@ impl Piece {
             PieceType::Bishop => str_piece.push('b'),
             PieceType::Rook => str_piece.push('r'),
             PieceType::Queen => str_piece.push('q'),
-            _ => str_piece.push('k')
+            _ => str_piece.push('k'),
         }
-         
+
         str_piece
     }
-    
+
     // get the piece from a specific position
     pub fn get_piece<'a>(position: &Position, board: &'a Board) -> Option<&'a Piece> {
         let (i, j): (isize, isize) = board.squares[position.row][position.col];
@@ -75,7 +74,7 @@ impl Piece {
 
         Some(&board.pieces[i][j])
     }
-    
+
     pub fn get_piece_mut<'a>(position: &Position, board: &'a mut Board) -> Option<&'a mut Piece> {
         let (i, j): (isize, isize) = board.squares[position.row][position.col];
 
@@ -101,7 +100,7 @@ impl Piece {
         }
     }
 
-    /*     
+    /*
     fn put_in_check(&mut self, target: &Position, board: &mut Board) -> bool {
         // magic value = -1 FIXME
         if board.squares[target.col][target.row] == (-1, -1) {
@@ -112,12 +111,12 @@ impl Piece {
             board.squares[target.row][target.col] = (x, y);
             board.squares[self.position.row][self.position.col] = (-1, -1);
 
-            
+
         }
         // need to save temp
         else{
             let target_position = board.squares[target.row][target.col];
-            
+
             let save_1: Position = self.position.clone();
             let (x,y ) = board.squares[self.position.row][self.position.col];
 
@@ -140,14 +139,13 @@ impl Piece {
             self.position.col,
         );
 
-        // TODO: It's here where we upgrade the PAWN => 
+        // TODO: It's here where we upgrade the PAWN =>
         // If the move is out_of_bound - 1 => UPGRADE
         // if we are out of the board and there is nothing on the cell
         if board.is_within_bounds(&forward) {
-
             if board.squares[forward.row][forward.col] == (-1, -1) {
                 moves.push(forward);
-                
+
                 //Check Double move forward if never moved
                 //If the move +1 or -1 is not possible then the move + 2
                 if (self.color == Color::White && self.position.row == 6)
@@ -158,7 +156,7 @@ impl Piece {
                         self.position.col,
                     );
 
-                    // If there is nothing on the cell the move is possible. 
+                    // If there is nothing on the cell the move is possible.
                     // (no need to check the out of board)
                     if board.squares[double_forward.row][double_forward.col] == (-1, -1) {
                         moves.push(double_forward);
@@ -193,8 +191,8 @@ impl Piece {
         }
 
         //prise en passant
-        if let Some((from, to, ptype, _)) = board.history.first() {
-            if *ptype == PieceType::Pawn {
+        if let Some((from, to, ptype, _, t)) = board.history.last() {
+            if !t && *ptype == PieceType::Pawn {
                 //the pawn is supposed to be of the oposite color assuming that
                 //only one pawn can be move by turn for one color
                 //this is the 2 speed move of the pawn so we assume there is no piece as obstacle
