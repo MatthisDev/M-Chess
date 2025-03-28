@@ -1,6 +1,3 @@
-use std::collections;
-use std::thread::panicking;
-
 use crate::game_lib::board::Board;
 use crate::game_lib::game::*;
 use crate::game_lib::piece::{Color, PieceType};
