@@ -1,8 +1,9 @@
 use crate::game_lib::board::Board;
 use crate::game_lib::game::*;
-use crate::game_lib::piece::Color;
+use crate::game_lib::piece::{Color, PieceType};
 use crate::game_lib::position::Position;
 
+use super::board::NONE;
 use super::position;
 
 enum Difficulty {
@@ -13,15 +14,45 @@ enum Difficulty {
 
 struct AI {
     difficulty: Difficulty,
+    color: Color,
 }
 
 impl AI {
-    fn new(difficulty: Difficulty) -> Self {
-        AI { difficulty }
+    fn new(difficulty: Difficulty, color: Color) -> Self {
+        AI { difficulty, color }
     }
 
     fn evaluate_board(&self, board: &Board) -> i32 {
-        0
+        let mut score = 0;
+
+        // Add material value for white pieces (AI's pieces)
+        for piece in board.pieces[self.color as usize].iter() {
+            if piece.position.row != NONE && piece.position.col != NONE {
+                score += piece.piece_type.get_value(); // Assume `value()` returns the piece's material value
+            }
+        }
+
+        // Subtract material value for black pieces (opponent's pieces)
+        for piece in board.pieces[self.color.opposite() as usize].iter() {
+            if piece.position.row != NONE && piece.position.col != NONE {
+                score -= piece.piece_type.get_value();
+            }
+        }
+
+        // Add positional bonuses (optional)
+        for piece in board.pieces[Color::White as usize].iter() {
+            if piece.piece_type == PieceType::Pawn && piece.position.is_center() {
+                score += 10; // Bonus for pawns in the center
+            }
+        }
+
+        for piece in board.pieces[Color::Black as usize].iter() {
+            if piece.piece_type == PieceType::Pawn && piece.position.is_center() {
+                score -= 10; // Penalty for opponent's pawns in the center
+            }
+        }
+
+        score
     }
 
     fn minimax(
@@ -42,8 +73,7 @@ impl AI {
 
             // Get all possible moves for the maximizing player
             for piece in board.pieces[Color::White as usize].iter() {
-                if piece.position.row == 15 || piece.position.col == 15 {
-                    //todo! change value of eaten pieces
+                if piece.position.row == NONE || piece.position.col == NONE {
                     continue; // Skip unused pieces
                 }
 
@@ -66,8 +96,7 @@ impl AI {
 
             // Get all possible moves for the minimizing player
             for piece in board.pieces[Color::Black as usize].iter() {
-                if piece.position.row == 15 || piece.position.col == 15 {
-                    //todo!  change value of eaten pieces
+                if piece.position.row == NONE || piece.position.col == NONE {
                     continue; // Skip unused pieces
                 }
 
@@ -91,11 +120,15 @@ impl AI {
     fn get_best_move(&self, board: &Board) -> (Position, Position) {
         let mut best_move = None;
         let mut best_value = i32::MIN;
+        let depth = match self.difficulty {
+            Difficulty::Easy => 1,
+            Difficulty::Medium => 3,
+            Difficulty::Hard => 5,
+        };
 
         // Iterate over all possible moves for the AI's pieces
         for piece in board.pieces[Color::White as usize].iter() {
-            if piece.position.row == 15 || piece.position.col == 15 {
-                //todo! change value of eaten pieces
+            if piece.position.row == NONE || piece.position.col == NONE {
                 continue; // Skip unused pieces
             }
 
@@ -103,7 +136,7 @@ impl AI {
                 let mut new_board = board.clone();
                 new_board.move_piece(&piece.position, &mv);
 
-                let move_value = self.minimax(&new_board, 3, false, i32::MIN, i32::MAX); // Depth = 3
+                let move_value = self.minimax(&new_board, depth, false, i32::MIN, i32::MAX); // Depth = 3
 
                 if move_value > best_value {
                     best_value = move_value;

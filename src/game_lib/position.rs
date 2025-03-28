@@ -15,8 +15,9 @@ impl Position {
 
     // convert a slice to a Position
     pub fn from_algebraic(algebraic: &str) -> Result<Position, &'static str> {
-        if !algebraic.chars().nth(0).unwrap().is_ascii_lowercase() || 
-            !algebraic.chars().nth(1).unwrap().is_ascii_digit() {
+        if !algebraic.chars().nth(0).unwrap().is_ascii_lowercase()
+            || !algebraic.chars().nth(1).unwrap().is_ascii_digit()
+        {
             return Err("parse_move_str: invalid send string: <{move_piece}>");
         }
         let col: usize = algebraic.chars().next().unwrap() as usize - 'a' as usize;
@@ -36,5 +37,8 @@ impl Position {
             ('a' as usize + self.col) as u8 as char,
             8 - self.row
         )
+    }
+    pub fn is_center(&self) -> bool {
+        (self.row == 3 || self.row == 4) && (self.col == 3 || self.col == 4)
     }
 }
