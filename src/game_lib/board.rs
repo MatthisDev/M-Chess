@@ -269,24 +269,22 @@ impl Board {
         }
 
         // get color index for board.Pieces
-        let icolor: usize;
-        match &piece_str[..=0] {
-            "b" => icolor = 0,
-            "w" => icolor = 1,
+        let icolor: usize = match &piece_str[..=0] {
+            "b" => 0,
+            "w" => 1,
             _ => return Err("Wrong string format"),
-        }
+        };
 
         // get piece index for board.Pieces
-        let ipiece: usize;
-        match &piece_str[1..=1] {
-            "p" => ipiece = 0,
-            "r" => ipiece = 8,
-            "n" => ipiece = 10,
-            "b" => ipiece = 12,
-            "q" => ipiece = 14,
-            "k" => ipiece = 15,
+        let ipiece: usize = match &piece_str[1..=1] {
+            "p" => 0,
+            "r" => 8,
+            "n" => 10,
+            "b" => 12,
+            "q" => 14,
+            "k" => 15,
             _ => return Err("Wrong string format"),
-        }
+        };
 
         // get the position
         let board_pos: Position = match Position::from_algebraic(&piece_str[2..=3]) {
@@ -296,6 +294,7 @@ impl Board {
 
         // if there already a piece
         if self.squares[board_pos.row][board_pos.col] != (-1, -1) {
+            //FIXME new None value for empty cell (Coming SOON!!)
             return Ok(false);
         }
 

@@ -1,10 +1,16 @@
 use crate::game_lib::board::BOARD_SIZE;
 
 //class position is a tupple of usize corresponding to the position on the board
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, Eq)]
 pub struct Position {
     pub row: usize,
     pub col: usize,
+}
+
+impl PartialEq for Position {
+    fn eq(&self, other: &Self) -> bool {
+        self.row == other.row && self.col == other.col
+    }
 }
 
 impl Position {
