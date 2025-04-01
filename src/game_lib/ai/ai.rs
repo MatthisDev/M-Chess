@@ -3,8 +3,8 @@ use crate::game_lib::game::*;
 use crate::game_lib::piece::{Color, PieceType};
 use crate::game_lib::position::Position;
 
-use super::board::NONE;
-use super::position;
+use crate::game_lib::board::NONE;
+use crate::game_lib::position;
 
 enum Difficulty {
     Easy,
