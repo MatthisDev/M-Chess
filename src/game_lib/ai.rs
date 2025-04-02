@@ -27,7 +27,7 @@ impl AI {
 
         // Add material value for white pieces (AI's pieces)
         for piece in board.pieces[self.color as usize].iter() {
-            if piece.position.row != NONE && piece.position.col != NONE {
+            if piece.position.row != NONE && piece.position.col != NONE{
                 score += piece.piece_type.get_value(); // Assume `value()` returns the piece's material value
             }
         }

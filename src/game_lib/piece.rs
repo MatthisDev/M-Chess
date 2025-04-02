@@ -1,4 +1,4 @@
-use crate::game_lib::board::{Board, BOARD_SIZE};
+use crate::game_lib::board::{Board, BOARD_SIZE, NONE, EMPTY_CELL};
 use crate::game_lib::position::Position;
 
 use super::position;
@@ -6,8 +6,8 @@ use super::position;
 // Color enum for teams
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Color {
-    White,
     Black,
+    White,
 }
 impl Color {
     pub fn opposite(&self) -> Color {
@@ -42,7 +42,7 @@ impl PieceType {
 }
 
 //class Piece
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Piece {
     pub color: Color,
     pub piece_type: PieceType,
@@ -87,7 +87,7 @@ impl Piece {
         let (i, j): (isize, isize) = board.squares[position.row][position.col];
 
         // when there is no piece
-        if i == -1 || j == -1 {
+        if (i, j) == EMPTY_CELL{
             return None;
         }
 
@@ -100,7 +100,7 @@ impl Piece {
         let (i, j): (isize, isize) = board.squares[position.row][position.col];
 
         // when there is no piece
-        if i == -1 || j == -1 {
+        if (i, j) == EMPTY_CELL {
             return None;
         }
 
@@ -108,8 +108,21 @@ impl Piece {
 
         Some(&mut board.pieces[i][j])
     }
+    
+    pub fn is_valid_move(&self, board: &Board, to_pos: &Position) -> bool {
+        match self.piece_type {
+            PieceType::Pawn => self.is_valid_move_pawn(board, to_pos),
+            PieceType::Knight => self.is_valid_move_knight(board, to_pos),
+            PieceType::Bishop => self.is_valid_move_bishop(board, to_pos),
+            PieceType::Rook => self.is_valid_move_rook(board, to_pos),
+            PieceType::Queen => self.is_valid_move_queen(board, to_pos),
+            PieceType::King => self.is_valid_move_king(board, to_pos)
+        }
 
-    //check moves for a Piece at (x,y) depending on his type
+    }
+   
+    // Get list of all move possible for a specific piece
+    // The validity of the mo
     pub fn valid_moves(&self, board: &Board) -> Vec<Position> {
         match self.piece_type {
             PieceType::Pawn => self.valid_moves_pawn(board),
@@ -121,35 +134,91 @@ impl Piece {
         }
     }
 
-    /*
-    fn put_in_check(&mut self, target: &Position, board: &mut Board) -> bool {
-        // magic value = -1 FIXME
-        if board.squares[target.col][target.row] == (-1, -1) {
+    //Pawn-----------------------------------------------------------------
+    fn is_valid_move_pawn(&self, board: &Board, to_pos: &Position) -> bool{
+        let direction: i32 = if self.color == Color::White { -1 } else { 1 };
 
-            let save_1: Position = self.position.clone();
-            let (x,y ) = board.squares[self.position.row][self.position.col];
+        let forward: Position = Position::new(
+            (self.position.row as i32 + direction) as usize,
+            self.position.col
+        );
 
-            board.squares[target.row][target.col] = (x, y);
-            board.squares[self.position.row][self.position.col] = (-1, -1);
+        if board.is_within_bounds(&forward) {
+            if board.squares[forward.row][forward.col] == EMPTY_CELL {
+                if forward == *to_pos { 
+                    return true;
+                }
 
+                //Check Double move forward if never moved
+                //If the move +1 or -1 is not possible then the move + 2
+                if (self.color == Color::White && self.position.row == 6)
+                    || (self.color == Color::Black && self.position.row == 1)
+                {
+                    let double_forward: Position = Position::new(
+                        (self.position.row as i32 + 2 * direction) as usize,
+                        self.position.col,
+                    );
 
+                    // If there is nothing on the cell the move is possible.
+                    // (no need to check the out of board)
+                    if board.squares[double_forward.row][double_forward.col] == EMPTY_CELL 
+                       && forward == *to_pos {
+                        return true;
+                    }
+                }
+            }
         }
-        // need to save temp
-        else{
-            let target_position = board.squares[target.row][target.col];
 
-            let save_1: Position = self.position.clone();
-            let (x,y ) = board.squares[self.position.row][self.position.col];
 
-            board.squares[target.row][target.col] = (x, y);
-            board.squares[self.position.row][self.position.col] = (-1, -1);
+        for col_offset in &[-1, 1] {
+            let capture: Position = Position::new(
+                (self.position.row as i32 + direction) as usize,
+                (self.position.col as i32 + col_offset) as usize,
+            );
+
+            if capture != *to_pos { return false; }
+
+            if board.is_within_bounds(&capture)
+                && board.squares[capture.row][capture.col] != EMPTY_CELL {
+                // get the piece if there is
+                let piece: &Piece =
+                    match Piece::get_piece(&capture, board) {
+                        Some(piece) => piece,
+                        None => continue
+                    };
+        
+                if piece.color != self.color {
+                    return true;
+                }
+            }
         }
 
-        true
+        //prise en passant
+        if let Some((from, to, ptype, _, t)) = board.history.last() {
+            if !t && *ptype == PieceType::Pawn {
+
+                if (self.color == Color::White
+                    && self.position.row == 3
+                    && from.row == 1
+                    && to.row == 3)
+                    || (self.color == Color::Black
+                        && self.position.row == 5
+                        && from.row == 6
+                        && to.row == 4)
+                {
+                    let pos: Position = Position::new(to.row - 1, to.col);
+                    
+                    if pos == *to_pos {
+                        return true;
+                    }
+
+                }
+            }
+        }
+
+        false
     }
-    */
 
-    //Pawn---------------------------------------------------------------------------------
     fn valid_moves_pawn(&self, board: &Board) -> Vec<Position> {
         let mut moves: Vec<Position> = Vec::new();
         let direction: i32 = if self.color == Color::White { -1 } else { 1 };
@@ -184,9 +253,8 @@ impl Piece {
                     }
                 }
             }
-        } else {
-            moves.push(self.position);
         }
+        // TODO UPGRADE HERE.
 
         // Check Diagonal capture
         for col_offset in &[-1, 1] {
@@ -196,8 +264,7 @@ impl Piece {
             );
 
             if board.is_within_bounds(&capture)
-                && board.squares[capture.row][capture.col] != (-1, -1)
-            {
+                && board.squares[capture.row][capture.col] != EMPTY_CELL {
                 // get the piece if there is
                 let piece: &Piece = if let Some(piece) = Piece::get_piece(&capture, board) {
                     piece
@@ -233,8 +300,54 @@ impl Piece {
 
         moves
     }
-    //-------------------------------------------------------------------------------------
-    //Knight-------------------------------------------------------------------------------
+    //---------------------------------------------------------------------
+
+    //Knight---------------------------------------------------------------
+    fn is_valid_move_knight(&self, board: &Board, to_pos: &Position) -> bool {
+        let offsets: [(i32, i32); 8] = [
+            (-2, -1),
+            (-2, 1),
+            (2, -1),
+            (2, 1),
+            (-1, -2),
+            (-1, 2),
+            (1, 2),
+            (1, -2),
+        ];
+
+
+        for &(row_offset, col_offset) in &offsets {
+            let target: Position = Position::new(
+                (self.position.row as i32 + row_offset) as usize,
+                (self.position.col as i32 + col_offset) as usize,
+            );
+            
+            if target != *to_pos {
+                return false;
+            }
+
+            if board.is_within_bounds(&target) {
+                let piece_option: Option<&Piece> = Piece::get_piece(&target, board);
+                let piece: Option<&Piece> = piece_option;
+
+                // no piece we just put in
+
+                if piece.is_none(){
+                    return true;
+                }
+
+                let piece: &Piece = piece.unwrap();
+
+                // if the piece is not is our color
+                if piece.color != self.color {
+                    return true;
+                } 
+            }
+        }
+
+        false
+    }
+
     fn valid_moves_knight(&self, board: &Board) -> Vec<Position> {
         let mut moves: Vec<Position> = Vec::new();
         let offsets: [(i32, i32); 8] = [
@@ -274,9 +387,23 @@ impl Piece {
         }
         moves
     }
+    //---------------------------------------------------------------------
 
-    //------------------------------------------------------------------------------------
-    //Bishop------------------------------------------------------------------------------
+    //Bishop---------------------------------------------------------------
+    fn is_valid_move_bishop(&self, board: &Board, to_pos: &Position) -> bool {
+
+        let offsets: [(i32, i32); 4] = [(-1, -1), (1, -1), (1, 1), (-1, 1)];
+
+        // for each diag we explore the direction and add Position possible
+        for &(row_offset, col_offset) in &offsets {
+            if self.find(board, row_offset, col_offset, to_pos) {
+                return true;
+            }
+        }
+
+        false
+    }
+
     fn valid_moves_bishop(&self, board: &Board) -> Vec<Position> {
         let mut moves: Vec<Position> = Vec::new();
 
@@ -288,8 +415,22 @@ impl Piece {
         }
         moves
     }
-    //-------------------------------------------------------------------------------------
-    //Rook---------------------------------------------------------------------------------
+    //---------------------------------------------------------------------
+
+    //Rook-----------------------------------------------------------------
+    fn is_valid_move_rook(&self, board: &Board, to_pos: &Position) -> bool {
+
+        let offsets: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, 1), (0, -1)];
+
+        for &(row_offset, col_offset) in &offsets {
+            if self.find(board, row_offset, col_offset, to_pos) {
+                return true;
+            }
+        }
+
+        false
+    }
+
     fn valid_moves_rook(&self, board: &Board) -> Vec<Position> {
         let mut moves: Vec<Position> = Vec::new();
 
@@ -301,16 +442,65 @@ impl Piece {
 
         moves
     }
-    //--------------------------------------------------------------------------------------
-    //Queen---------------------------------------------------------------------------------
+    //---------------------------------------------------------------------
+
+    //Queen----------------------------------------------------------------
+    fn is_valid_move_queen(&self, board: &Board, to_pos: &Position) -> bool {
+        self.is_valid_move_bishop(board, to_pos) || self.is_valid_move_rook(board, to_pos)
+    }
+
     //mix of Rook and Bishop
     fn valid_moves_queen(&self, board: &Board) -> Vec<Position> {
         let mut moves: Vec<Position> = self.valid_moves_bishop(board);
         moves.extend(self.valid_moves_rook(board)); //add rook moves to  bishop moves from this position
         moves
     }
-    //---------------------------------------------------------------------------------------
-    //King-----------------------------------------------------------------------------------
+    //---------------------------------------------------------------------
+
+    //King-----------------------------------------------------------------
+    pub fn is_in_king_hitbox(&self, cell_pos: &Position) -> bool {
+        if self.piece_type != PieceType::King { return false; }
+
+        self.position == *cell_pos || (
+            (self.position.row + 1 == cell_pos.row || self.position.row == cell_pos.row + 1) &&
+            (self.position.col + 1 == cell_pos.col || self.position.col == cell_pos.col + 1))
+    }
+
+    fn is_valid_move_king(&self, board: &Board, to_pos: &Position) -> bool {
+
+        let offsets: [(i32, i32); 8] = [
+            (0, -1),
+            (0, 1),
+            (-1, 0),
+            (1, 0),
+            (1, 1),
+            (1, -1),
+            (-1, 1),
+            (-1, -1),
+        ];
+
+        //Normal moves without
+        for &(row_offset, col_offset) in &offsets {
+            let target: Position = Position::new(
+                (self.position.row as i32 + row_offset) as usize,
+                (self.position.col as i32 + col_offset) as usize,
+            );
+
+            if target != *to_pos { return false; }
+
+            if board.is_within_bounds(&target) && !board.is_attacked(&target, self.color) {
+
+                match Piece::get_piece(&target, board) {
+                    Some(piece) if piece.color != self.color && *to_pos == target => return true,
+                    None if *to_pos == target => return true,
+                    _ => continue
+                };
+            }
+        }
+
+        false
+    }
+
     fn valid_moves_king(&self, board: &Board) -> Vec<Position> {
         let mut moves: Vec<Position> = Vec::new();
 
@@ -378,6 +568,39 @@ impl Piece {
         moves
     }
 
+    // Same as explore_direction but when find the cell it's return
+    fn find(
+        &self,
+        board: &Board,
+        row_offset: i32,
+        col_offset: i32,
+        to_pos: &Position
+    ) -> bool {
+        // init position the piece position
+        let mut position: Position = Position::new(self.position.row, self.position.col);
+
+        loop {
+            // the new position is the next cell
+            position = Position::new(
+                (position.row as i32 + row_offset) as usize,
+                (position.col as i32 + col_offset) as usize,
+            );
+
+            if !board.is_within_bounds(&position) {
+                break;
+            }
+
+            match Piece::get_piece(&position, board) {
+                Some(piece) if piece.color != self.color && *to_pos == position => return true,
+                None if *to_pos == position => return true,
+                None => continue,
+                _ => break // if there is a piece of our color
+            };
+        }
+
+        false
+    }
+
     //Check move for all cases in a direction until it a move is valid
     fn explore_direction(
         &self,
@@ -400,22 +623,11 @@ impl Piece {
                 break;
             }
 
-            let piece_option: Option<&Piece> = Piece::get_piece(&position, board);
-            let piece: Option<&Piece> = piece_option;
-
-            // if no piece then we add it to the vec and continue to other position
-            if piece.is_none() {
-                moves.push(position);
-                continue;
-            }
-
-            let piece: &Piece = piece.unwrap();
-            // if we can EAT the piece because its color is diff
-            if piece.color != self.color {
-                moves.push(position);
-            }
-
-            break;
+            match Piece::get_piece(&position, board) {
+                Some(piece) if piece.color != self.color => moves.push(position),
+                None => moves.push(position),
+                _ => break // if there is a piece of our color
+            };
         }
     }
 
