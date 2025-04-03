@@ -5,7 +5,10 @@ use std::array::from_fn;
 pub const BOARD_SIZE: usize = 8;
 pub const NONE: usize = 52;
 pub const EMPTY_CELL: (isize, isize) = (NONE as isize, NONE as isize);
-pub const EMPTY_POS: Position = Position{row: NONE, col: NONE};
+pub const EMPTY_POS: Position = Position {
+    row: NONE,
+    col: NONE,
+};
 
 #[derive(Debug, Clone)]
 pub struct Board {
@@ -199,11 +202,7 @@ impl Board {
     }
 
     // In the list of one type piece find a piece which is unused.
-    fn find_unused_piece(
-        &mut self,
-        icolor: usize,
-        ipiece: usize,
-    ) -> Result<usize, &'static str> {
+    fn find_unused_piece(&mut self, icolor: usize, ipiece: usize) -> Result<usize, &'static str> {
         let min: usize;
         let max: usize;
         match ipiece {
@@ -270,24 +269,22 @@ impl Board {
         }
 
         // get color index for board.Pieces
-        let icolor: usize;
-        match &piece_str[..=0] {
-            "b" => icolor = 0,
-            "w" => icolor = 1,
+        let icolor: usize = match &piece_str[..=0] {
+            "b" => 0,
+            "w" => 1,
             _ => return Err("Wrong string format"),
-        }
+        };
 
         // get piece index for board.Pieces
-        let ipiece: usize;
-        match &piece_str[1..=1] {
-            "p" => ipiece = 0,
-            "r" => ipiece = 8,
-            "n" => ipiece = 10,
-            "b" => ipiece = 12,
-            "q" => ipiece = 14,
-            "k" => ipiece = 15,
+        let ipiece: usize = match &piece_str[1..=1] {
+            "p" => 0,
+            "r" => 8,
+            "n" => 10,
+            "b" => 12,
+            "q" => 14,
+            "k" => 15,
             _ => return Err("Wrong string format"),
-        }
+        };
 
         // get the position
         let board_pos: Position = match Position::from_algebraic(&piece_str[2..=3]) {
@@ -357,27 +354,23 @@ impl Board {
     // must be to position in args because:
     // we dont know if there is a piece on the "from" position
     pub fn move_piece(&mut self, from: &Position, to: &Position) -> bool {
-        
         // check if the move is valid (according to chess rules and piece range)
         // and try to update to its new position
         self.is_valid_move(from, to) && self.update_position(from, to)
     }
 
     // update without checking chess rules and replacing pieces
-    fn update_position(&mut self, piece_pos: &Position, to: &Position) -> bool{
+    fn update_position(&mut self, piece_pos: &Position, to: &Position) -> bool {
+        let (x_piece, y_piece): (usize, usize) = match self.squares[piece_pos.row][piece_pos.col] {
+            (x, y) if (x, y) == EMPTY_CELL => return false,
+            (x, y) => (x as usize, y as usize),
+        };
 
-        let (x_piece, y_piece): (usize, usize) = 
-            match self.squares[piece_pos.row][piece_pos.col] {
-                (x, y) if (x, y) == EMPTY_CELL => return false,
-                (x, y) => (x as usize, y as usize)
-            };
-        
-        let (x_piece_to, y_piece_to): (usize, usize) = 
-            match self.squares[to.row][to.col] {
-                (x, y) if (x, y) == EMPTY_CELL => (NONE, NONE),
-                (x, y) => (x as usize, y as usize)
-            };
-        
+        let (x_piece_to, y_piece_to): (usize, usize) = match self.squares[to.row][to.col] {
+            (x, y) if (x, y) == EMPTY_CELL => (NONE, NONE),
+            (x, y) => (x as usize, y as usize),
+        };
+
         // if there is something on the cell we eat a piece
         if (NONE, NONE) != (x_piece_to, y_piece_to) {
             // push the info in the history
@@ -386,17 +379,17 @@ impl Board {
                 EMPTY_POS,
                 self.pieces[x_piece_to][y_piece_to].piece_type,
                 (x_piece_to, y_piece_to),
-                true
+                true,
             ));
         }
-        
+
         // update history
         self.history.push((
-                *piece_pos,
-                *to,
-                self.pieces[x_piece][y_piece].piece_type,
-                (x_piece, y_piece) , // EXCEPTIONNELLE SITUATION
-                false,               //Option<Piece> de la case
+            *piece_pos,
+            *to,
+            self.pieces[x_piece][y_piece].piece_type,
+            (x_piece, y_piece), // EXCEPTIONNELLE SITUATION
+            false,              //Option<Piece> de la case
         ));
 
         // link the piece to its new coo
@@ -408,15 +401,14 @@ impl Board {
                 if piece.piece_type == PieceType::King {
                     piece.has_moved = true;
                 }
-            },
+            }
             None => return false,
         }
-        
+
         // unlink the piece on the cell to
         match Piece::get_piece_mut(to, self) {
             Some(piece) => piece.position = EMPTY_POS,
-            None => ()
-            
+            None => (),
         }
 
         // update board's cells
@@ -425,7 +417,7 @@ impl Board {
 
         true
     }
-    
+
     /// Return a matrix of a board. Each cell contains a [`String`].
     /// String format:
     /// - empty: ".."
@@ -459,7 +451,7 @@ impl Board {
         for i in 0..BOARD_SIZE {
             for j in 0..BOARD_SIZE {
                 let (icolor, ipiece) = self.squares[i][j];
-                if (icolor, ipiece) == EMPTY_CELL{
+                if (icolor, ipiece) == EMPTY_CELL {
                     continue;
                 }
 
@@ -475,18 +467,16 @@ impl Board {
 
     //color of the king to check
     pub fn is_attacked(&self, position: &Position, color: Color) -> bool {
-        let ennemy_color = color.opposite(); 
-        
+        let ennemy_color = color.opposite();
+
         for i in 0..15 {
             // ignore eaten pieces
-            
+
             if self.pieces[ennemy_color as usize][i].position != EMPTY_POS {
                 continue;
-            }
-            else if self.pieces[ennemy_color as usize][i].is_valid_move(self, position) {
+            } else if self.pieces[ennemy_color as usize][i].is_valid_move(self, position) {
                 return true;
             }
-            
         }
 
         // handle king case
@@ -501,39 +491,42 @@ impl Board {
         // - Si le move est possible. On le simule.
         let piece: &Piece = match Piece::get_piece(piece_pos, self) {
             Some(piece) => piece,
-            None => return false
+            None => return false,
         };
 
         if !piece.is_valid_move(self, to) {
-            return false; 
+            return false;
         }
-        
+
         println!("MOVE VALIDATE BY IS VALID MOVE");
         // Si le move est simulable == n'implique pas un echec de notre propre roi.
         !self.put_in_check_simulation(piece_pos, to)
     }
 
     // Function for simulation
-    fn modif_simulation(&mut self, to: &Position, piece_pos: &Position,
+    fn modif_simulation(
+        &mut self,
+        to: &Position,
+        piece_pos: &Position,
         (icolor_to, ipiece_to): (&mut isize, &mut isize),
-        (icolor, ipiece): (&mut isize, &mut isize)) -> bool{
-
+        (icolor, ipiece): (&mut isize, &mut isize),
+    ) -> bool {
         // if there is a piece on the 'to_cell' then it's remove it
-        match Piece::get_piece_mut(to, self){
+        match Piece::get_piece_mut(to, self) {
             Some(to_piece) => {
                 to_piece.position.row = NONE;
                 to_piece.position.col = NONE;
-            },
-            None => ()
+            }
+            None => (),
         }
 
         // change the cell of the piece
         match Piece::get_piece_mut(piece_pos, self) {
-            Some(piece_mut) => { 
+            Some(piece_mut) => {
                 piece_mut.position.row = to.row;
                 piece_mut.position.row = to.col;
-            },
-            None => return false
+            }
+            None => return false,
         }
 
         // save the piece on both cells
@@ -545,30 +538,33 @@ impl Board {
         self.squares[piece_pos.row][piece_pos.col] = EMPTY_CELL;
 
         true
-    } 
+    }
 
-    fn get_back_simulation(&mut self, to: &Position, piece_pos: &Position,
+    fn get_back_simulation(
+        &mut self,
+        to: &Position,
+        piece_pos: &Position,
         (icolor_to, ipiece_to): (&mut isize, &mut isize),
-        (icolor, ipiece): (&mut isize, &mut isize)) -> bool {
-
+        (icolor, ipiece): (&mut isize, &mut isize),
+    ) -> bool {
         match Piece::get_piece_mut(piece_pos, self) {
             Some(piece) => {
                 piece.position.row = to.row;
                 piece.position.col = to.col;
-            },
-            None => return false
+            }
+            None => return false,
         }
 
         self.squares[to.row][to.col] = (*icolor, *ipiece);
         self.squares[piece_pos.row][piece_pos.col] = (*icolor_to, *ipiece_to);
 
         // relink the piece if we ate one
-        match Piece::get_piece_mut(piece_pos, self){
+        match Piece::get_piece_mut(piece_pos, self) {
             Some(piece) => {
                 piece.position.row = to.row;
                 piece.position.col = to.col;
-            },
-            None => ()
+            }
+            None => (),
         }
 
         true
@@ -579,27 +575,37 @@ impl Board {
         let (mut icolor_to, mut ipiece_to): (isize, isize) = (0, 0);
         let (mut icolor, mut ipiece): (isize, isize) = (0, 0);
 
-        let b = self.modif_simulation(to, piece_pos, 
+        let b = self.modif_simulation(
+            to,
+            piece_pos,
             (&mut icolor_to, &mut ipiece_to),
-            (&mut icolor, &mut ipiece));
+            (&mut icolor, &mut ipiece),
+        );
 
-        if b == false {panic!("put_in_check_simulation: cannot modif the board for simulate");}
+        if !b {
+            panic!("put_in_check_simulation: cannot modif the board for simulate");
+        }
 
-        let piece: &Piece = match Piece::get_piece(to, &self) {
+        let piece: &Piece = match Piece::get_piece(to, self) {
             Some(piece) => piece,
-            None => panic!("put_in_check_simulation: cannot get the piece in the cell")
+            None => panic!("put_in_check_simulation: cannot get the piece in the cell"),
         };
-        
+
         // verification about the validity
         let is_check: bool = self.is_king_in_check(piece.color);
-        
-        let b = self.get_back_simulation(piece_pos, to,
+
+        let b = self.get_back_simulation(
+            piece_pos,
+            to,
             (&mut icolor_to, &mut ipiece_to),
-            (&mut icolor, &mut ipiece));
+            (&mut icolor, &mut ipiece),
+        );
 
-        if b == false {panic!("put_in_check_simulation: cannot get back the board for simulate");}
+        if !b {
+            panic!("put_in_check_simulation: cannot get back the board for simulate");
+        }
 
-        return is_check;
+        is_check
     }
 
     pub fn is_within_bounds(&self, position: &Position) -> bool {
@@ -674,12 +680,9 @@ impl Board {
 
             // we check if there is piece on it
 
-            if self.squares[king.position.row][col] != EMPTY_CELL{
-                return false;
-            }
-            // and if not, if the cell is attacked
-            else if self.is_attacked(&pos, king.color) {
-
+            if self.squares[king.position.row][col] != EMPTY_CELL
+                || self.is_attacked(&pos, king.color)
+            {
                 return false;
             }
         }
