@@ -341,7 +341,7 @@ impl Board {
         };
 
         let (icolor, i) = self.squares[board_pos.row][board_pos.col];
-        if icolor == -1 || i == -1 {
+        if (icolor, i) == EMPTY_CELL {
             return Ok(false);
         }
 

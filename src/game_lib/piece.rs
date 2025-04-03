@@ -233,7 +233,7 @@ impl Piece {
         // If the move is out_of_bound - 1 => UPGRADE
         // if we are out of the board and there is nothing on the cell
         if board.is_within_bounds(&forward) {
-            if board.squares[forward.row][forward.col] == (-1, -1) {
+            if board.squares[forward.row][forward.col] == EMPTY_CELL {
                 moves.push(forward);
 
                 //Check Double move forward if never moved
@@ -248,7 +248,7 @@ impl Piece {
 
                     // If there is nothing on the cell the move is possible.
                     // (no need to check the out of board)
-                    if board.squares[double_forward.row][double_forward.col] == (-1, -1) {
+                    if board.squares[double_forward.row][double_forward.col] == EMPTY_CELL {
                         moves.push(double_forward);
                     }
                 }

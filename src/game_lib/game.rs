@@ -212,6 +212,7 @@ impl Game {
         }
 
         let lst_moves: Vec<Position> = piece.valid_moves(&self.board);
+        // let lst_moves: Vec<Position> = Piece::valid_moves(position, self.board);
 
         for i in lst_moves.iter() {
             // convert Position -> String
