@@ -161,7 +161,7 @@ impl Board {
     }
 
     // display in the terminal the board
-    pub fn print_board(&mut self) {
+    pub fn print_board(&self) {
         println!("  a b c d e f g h");
         for row in 0..BOARD_SIZE {
             print!("{} ", 8 - row);
@@ -466,7 +466,7 @@ impl Board {
                 let (icolor, ipiece) = (icolor as usize, ipiece as usize);
                 let piece: &Piece = &self.pieces[icolor][ipiece];
 
-                str_board[i][j] = piece.to_string();
+                str_board[i][j] = piece.the_string();
             }
         }
 
@@ -673,11 +673,13 @@ impl Board {
             let pos = Position::new(king.position.row, col);
 
             // we check if there is piece on it
+
             if self.squares[king.position.row][col] != EMPTY_CELL{
                 return false;
             }
             // and if not, if the cell is attacked
             else if self.is_attacked(&pos, king.color) {
+
                 return false;
             }
         }
