@@ -1,7 +1,7 @@
-use crate::game_lib::board::{self, Board, BOARD_SIZE, NONE, EMPTY_CELL, EMPTY_POS};
-use crate::game_lib::piece::Piece;
-use crate::game_lib::piece::{Color, PieceType};
-use crate::game_lib::position::Position;
+use crate::board::{self, Board, BOARD_SIZE, NONE, EMPTY_CELL, EMPTY_POS};
+use crate::piece::Piece;
+use crate::piece::{Color, PieceType};
+use crate::position::Position;
 
 pub struct Game {
     pub board: Board,
