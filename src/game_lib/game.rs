@@ -1,4 +1,4 @@
-use crate::game_lib::board::{self, Board, BOARD_SIZE, NONE};
+use crate::game_lib::board::{self, Board, BOARD_SIZE, NONE, EMPTY_CELL, EMPTY_POS};
 use crate::game_lib::piece::Piece;
 use crate::game_lib::piece::{Color, PieceType};
 use crate::game_lib::position::Position;
@@ -124,49 +124,22 @@ impl Game {
         if piece.color != self.board.turn {
             return Err("Mouvement invalide.");
         }
+
         //TODO
         // if self.board.is_king_in_check(turn) => if pion != roi || move protège le roi => false
 
         // rock situtation
         if piece.piece_type == PieceType::King && self.castle_situation(piece, &to_pos) {
+            self.board.turn = self.board.turn.opposite(); 
             return Ok(true);
         }
-        // if the piece can move + is moved
-        if let Ok((has_move, eat)) = self.board.move_piece(&from_pos, &to_pos) {
-            //get piece coo in the pieces Vec of the board
-            let (x, y): (isize, isize) = self.board.squares[to_pos.row][to_pos.col];
-            if eat != (NONE as isize, NONE as isize)
-            //eat a piece while moving
-            {
-                self.board.history.push((
-                    to_pos,
-                    Position::new(NONE, NONE),
-                    self.board.pieces[eat.0 as usize][eat.1 as usize].piece_type,
-                    (eat.0 as usize, eat.1 as usize),
-                    true,
-                ));
-            }
-            self.board.history.push((
-                from_pos,
-                to_pos,
-                piece.piece_type,
-                (x as usize, y as usize),
-                false,
-            ));
 
-            // if the king is in check due to the move
-            if self.board.is_king_in_check(self.board.turn) {
-                self.undo_move();
-                return Err("Le roi est toujours en échec après ce mouvement.");
-            }
-            // change the turn
-            else {
-                self.board.turn = if self.board.turn == Color::White {
-                    Color::Black
-                } else {
-                    Color::White
-                };
-            }
+        println!("HERE");
+        // if the piece can move + is moved
+        if self.board.move_piece(&from_pos, &to_pos) {
+
+            println!("HERE2");
+            self.board.turn = self.board.turn.opposite();
 
             println!("Success!");
 
@@ -195,6 +168,7 @@ impl Game {
         } else {
             Err("Mouvement invalide.")
         }
+
     }
 
     /// Take a `&str` with the format `"cell"`.
@@ -238,6 +212,7 @@ impl Game {
         }
 
         let lst_moves: Vec<Position> = piece.valid_moves(&self.board);
+        // let lst_moves: Vec<Position> = Piece::valid_moves(position, self.board);
 
         for i in lst_moves.iter() {
             // convert Position -> String

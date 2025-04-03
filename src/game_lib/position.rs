@@ -1,7 +1,7 @@
 use crate::game_lib::board::BOARD_SIZE;
 
 //class position is a tupple of usize corresponding to the position on the board
-#[derive(Debug, Copy, Clone, Eq)]
+#[derive(Debug, Clone, Copy)]
 pub struct Position {
     pub row: usize,
     pub col: usize,
