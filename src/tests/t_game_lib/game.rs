@@ -27,7 +27,7 @@ fn t_game() {
 
                 finish_game = game.make_move_algebraic(&move_user);
 
-                Command::new("clear").status().expect("Ca veut pas clear");
+                // Command::new("clear").status().expect("Ca veut pas clear");
                 game.board.print_board();
         } 
     
@@ -56,8 +56,20 @@ fn t_get_list_moves () {
 
     let mut game = Game::init(false);
 
-    assert_eq!(game.get_list_moves("e2".to_string()), Ok(vec!["e3".to_string(), "e4".to_string()]));
-    assert_eq!(game.get_list_moves("e3".to_string()), Ok(Vec::<String>::new()));
+    assert_eq!(game.get_list_moves("e2".to_string()), 
+               Ok(vec!["e3".to_string(), "e4".to_string()]));
+    assert_eq!(game.get_list_moves("e3".to_string()),
+               Ok(Vec::<String>::new()));
+
+    let mut game = Game::init(true);
+
+    game.board.add_piece("brd6");
+    game.board.add_piece("brf6");
+    game.board.add_piece("bkd7");
+    game.board.add_piece("wke3");
+
+    assert_eq!(game.get_list_moves("e3".to_string()),
+                Ok(vec!["e4".to_string(), "e2".to_string()]));
 }
 
 #[test]
