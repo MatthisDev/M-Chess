@@ -1,7 +1,10 @@
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
+use game_lib::game::Game; // Import Game from game_lib
 
 enum Msg {
+    InitGameBoard,
+    InitSandboxBoard,
     SelectPiece(usize),
     MovePiece(usize),
 }
@@ -24,9 +27,11 @@ enum Piece {
 
 struct Model {
     link: ComponentLink<Self>,
+    game: Option<Game>, // Store the Game instance
     board: [Option<Piece>; 64],
     selected: Option<usize>,
     last_move: Option<(usize, usize)>,
+    is_sandbox: bool, // Track whether we're in the Sandbox tab
 }
 
 impl Component for Model {
@@ -35,40 +40,32 @@ impl Component for Model {
 
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let mut board = [None; 64];
-        // Initialize pawns
-        for i in 8..16 {
-            board[i] = Some(Piece::WhitePawn);
-            board[40 + i] = Some(Piece::BlackPawn);
-        }
-        // Initialize other pieces
-        board[0] = Some(Piece::WhiteRook);
-        board[1] = Some(Piece::WhiteKnight);
-        board[2] = Some(Piece::WhiteBishop);
-        board[3] = Some(Piece::WhiteQueen);
-        board[4] = Some(Piece::WhiteKing);
-        board[5] = Some(Piece::WhiteBishop);
-        board[6] = Some(Piece::WhiteKnight);
-        board[7] = Some(Piece::WhiteRook);
-
-        board[56] = Some(Piece::BlackRook);
-        board[57] = Some(Piece::BlackKnight);
-        board[58] = Some(Piece::BlackBishop);
-        board[59] = Some(Piece::BlackQueen);
-        board[60] = Some(Piece::BlackKing);
-        board[61] = Some(Piece::BlackBishop);
-        board[62] = Some(Piece::BlackKnight);
-        board[63] = Some(Piece::BlackRook);
-
+        // Initialize an empty board by default
         Self {
             link,
+            game: None,
             board,
             selected: None,
             last_move: None,
+            is_sandbox: false,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::InitGameBoard => {
+                self.is_sandbox = false;
+                self.game = Some(Game::init(false)); // Standard board
+                self.board = [None; 64];
+                // Initialize the board with standard chess setup
+                true
+            }
+            Msg::InitSandboxBoard => {
+                self.is_sandbox = true;
+                self.game = Some(Game::init(true)); // Custom board
+                self.board = [None; 64]; // Empty board
+                true
+            }
             Msg::SelectPiece(index) => {
                 self.selected = Some(index);
                 true
@@ -94,8 +91,13 @@ impl Component for Model {
     fn view(&self) -> Html {
         html! {
             <div>
+                <div class="tabs">
+                    <button onclick=self.link.callback(|_| Msg::InitGameBoard)>{ "Game" }</button>
+                    <button onclick=self.link.callback(|_| Msg::InitSandboxBoard)>{ "Sandbox" }</button>
+                </div>
                 { self.chessboard() }
                 { self.view_last_move() }
+                { self.view_board_state() } // Add the board state view here
             </div>
         }
     }
@@ -143,6 +145,38 @@ impl Model {
         }
     }
 
+    fn view_board_state(&self) -> Html {
+        let board_state = self.board.iter().enumerate().map(|(i, piece)| {
+            let piece_str = match piece {
+                Some(Piece::WhitePawn) => "♙",
+                Some(Piece::BlackPawn) => "♟︎",
+                Some(Piece::WhiteRook) => "♖",
+                Some(Piece::BlackRook) => "♜",
+                Some(Piece::WhiteKnight) => "♘",
+                Some(Piece::BlackKnight) => "♞",
+                Some(Piece::WhiteBishop) => "♗",
+                Some(Piece::BlackBishop) => "♝",
+                Some(Piece::WhiteQueen) => "♕",
+                Some(Piece::BlackQueen) => "♛",
+                Some(Piece::WhiteKing) => "♔",
+                Some(Piece::BlackKing) => "♚",
+                None => ".",
+            };
+            if i % 8 == 7 {
+                format!("{}<br>", piece_str) // Add a line break after every 8 squares
+            } else {
+                format!("{} ", piece_str)
+            }
+        }).collect::<String>();
+
+        html! {
+            <div class="board-state">
+                <h3>{ "Board State:" }</h3>
+                <pre>{ Html::from_html_unchecked(board_state.into()) }</pre>
+            </div>
+        }
+    }
+
     fn view_last_move(&self) -> Html {
         if let Some((from, to)) = self.last_move {
             let from_coord = format!("{}{}", (from % 8 + 97) as u8 as char, 8 - from / 8);
@@ -155,13 +189,7 @@ impl Model {
         }
     }
 }
-use yew::utils;
 
 fn main() {
-    let element = utils::document()
-        .query_selector("div#app")
-        .unwrap()
-        .unwrap();
-
-    App::<Model>::new().mount(element);
+    yew::start_app::<Model>();
 }

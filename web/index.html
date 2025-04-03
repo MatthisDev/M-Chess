@@ -1,8 +1,9 @@
 <!doctype html>
-<html>
+<html lang="en">
 
 <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>M-Chess</title>
     <style>
         body {
@@ -24,6 +25,7 @@
             align-items: center;
             justify-content: center;
             font-size: 24px;
+            border: 1px solid black;
         }
 
         .white {
@@ -38,23 +40,23 @@
             display: flex;
             justify-content: space-around;
             margin-bottom: 20px;
-            background-color: #333333; /* Couleur de fond plus sombre pour les onglets */
+            background-color: #333333;
             padding: 10px;
-            border-radius: 5px; /* Coins arrondis */
+            border-radius: 5px;
         }
 
         .tabs button {
             padding: 10px 20px;
             cursor: pointer;
-            background-color: #555555; /* Couleur de fond des boutons */
+            background-color: #555555;
             color: white;
             border: none;
             border-radius: 5px;
-            transition: background-color 0.3s; /* Transition douce pour le changement de couleur */
+            transition: background-color 0.3s;
         }
 
         .tabs button:hover {
-            background-color: #777777; /* Couleur de fond des boutons au survol */
+            background-color: #777777;
         }
 
         .tab-content {
@@ -64,6 +66,37 @@
         .tab-content.active {
             display: block;
         }
+
+        .sandbox-container {
+            display: flex;
+            gap: 20px;
+        }
+
+        .piece-palette {
+            display: grid;
+            grid-template-columns: repeat(2, 50px);
+            gap: 10px;
+        }
+
+        .piece {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            cursor: grab;
+        }
+
+        .piece.dragging {
+            opacity: 0.5;
+        }
+
+        .board-state {
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
     </style>
 </head>
 
@@ -72,8 +105,11 @@
         <button onclick="showTab('app')">Game</button>
         <button onclick="showTab('presentation')">Presentation</button>
         <button onclick="showTab('download')">Download</button>
+        <button onclick="showTab('sandbox')">Sandbox</button>
     </div>
-    <div id="app" class="tab-content active"></div>
+    <div id="app" class="tab-content active">
+        <div class="chessboard"></div>
+    </div>
     <div id="presentation" class="tab-content">
         <h2>Contexte du Projet</h2>
         <p>Les échecs sont un jeu stratégique intemporel qui attire des joueurs de tous âges et niveaux. Avec l'évolution des technologies, développer une plateforme de jeu d'échecs en ligne, intégrant une intelligence artificielle compétitive et une interface intuitive, représente une opportunité d'offrir une expérience moderne et immersive aux utilisateurs.</p>
@@ -104,14 +140,138 @@
         <a href="../project.zip" download="M-Chess_Project.zip">Download the project</a><br>
         <a href="../M-Chess_Report.pdf" download="M-Chess_Report.pdf">Download the report (PDF)</a>
     </div>
+    <div id="sandbox" class="tab-content">
+        <div class="sandbox-container">
+            <div class="chessboard"></div>
+            <div class="piece-palette">
+                <div class="piece" draggable="true" data-piece="♔">♔</div>
+                <div class="piece" draggable="true" data-piece="♕">♕</div>
+                <div class="piece" draggable="true" data-piece="♖">♖</div>
+                <div class="piece" draggable="true" data-piece="♗">♗</div>
+                <div class="piece" draggable="true" data-piece="♘">♘</div>
+                <div class="piece" draggable="true" data-piece="♙">♙</div>
+                <div class="piece" draggable="true" data-piece="♚">♚</div>
+                <div class="piece" draggable="true" data-piece="♛">♛</div>
+                <div class="piece" draggable="true" data-piece="♜">♜</div>
+                <div class="piece" draggable="true" data-piece="♝">♝</div>
+                <div class="piece" draggable="true" data-piece="♞">♞</div>
+                <div class="piece" draggable="true" data-piece="♟">♟</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import init from './pkg/web.js';
+        init();
+    </script>
 
     <script>
+        // Define a reusable function to generate a chessboard
+        function generateChessboard(containerSelector) {
+            const chessboardContainer = document.querySelector(containerSelector);
+            chessboardContainer.innerHTML = ''; // Clear any existing content
+            for (let i = 0; i < 64; i++) {
+                const square = document.createElement('div');
+                square.className = `square ${(Math.floor(i / 8) + i % 8) % 2 === 0 ? 'white' : 'black'}`;
+                square.dataset.index = i; // Add an index for identification
+                square.addEventListener('dragover', handleDragOver);
+                square.addEventListener('drop', handleDrop);
+                chessboardContainer.appendChild(square);
+            }
+        }
+
+        // Track the number of pieces placed
+        const pieceCounts = {
+            '♔': 0, '♕': 0, '♖': 0, '♗': 0, '♘': 0, '♙': 0,
+            '♚': 0, '♛': 0, '♜': 0, '♝': 0, '♞': 0, '♟': 0
+        };
+
+        const maxPieces = {
+            '♔': 1, '♕': 1, '♖': 2, '♗': 2, '♘': 2, '♙': 8,
+            '♚': 1, '♛': 1, '♜': 2, '♝': 2, '♞': 2, '♟': 8
+        };
+
+        // Drag and drop functionality
+        let draggedPiece = null;
+        let isNewPiece = false; // Track if the piece is new or being moved
+
+        // Add dragstart and dragend listeners for pieces in the palette
+        document.querySelectorAll('.piece').forEach(piece => {
+            piece.addEventListener('dragstart', (e) => {
+                const pieceType = e.target.dataset.piece;
+                if (pieceCounts[pieceType] < maxPieces[pieceType]) {
+                    draggedPiece = e.target.cloneNode(true); // Clone the piece for placement
+                    isNewPiece = true; // Mark as a new piece
+                    e.target.classList.add('dragging');
+                } else {
+                    draggedPiece = null; // Prevent dragging if the limit is reached
+                }
+            });
+
+            piece.addEventListener('dragend', (e) => {
+                e.target.classList.remove('dragging');
+            });
+        });
+
+        // Add dragstart listener for pieces already on the board
+        document.addEventListener('dragstart', (e) => {
+            if (e.target.classList.contains('piece') && e.target.parentElement.classList.contains('square')) {
+                draggedPiece = e.target; // Reference the existing piece
+                isNewPiece = false; // Mark as an existing piece
+                e.target.classList.add('dragging');
+            }
+        });
+
+        document.addEventListener('dragend', (e) => {
+            if (e.target.classList.contains('piece')) {
+                e.target.classList.remove('dragging');
+            }
+        });
+
+        function handleDragOver(e) {
+            e.preventDefault(); // Allow dropping
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            if (draggedPiece) {
+                const pieceType = draggedPiece.dataset.piece;
+
+                // Check if the square already has a piece
+                const existingPiece = e.target.querySelector('.piece');
+                if (existingPiece) {
+                    const existingPieceType = existingPiece.dataset.piece;
+                    pieceCounts[existingPieceType]--; // Decrement the count for the existing piece
+                    e.target.innerHTML = ''; // Clear the square
+                }
+
+                // Place the piece only if it's a new piece or replacing an existing one
+                if (isNewPiece && pieceCounts[pieceType] < maxPieces[pieceType]) {
+                    e.target.appendChild(draggedPiece); // Place the piece
+                    pieceCounts[pieceType]++; // Increment the count for the piece type
+                } else if (!isNewPiece) {
+                    e.target.appendChild(draggedPiece); // Move the existing piece
+                }
+
+                // Reset the state
+                isNewPiece = false;
+            }
+        }
+
         // Define showTab in a non-module script
         window.showTab = function (tabId) {
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
-            document.getElementById(tabId).classList.add('active');
+            const activeTab = document.getElementById(tabId);
+            activeTab.classList.add('active');
+
+            // Generate chessboard for the "Game" and "Sandbox" tabs
+            if (tabId === 'app') {
+                generateChessboard('#app .chessboard');
+            } else if (tabId === 'sandbox') {
+                generateChessboard('#sandbox .chessboard');
+            }
         };
     </script>
 </body>

@@ -6,3 +6,6 @@ edition = "2021"
 [dependencies]
 yew = "0.18"
 wasm-bindgen = "0.2"
+
+# Correct the path to game_lib
+game_lib = { path = "../src/game_lib" }
