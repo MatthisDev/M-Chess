@@ -1,13 +1,14 @@
 use crate::game_lib::board::{Board, BOARD_SIZE};
 use crate::game_lib::position::Position;
 
+use super::board::NONE;
 use super::position;
 
 // Color enum for teams
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Color {
-    White,
     Black,
+    White,
 }
 impl Color {
     pub fn opposite(&self) -> Color {
@@ -61,7 +62,7 @@ impl Piece {
         }
     }
 
-    pub fn to_string(&self) -> String {
+    pub fn the_string(&self) -> String {
         let mut str_piece: String = String::new();
 
         if self.color == Color::Black {
@@ -84,10 +85,15 @@ impl Piece {
 
     // get the piece from a specific position
     pub fn get_piece<'a>(position: &Position, board: &'a Board) -> Option<&'a Piece> {
+        if position.col == NONE || position.row == NONE {
+            println!("Error: position is out of bounds");
+            return None;
+        }
+
         let (i, j): (isize, isize) = board.squares[position.row][position.col];
 
         // when there is no piece
-        if i == -1 || j == -1 {
+        if i == -1 || i == NONE as isize || j == -1 || j == NONE as isize {
             return None;
         }
 
