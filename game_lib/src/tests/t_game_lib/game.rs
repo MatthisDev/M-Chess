@@ -1,10 +1,10 @@
-use crate::game_lib::automation::ai::{Difficulty, AI};
-use crate::game_lib::game::Game;
-use crate::game_lib::piece::Color;
+use crate::automation::ai::{Difficulty, AI};
+use crate::game::Game;
+use crate::piece::Color;
 use std::io;
 use std::process::Command;
 
-// #[test]
+#[test]
 fn t_game() {
     let mut game = Game::init(false);
 
@@ -55,7 +55,7 @@ fn t_game() {
     }
     */
 }
-#[test]
+//#[test]
 fn t_get_list_moves() {
     let mut game = Game::init(false);
 

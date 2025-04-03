@@ -1,10 +1,10 @@
-use crate::game_lib::board::Board;
-use crate::game_lib::game::*;
-use crate::game_lib::piece::{Color, PieceType};
-use crate::game_lib::position::Position;
+use crate::board::Board;
+use crate::game::*;
+use crate::piece::{Color, PieceType};
+use crate::position::Position;
 
-use crate::game_lib::board::NONE;
-use crate::game_lib::position;
+use crate::board::NONE;
+use crate::position;
 
 pub enum Difficulty {
     Easy,

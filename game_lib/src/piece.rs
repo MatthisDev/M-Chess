@@ -1,5 +1,5 @@
-use crate::game_lib::board::{Board, BOARD_SIZE, EMPTY_CELL, NONE};
-use crate::game_lib::position::Position;
+use crate::board::{Board, BOARD_SIZE, EMPTY_CELL, NONE};
+use crate::position::Position;
 
 use super::position;
 

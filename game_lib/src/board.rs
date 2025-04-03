@@ -1,5 +1,5 @@
-use crate::game_lib::piece::{Color, Piece, PieceType};
-use crate::game_lib::position::Position;
+use crate::piece::{Color, Piece, PieceType};
+use crate::position::Position;
 use std::array::from_fn;
 
 pub const BOARD_SIZE: usize = 8;

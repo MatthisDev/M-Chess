@@ -1,4 +1,4 @@
-use crate::game_lib::board::BOARD_SIZE;
+use crate::board::BOARD_SIZE;
 
 //class position is a tupple of usize corresponding to the position on the board
 #[derive(Debug, Clone, Copy)]
