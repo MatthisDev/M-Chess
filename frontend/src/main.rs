@@ -13,7 +13,7 @@ enum GameMode {
 fn app() -> Html {
     let active_tab = use_state(|| "menu".to_string());
     let game_mode = use_state(|| GameMode::None);
-    let game = use_state(|| None as Option<Game>); // Track the current game state
+    let mut game = use_state(|| None as Option<Game>); // Track the current game state
 
     let set_tab = {
         let active_tab = active_tab.clone();
@@ -34,39 +34,66 @@ fn app() -> Html {
         })
     };
 
-    // Render the board from the current game
     let render_board = |game: &Game| {
+        let board_state = game.board.get(); // Get the board as a matrix of strings
         html! {
             <div class="board">
-                { for game.board.squares.iter().enumerate().map(|(row_idx, row)| {
+                { for board_state.iter().enumerate().map(|(row_idx, row)| {
                     html! {
-                        <div class="row">
-                            { for row.iter().enumerate().map(|(col_idx, _square)| {
-                                html! {
-                                    <div class="cell">
-                                        { format!("({}, {})", row_idx, col_idx) } // Placeholder for piece rendering
-                                    </div>
-                                }
-                            }) }
-                        </div>
+                        { for row.iter().enumerate().map(|(col_idx, cell)| {
+                            let is_dark = (row_idx + col_idx) % 2 == 1; // Alternate colors based on row and column indices
+                            let cell_class = if is_dark { "cell dark" } else { "cell light" };
+                            html! {
+                                <div class={cell_class}>
+                                    {
+                                        if cell != ".." {
+                                            format!("{}", cell) // Display the piece (e.g., "wp", "bk")
+                                        } else {
+                                            "".to_string() // Empty cell
+                                        }
+                                    }
+                                </div>
+                            }
+                        }) }
                     }
                 }) }
             </div>
         }
     };
 
+    // Render the palette for sandbox mode
+    let render_palette = || {
+        let pieces = vec![
+            "wp", "bp", "wr", "br", "wn", "bn", "wb", "bb", "wq", "bq", "wk", "bk",
+        ]; // List of pieces
+        html! {
+            <div class="palette">
+                <h3>{ "Palette" }</h3>
+                <div class="palette-pieces">
+                    { for pieces.iter().map(|piece| {
+                        html! {
+                            <div class="palette-piece">
+                                { piece }
+                            </div>
+                        }
+                    }) }
+                </div>
+            </div>
+        }
+    };
+
     html! {
-        <div>
-            <nav>
+        <div class="app-container">
+            <nav class="navbar">
                 <button onclick={set_tab.reform(|_| "menu".to_string())}>{ "Menu" }</button>
                 <button onclick={set_tab.reform(|_| "description".to_string())}>{ "Description" }</button>
                 <button onclick={set_tab.reform(|_| "install".to_string())}>{ "Install" }</button>
             </nav>
-            <div>
+            <div class="content">
                 {
                     match active_tab.as_str() {
                         "menu" => html! {
-                            <div>
+                            <div class="menu-container">
                                 <h1>{ "Welcome to M-Chess!" }</h1>
                                 <button onclick={start_game.reform(|_| GameMode::Standard)}>{ "Start Game" }</button>
                                 <button onclick={start_game.reform(|_| GameMode::Sandbox)}>{ "Start Sandbox" }</button>
@@ -79,12 +106,22 @@ fn app() -> Html {
                 }
                 {
                     match *game_mode {
-                        GameMode::Standard | GameMode::Sandbox => {
+                        GameMode::Sandbox => {
                             if let Some(game) = &*game {
                                 html! {
-                                    <div>
-                                        <h2>{ format!("Game Mode: {:?}", game_mode) }</h2>
-                                        <h3>{ format!("Turn: {:?}", game.board.turn) }</h3>
+                                    <div class="game-area">
+                                        { render_board(game) }
+                                        { render_palette() }
+                                    </div>
+                                }
+                            } else {
+                                html! { <p>{ "Initializing game..." }</p> }
+                            }
+                        },
+                        GameMode::Standard => {
+                            if let Some(game) = &*game {
+                                html! {
+                                    <div class="game-area">
                                         { render_board(game) }
                                     </div>
                                 }

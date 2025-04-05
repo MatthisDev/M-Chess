@@ -1,21 +1,174 @@
-nav {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
+/* General styles */
+body {
+    background-color: #1e1e1e; /* Darker background */
+    color: #ffffff; /* White text for contrast */
+    margin: 0;
+    font-family: Arial, sans-serif;
 }
 
-button {
+/* Navigation bar */
+.navbar {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    padding: 10px;
+    background-color: #333; /* Dark background for the navbar */
+    border-bottom: 2px solid #444; /* Subtle border */
+}
+
+.navbar button {
     padding: 10px 20px;
     cursor: pointer;
-    border: 1px solid #ccc;
-    background-color: #f9f9f9;
+    border: none;
+    background-color: #444; /* Dark button background */
+    color: #ffffff; /* White text */
     border-radius: 5px;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
 }
 
-button:hover {
-    background-color: #e0e0e0;
+.navbar button:hover {
+    background-color: #555; /* Slightly lighter on hover */
 }
 
-button:active {
-    background-color: #d0d0d0;
+.navbar button:active {
+    background-color: #666; /* Even lighter when active */
+}
+
+/* Welcome message and buttons */
+.menu-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 20px 0; /* Add spacing above and below */
+    text-align: center;
+}
+
+.menu-container h1 {
+    margin-bottom: 20px;
+    font-size: 2.5rem;
+    color: #ffffff;
+}
+
+.menu-container button {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    background-color: #444; /* Dark button background */
+    color: #ffffff; /* White text */
+    border-radius: 5px;
+    font-size: 1rem;
+    margin: 10px 0; /* Add spacing between buttons */
+    transition: background-color 0.3s ease;
+}
+
+.menu-container button:hover {
+    background-color: #555; /* Slightly lighter on hover */
+}
+
+.menu-container button:active {
+    background-color: #666; /* Even lighter when active */
+}
+
+/* Game area (board and palette) */
+.content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px; /* Add spacing between sections */
+}
+
+.game-area {
+    display: flex;
+    flex-direction: row; /* Align board and palette horizontally */
+    justify-content: center; /* Center the game area */
+    gap: 20px; /* Add space between the board and palette */
+    margin-top: 20px; /* Add spacing above the game area */
+}
+
+/* Chessboard container */
+.board {
+    display: grid;
+    grid-template-rows: repeat(8, 1fr); /* 8 rows */
+    grid-template-columns: repeat(8, 1fr); /* 8 columns */
+    gap: 0; /* No space between cells */
+    width: 400px; /* Fixed width for the board */
+    height: 400px; /* Fixed height for the board */
+    border: 2px solid #000; /* Add a border around the board */
+    background-color: #000; /* Optional: Add a background color */
+}
+
+/* Individual rows (optional, for debugging layout) */
+.row {
+    display: flex;
+}
+
+/* Individual cells */
+.cell {
+    width: 100%; /* Ensure cells fill the grid space */
+    height: 100%; /* Ensure cells fill the grid space */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem; /* Adjust font size for pieces */
+    font-weight: bold;
+}
+
+/* Light and dark cells */
+.cell.light {
+    background-color: #f0d9b5; /* Light square color */
+}
+
+.cell.dark {
+    background-color: #b58863; /* Dark square color */
+}
+
+/* Palette */
+.palette {
+    flex: 0 0 150px; /* Fixed width for the palette */
+    padding: 10px;
+    background-color: #333; /* Dark background to match the site */
+    border-left: 1px solid #444; /* Subtle border to separate the palette */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 5px; /* Optional: Rounded corners for the palette */
+}
+
+.palette h3 {
+    text-align: center;
+    margin-bottom: 10px;
+    color: #ffffff; /* White text for the palette title */
+}
+
+.palette-pieces {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.palette-piece {
+    width: 40px;
+    height: 40px;
+    background-color: #444; /* Dark background for the pieces */
+    border: 1px solid #555; /* Subtle border for the pieces */
+    border-radius: 4px;
+    cursor: grab;
+    text-transform: uppercase;
+    font-weight: bold;
+    color: #ffffff; /* White text for the piece labels */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+}
+
+.palette-piece:hover {
+    background-color: #555; /* Slightly lighter on hover */
+}
+
+.palette-piece:active {
+    background-color: #666; /* Even lighter when active */
 }
