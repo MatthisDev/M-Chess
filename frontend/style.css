@@ -1,0 +1,21 @@
+nav {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+button {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+}
+
+button:hover {
+    background-color: #e0e0e0;
+}
+
+button:active {
+    background-color: #d0d0d0;
+}

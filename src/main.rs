@@ -1,5 +1,3 @@
-mod game_lib;
-
 use axum::{
     routing::{get, get_service},
     Json, Router,
