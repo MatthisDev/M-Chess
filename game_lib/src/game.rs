@@ -1,4 +1,4 @@
-use crate::board::{self, Board, BOARD_SIZE, NONE, EMPTY_CELL, EMPTY_POS};
+use crate::board::{self, Board, BOARD_SIZE, EMPTY_CELL, EMPTY_POS, NONE};
 use crate::piece::Piece;
 use crate::piece::{Color, PieceType};
 use crate::position::Position;
@@ -130,15 +130,12 @@ impl Game {
 
         // rock situtation
         if piece.piece_type == PieceType::King && self.castle_situation(piece, &to_pos) {
-            self.board.turn = self.board.turn.opposite(); 
+            self.board.turn = self.board.turn.opposite();
             return Ok(true);
         }
 
-        println!("HERE");
         // if the piece can move + is moved
         if self.board.move_piece(&from_pos, &to_pos) {
-
-            println!("HERE2");
             self.board.turn = self.board.turn.opposite();
 
             println!("Success!");
@@ -168,7 +165,6 @@ impl Game {
         } else {
             Err("Mouvement invalide.")
         }
-
     }
 
     /// Take a `&str` with the format `"cell"`.
@@ -224,23 +220,6 @@ impl Game {
 
     fn undo_move(&mut self) {
         //undo until color change => for exeptional cases as castle or hysto empty
-        while let Some((from, to, ptype, (x, y), eaten)) = self.board.history.pop() {
-            if self.board.pieces[x][y].color != self.board.turn {
-                self.board.move_piece(&to, &from);
-            } else {
-                if eaten {
-                    self.board.squares[from.row][from.col] = (x as isize, y as isize);
-                    //  Assuiming that the piece that was eaten was the first one added to the pieces vec
-                    // so the piece that eat it has already been reversed
-                }
-                self.board.history.push((from, to, ptype, (x, y), eaten));
-                break;
-            }
-        }
-        self.board.turn = if self.board.turn == Color::White {
-            Color::Black
-        } else {
-            Color::White
-        };
+        self.board.undo_move();
     }
 }

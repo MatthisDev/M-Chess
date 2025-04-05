@@ -1,10 +1,11 @@
 use crate::board::Board;
 use crate::game::*;
-use crate::piece::{Color, PieceType};
+use crate::piece::{Color, Piece, PieceType};
 use crate::position::Position;
 
 use crate::board::NONE;
 use crate::position;
+use std::collections::HashMap;
 
 pub enum Difficulty {
     Easy,
@@ -25,100 +26,100 @@ impl AI {
     fn evaluate_board(&self, board: &Board) -> i32 {
         let mut score = 0;
 
-        // Add material value for white pieces (AI's pieces)
+        // Material value
         for piece in board.pieces[self.color as usize].iter() {
             if piece.position.row != NONE && piece.position.col != NONE {
-                score += piece.piece_type.get_value(); // Assume `value()` returns the piece's material value
+                score += piece.piece_type.get_value();
             }
         }
-
-        // Subtract material value for black pieces (opponent's pieces)
         for piece in board.pieces[self.color.opposite() as usize].iter() {
             if piece.position.row != NONE && piece.position.col != NONE {
                 score -= piece.piece_type.get_value();
             }
         }
 
-        // Add positional bonuses (optional)
+        // Positional bonuses
         for piece in board.pieces[self.color as usize].iter() {
-            if piece.piece_type == PieceType::Pawn && piece.position.is_center() {
-                score += 10; // Bonus for pawns in the center
+            if piece.position.row != NONE && piece.position.col != NONE {
+                match piece.piece_type {
+                    PieceType::Pawn => {
+                        if piece.position.is_center() {
+                            score += 10; // Bonus for pawns in the center
+                        }
+                        if board.is_pawn_isolated(&piece.position) {
+                            score -= 5; // Penalty for isolated pawns
+                        }
+                        if board.is_pawn_doubled(&piece.position) {
+                            score -= 5; // Penalty for doubled pawns
+                        }
+                    }
+                    PieceType::Rook => {
+                        if board.is_open_file(piece.position.col) {
+                            score += 20; // Bonus for rooks on open files
+                        }
+                    }
+                    PieceType::Knight => {
+                        if piece.position.is_center() {
+                            score += 15; // Bonus for knights in the center
+                        }
+                    }
+                    PieceType::Bishop => {
+                        score += 10; // General bonus for bishops
+                    }
+                    PieceType::King => {
+                        if board.is_king_exposed(&piece.position) {
+                            score -= 30; // Penalty for exposed king
+                        }
+                    }
+                    _ => {}
+                }
             }
         }
 
+        // Opponent's positional penalties
         for piece in board.pieces[self.color.opposite() as usize].iter() {
-            if piece.piece_type == PieceType::Pawn && piece.position.is_center() {
-                score -= 10; // Penalty for opponent's pawns in the center
+            if piece.position.row != NONE && piece.position.col != NONE {
+                match piece.piece_type {
+                    PieceType::Pawn => {
+                        if piece.position.is_center() {
+                            score -= 10; // Penalty for opponent's pawns in the center
+                        }
+                        if board.is_pawn_isolated(&piece.position) {
+                            score += 5; // Bonus for opponent's isolated pawns
+                        }
+                        if board.is_pawn_doubled(&piece.position) {
+                            score += 5; // Bonus for opponent's doubled pawns
+                        }
+                    }
+                    PieceType::Rook => {
+                        if board.is_open_file(piece.position.col) {
+                            score -= 20; // Penalty for opponent's rooks on open files
+                        }
+                    }
+                    PieceType::Knight => {
+                        if piece.position.is_center() {
+                            score -= 15; // Penalty for opponent's knights in the center
+                        }
+                    }
+                    PieceType::King => {
+                        if board.is_king_exposed(&piece.position) {
+                            score += 30; // Bonus for opponent's exposed king
+                        }
+                    }
+                    _ => {}
+                }
             }
         }
+
+        // Mobility (number of valid moves)
+        let my_mobility = board.get_all_valid_moves(self.color).len() as i32;
+        let opponent_mobility = board.get_all_valid_moves(self.color.opposite()).len() as i32;
+        score += my_mobility - opponent_mobility;
 
         score
     }
 
-    fn minimax(
-        &self,
-        board: &Board,
-        depth: i32,
-        is_maximizing: bool,
-        mut alpha: i32,
-        mut beta: i32,
-    ) -> i32 {
-        // Base case: if depth is 0 or the game is over, evaluate the board
-        // board.print_board();
-        if depth == 0 || board.is_game_over() {
-            return self.evaluate_board(board);
-        }
-
-        if is_maximizing {
-            let mut max_eval = i32::MIN;
-
-            // Get all possible moves for the maximizing player
-            for piece in board.pieces[self.color as usize].iter() {
-                if piece.position.row == NONE || piece.position.col == NONE {
-                    continue; // Skip unused pieces
-                }
-
-                for mv in piece.valid_moves(board) {
-                    let mut new_board = board.clone();
-                    new_board.move_piece(&piece.position, &mv);
-
-                    let eval = self.minimax(&new_board, depth - 1, false, alpha, beta);
-                    max_eval = max_eval.max(eval);
-                    alpha = alpha.max(eval);
-
-                    if beta <= alpha {
-                        break; // Beta cutoff
-                    }
-                }
-            }
-            max_eval
-        } else {
-            let mut min_eval = i32::MAX;
-
-            // Get all possible moves for the minimizing player
-            for piece in board.pieces[self.color.opposite() as usize].iter() {
-                if piece.position.row == NONE || piece.position.col == NONE {
-                    continue; // Skip unused pieces
-                }
-
-                for mv in piece.valid_moves(board) {
-                    let mut new_board = board.clone();
-                    new_board.move_piece(&piece.position, &mv);
-
-                    let eval = self.minimax(&new_board, depth - 1, true, alpha, beta);
-                    min_eval = min_eval.min(eval);
-                    beta = beta.min(eval);
-
-                    if beta <= alpha {
-                        break; // Alpha cutoff
-                    }
-                }
-            }
-            min_eval
-        }
-    }
-
-    pub fn get_best_move(&self, board: &Board) -> (Position, Position) {
+    pub fn get_best_move(&self, board: &Board) -> Option<(Position, Position)> {
         let mut best_move = None;
         let mut best_value = i32::MIN;
         let depth = match self.difficulty {
@@ -127,19 +128,35 @@ impl AI {
             Difficulty::Hard => 5,
         };
 
+        let mut transposition_table = HashMap::new();
+
         // Iterate over all possible moves for the AI's pieces
         for piece in board.pieces[self.color as usize].iter() {
             if piece.position.row == NONE || piece.position.col == NONE {
+                println!("Skipping unused piece");
                 continue; // Skip unused pieces
             }
-
+            println!("Valid moves: {:?}", piece.valid_moves(board));
             for mv in piece.valid_moves(board) {
                 let mut new_board = board.clone();
                 new_board.move_piece(&piece.position, &mv);
+                println!("Moved piece to virtual {:?}", mv);
+                new_board.turn = new_board.turn.opposite(); // Update the turn after making a move
 
-                let move_value = self.minimax(&new_board, depth, false, i32::MIN, i32::MAX); // Depth = 3
+                let move_value = self.iterative_minimax(
+                    &mut new_board,
+                    depth,
+                    false,
+                    i32::MIN,
+                    i32::MAX,
+                    &mut transposition_table,
+                );
 
                 if move_value > best_value {
+                    println!(
+                        "Updating best move: {:?} -> {:?}, value: {}",
+                        piece.position, mv, move_value
+                    );
                     best_value = move_value;
                     best_move = Some((piece.position, mv));
                 }
@@ -147,8 +164,174 @@ impl AI {
         }
 
         match best_move {
-            Some((from, to)) => (from, to),
-            None => (Position::new(0, 0), Position::new(1, 0)), // Default move if no valid moves
+            Some((from, to)) => Some((from, to)),
+            None => {
+                println!("No valid moves found for AI");
+                None // Default move if no valid moves
+            }
         }
+    }
+
+    fn iterative_minimax(
+        &self,
+        board: &mut Board,
+        max_depth: i32,
+        is_maximizing: bool,
+        mut alpha: i32,
+        mut beta: i32,
+        transposition_table: &mut HashMap<u64, i32>,
+    ) -> i32 {
+        let mut stack = Vec::new();
+        let mut best_value_stack = Vec::new(); // Stack to track best_value for each depth
+
+        // Initialize the stack with the root node
+        stack.push((0, is_maximizing, alpha, beta, None));
+        best_value_stack.push(if is_maximizing { i32::MIN } else { i32::MAX });
+
+        while let Some((depth, is_maximizing, mut alpha, mut beta, prev_move)) = stack.pop() {
+            // Get the current best_value for this depth
+            let mut best_value = best_value_stack.pop().unwrap();
+
+            if let Some((from, to)) = prev_move {
+                println!("Undoing move: {:?} -> {:?}", from, to);
+                board.turn = if is_maximizing {
+                    self.color
+                } else {
+                    self.color.opposite()
+                };
+                board.undo_move();
+            }
+            println!("Here");
+            if depth == max_depth {
+                println!("End1");
+                let eval = self.evaluate_board(board);
+                best_value = if is_maximizing {
+                    best_value.max(eval)
+                } else {
+                    best_value.min(eval)
+                };
+
+                // Propagate best_value back to the parent level
+                if let Some(parent_best_value) = best_value_stack.last_mut() {
+                    if is_maximizing {
+                        *parent_best_value = (*parent_best_value).max(best_value);
+                    } else {
+                        *parent_best_value = (*parent_best_value).min(best_value);
+                    }
+                }
+                continue;
+            }
+            println!("Not depth max");
+            if depth != max_depth && board.is_game_over() {
+                println!("End1");
+                let eval = self.evaluate_board(board);
+                best_value = if is_maximizing {
+                    best_value.max(eval)
+                } else {
+                    best_value.min(eval)
+                };
+
+                // Propagate best_value back to the parent level
+                if let Some(parent_best_value) = best_value_stack.last_mut() {
+                    if is_maximizing {
+                        *parent_best_value = (*parent_best_value).max(best_value);
+                    } else {
+                        *parent_best_value = (*parent_best_value).min(best_value);
+                    }
+                }
+                continue;
+            }
+
+            let mut moves = Vec::new();
+            let color = if is_maximizing {
+                self.color
+            } else {
+                self.color.opposite()
+            };
+
+            for piece in board.pieces[color as usize].iter() {
+                if piece.position.row == NONE || piece.position.col == NONE {
+                    continue;
+                }
+                for mv in piece.valid_moves(board) {
+                    moves.push((piece.position, mv));
+                }
+            }
+
+            moves.sort_by_key(|(from, to)| {
+                let mut priority = 0;
+                println!("Evaluating move: {:?} -> {:?}", from, to);
+                // Prioritize safe moves
+                if board.is_safe_move(from, to) {
+                    priority -= 100;
+                }
+
+                // Prioritize castling
+                if board.is_castling_move(from, to) {
+                    priority -= 90;
+                }
+
+                // Prioritize moves involving strong pieces
+                if let Some(piece) = Piece::get_piece(&Position::new(from.row, from.col), board) {
+                    match piece.piece_type {
+                        PieceType::Queen => priority -= 80,
+                        PieceType::Rook => priority -= 70,
+                        PieceType::Bishop => priority -= 60,
+                        PieceType::Knight => priority -= 50,
+                        PieceType::Pawn => priority -= 40,
+                        _ => {}
+                    }
+                }
+
+                // Prioritize captures
+                if board.is_capture(to) {
+                    if let Some(captured_piece) =
+                        Piece::get_piece(&Position::new(from.row, from.col), board)
+                    {
+                        priority -= captured_piece.piece_type.get_value(); // Higher value for more valuable captures
+                    }
+                }
+
+                if board.is_pawn_double_move(from, to) {
+                    priority -= 30;
+                }
+                priority
+            });
+
+            // Push the current state back onto the stack
+            stack.push((depth, is_maximizing, alpha, beta, None));
+            best_value_stack.push(best_value);
+
+            // Push child nodes onto the stack
+            for (from, to) in moves {
+                if board.move_piece(&from, &to) {
+                    board.turn = if is_maximizing {
+                        self.color.opposite()
+                    } else {
+                        self.color
+                    };
+
+                    stack.push((depth + 1, !is_maximizing, alpha, beta, Some((from, to))));
+                    best_value_stack.push(if !is_maximizing { i32::MIN } else { i32::MAX });
+
+                    if is_maximizing {
+                        alpha = alpha.max(best_value);
+                        if beta <= alpha {
+                            board.undo_move();
+                            break;
+                        }
+                    } else {
+                        beta = beta.min(best_value);
+                        if beta <= alpha {
+                            board.undo_move();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Return the best_value for the root node
+        best_value_stack.pop().unwrap()
     }
 }

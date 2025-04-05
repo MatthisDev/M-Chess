@@ -84,22 +84,18 @@ impl Piece {
 
     // get the piece from a specific position
     pub fn get_piece<'a>(position: &Position, board: &'a Board) -> Option<&'a Piece> {
-        if position.col == NONE || position.row == NONE {
+        if !board.is_within_bounds(position) {
             println!("Error: position is out of bounds");
             return None;
         }
 
         let (i, j): (isize, isize) = board.squares[position.row][position.col];
 
-        // when there is no piece
-
         if (i, j) == EMPTY_CELL {
             return None;
         }
 
-        let (i, j): (usize, usize) = (i as usize, j as usize);
-
-        Some(&board.pieces[i][j])
+        Some(&board.pieces[i as usize][j as usize])
     }
 
     pub fn get_piece_mut<'a>(position: &Position, board: &'a mut Board) -> Option<&'a mut Piece> {
