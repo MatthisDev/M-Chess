@@ -250,7 +250,7 @@ impl Board {
     ///
     /// # Example
     /// ```no_run
-    /// use m_chess::game_lib::game::Game;
+    /// use game_lib::game::Game;
     ///
     /// let mut game = Game::init(true); // empty board
     ///
@@ -314,7 +314,7 @@ impl Board {
     ///
     /// # Example
     /// ```no_run
-    /// use m_chess::game_lib::game::Game;
+    /// use game_lib::game::Game;
     ///
     /// let mut game = Game::init(false); // classic board
     ///
@@ -425,8 +425,8 @@ impl Board {
     ///
     /// # Example
     /// ```no_run
-    /// use m_chess::game_lib::game::Game;
-    /// use m_chess::game_lib::board::BOARD_SIZE;
+    /// use game_lib::game::Game;
+    /// use game_lib::board::BOARD_SIZE;
     ///
     /// let mut game = Game::init(false);
     ///
@@ -498,7 +498,6 @@ impl Board {
             return false;
         }
 
-        println!("MOVE VALIDATE BY IS VALID MOVE");
         // Si le move est simulable == n'implique pas un echec de notre propre roi.
         !self.put_in_check_simulation(piece_pos, to)
     }
