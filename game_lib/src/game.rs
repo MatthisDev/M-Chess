@@ -17,7 +17,7 @@ impl Game {
     ///
     /// # Example
     /// ```no_run
-    /// use m_chess::game_lib::game::Game;
+    /// use game_lib::game::Game;
     ///
     /// let mut game1 = Game::init(false);
     /// game1.board.print_board(); // classic/full board
@@ -97,7 +97,7 @@ impl Game {
     /// # Example
     ///
     /// ```no_run
-    /// use m_chess::game_lib::game::Game;
+    /// use game_lib::game::Game;
     ///
     /// let mut game = Game::init(false);
     /// game.make_move_algebraic("e2->e4"); // Ok(True)
@@ -134,11 +134,9 @@ impl Game {
             return Ok(true);
         }
 
-        println!("HERE");
         // if the piece can move + is moved
         if self.board.move_piece(&from_pos, &to_pos) {
 
-            println!("HERE2");
             self.board.turn = self.board.turn.opposite();
 
             println!("Success!");
@@ -180,7 +178,7 @@ impl Game {
     /// # Example
     ///
     /// ```no_run
-    /// use m_chess::game_lib::game::Game;
+    /// use game_lib::game::Game;
     ///
     /// let mut game = Game::init(false);
     ///

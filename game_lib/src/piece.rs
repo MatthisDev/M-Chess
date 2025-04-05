@@ -181,7 +181,7 @@ impl Piece {
             );
 
             if capture != *to_pos {
-                return false;
+                continue;
             }
 
             if board.is_within_bounds(&capture)
@@ -326,7 +326,7 @@ impl Piece {
             );
 
             if target != *to_pos {
-                return false;
+                continue;
             }
 
             if board.is_within_bounds(&target) {
@@ -489,7 +489,7 @@ impl Piece {
             );
 
             if target != *to_pos {
-                return false;
+                continue;
             }
 
             if board.is_within_bounds(&target) && !board.is_attacked(&target, self.color) {
@@ -587,11 +587,13 @@ impl Piece {
                 break;
             }
 
+            if position != *to_pos {
+                continue;
+            }
+
             match Piece::get_piece(&position, board) {
-                Some(piece) if piece.color != self.color && *to_pos == position => return true,
-                None if *to_pos == position => return true,
-                None => continue,
-                _ => break, // if there is a piece of our color
+                Some(piece) if piece.color == self.color => break,
+                _ => return true,
             };
         }
 
