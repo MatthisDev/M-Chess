@@ -163,7 +163,7 @@ impl Piece {
                 // If there is nothing on the cell the move is possible.
                 // (no need to check the out of board)
                 if board.squares[double_forward.row][double_forward.col] == EMPTY_CELL
-                    && forward == *to_pos
+                    && double_forward == *to_pos
                 {
                     return true;
                 }
@@ -171,9 +171,13 @@ impl Piece {
         }
 
         for col_offset in &[-1, 1] {
+            let row = self.position.row as i32 + direction;
+
+            let col = self.position.col as i32 + col_offset;
+
             let capture: Position = Position::new(
-                (self.position.row as i32 + direction) as usize,
-                (self.position.col as i32 + col_offset) as usize,
+                if row >= 0 { row as usize } else { NONE },
+                if col >= 0 { col as usize } else { NONE },
             );
 
             if capture != *to_pos {

@@ -642,6 +642,7 @@ impl Board {
     pub fn is_pat(&self, color: Color) -> bool {
         for i in 0..16 {
             let piece_moves = self.pieces[color as usize][i].valid_moves(self);
+
             if !piece_moves.is_empty() {
                 return false;
             }
@@ -650,7 +651,6 @@ impl Board {
     }
 
     pub fn can_castle(&self, king_position: &Position, rook_position: &Position) -> bool {
-        println!("king: {:?}", king_position);
         let king: &Piece = if let Some(king) = Piece::get_piece(king_position, self) {
             king
         } else {
@@ -730,8 +730,17 @@ impl Board {
 
         // Undo moves until the turn changes
         while let Some((from, to, ptype, (x, y), eaten)) = self.history.pop() {
+            println!("Undoing move from {:?} to {:?}", from, to);
             // Restore the piece's position
             self.move_piece(&to, &from);
+            if let Some((tfrom, tto, tptype, (tx, ty), teaten)) = self.history.pop() {
+                if tfrom == to && tto == from && tptype == ptype && (tx, ty) == (x, y) {
+                    // Restore the piece's position
+                } else {
+                    // If the move doesn't match, push it back to history
+                    self.history.push((tfrom, tto, tptype, (tx, ty), teaten));
+                }
+            }
             //println!("Undo move from {:?} to {:?}", from, to);
             // Handle eaten pieces
             if eaten {
@@ -775,6 +784,7 @@ impl Board {
         self.turn = self.turn.opposite();
     }
 
+    /// Check if a pawn is isolated (no friendly pawns on adjacent files)
     pub fn is_pawn_isolated(&self, position: &Position) -> bool {
         let col = position.col;
         let row = position.row;
