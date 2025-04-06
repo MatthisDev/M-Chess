@@ -1,4 +1,3 @@
-
 use crate::board::Board;
 use crate::game::*;
 use crate::piece::{Color, Piece, PieceType};
@@ -18,7 +17,7 @@ pub struct AI {
     difficulty: Difficulty,
     color: Color,
 }
-/*
+
 impl AI {
     pub fn new(difficulty: Difficulty, color: Color) -> Self {
         AI { difficulty, color }
@@ -39,20 +38,15 @@ impl AI {
                 println!("Skipping unused piece");
                 continue; // Skip unused pieces
             }
-            for mv in piece.valid_moves(board) {
+            for mv in Piece::valid_moves(piece.position, &mut board.clone()) {
                 let mut new_board = board.clone();
                 new_board.move_piece(&piece.position, &mv);
-                println!("Moved piece to virtual {:?}", mv);
                 new_board.turn = new_board.turn.opposite(); // Update the turn after making a move
 
                 let move_value =
                     self.recursive_minimax(&mut new_board, 0, depth, false, i32::MIN, i32::MAX);
 
                 if move_value > best_value {
-                    println!(
-                        "Updating best move: {:?} -> {:?}, value: {}",
-                        piece.position, mv, move_value
-                    );
                     best_value = move_value;
                     best_move = Some((piece.position, mv));
                 }
@@ -104,7 +98,7 @@ impl AI {
             if piece.position.row == NONE || piece.position.col == NONE {
                 continue;
             }
-            for mv in piece.valid_moves(board) {
+            for mv in Piece::valid_moves(piece.position, &mut board.clone()) {
                 moves.push((piece.position, mv));
             }
         }
@@ -280,4 +274,3 @@ impl AI {
         score
     }
 }
-*/

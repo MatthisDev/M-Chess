@@ -206,13 +206,12 @@ impl Board {
         }
         println!("  a b c d e f g h");
     }
-    
+
     // useful for debuging
     pub fn print_pieces(&self) {
         println!(">================= PIECES =================<");
 
         for icolor in 0_u8..=1_u8 {
-            
             for piece in self.pieces[icolor as usize].iter() {
                 // don't need to print pieces with empty pos
                 if piece.position == EMPTY_POS {
@@ -222,7 +221,6 @@ impl Board {
                 println!("{:?}", piece);
             }
         }
-
     }
     // In the list of one type piece find a piece which is unused.
     //used for initialization of the board
@@ -400,22 +398,22 @@ impl Board {
         if (NONE, NONE) != (x_piece_to, y_piece_to) {
             // push the info in the history
             self.history.push((
-                    *to,
-                    EMPTY_POS,
-                    self.pieces[x_piece_to][y_piece_to].piece_type,
-                    (x_piece_to, y_piece_to),
-                    true,
+                *to,
+                EMPTY_POS,
+                self.pieces[x_piece_to][y_piece_to].piece_type,
+                (x_piece_to, y_piece_to),
+                true,
             ));
             self.pieces[x_piece_to][y_piece_to].position = EMPTY_POS;
         }
 
         // update history
         self.history.push((
-                *piece_pos,
-                *to,
-                self.pieces[x_piece][y_piece].piece_type,
-                (x_piece, y_piece), // EXCEPTIONNELLE SITUATION
-                false,              //Option<Piece> de la case
+            *piece_pos,
+            *to,
+            self.pieces[x_piece][y_piece].piece_type,
+            (x_piece, y_piece), // EXCEPTIONNELLE SITUATION
+            false,              //Option<Piece> de la case
         ));
 
         // link the piece to its new coo
@@ -504,9 +502,7 @@ impl Board {
             // ignore eaten pieces
             if self.pieces[ennemy_color as usize][i].position == EMPTY_POS {
                 continue;
-            } 
-            else if self.pieces[ennemy_color as usize][i].is_valid_move(self, position) {
-
+            } else if self.pieces[ennemy_color as usize][i].is_valid_move(self, position) {
                 return true;
             }
         }
@@ -576,7 +572,6 @@ impl Board {
         (icolor_to, ipiece_to): (&mut isize, &mut isize),
         (icolor, ipiece): (&mut isize, &mut isize),
     ) -> bool {
-        
         match Piece::get_piece_mut(piece_pos, self) {
             Some(piece) => {
                 piece.position.row = to.row;
@@ -623,7 +618,6 @@ impl Board {
 
         // verification about the validity
         let is_check: bool = self.is_king_in_check(piece.color);
-        
 
         let b = self.get_back_simulation(
             to,
@@ -637,7 +631,6 @@ impl Board {
         }
 
         is_check
-
     }
 
     /// Check if the position is within the bounds of the board
@@ -693,7 +686,6 @@ impl Board {
 
     pub fn is_pat(&mut self, color: Color) -> bool {
         for i in 0..16 {
-
             let piece_moves = Piece::valid_moves(self.pieces[color as usize][i].position, self);
 
             if !piece_moves.is_empty() {
@@ -721,7 +713,7 @@ impl Board {
         if king.has_moved || rook.has_moved {
             return false;
         }
-        
+
         // Vérifier qu'il n'y a pas de pièces entre le roi et la tour
         let (min_col, max_col) = if king.position.col < rook.position.col {
             (king.position.col + 1, rook.position.col)
@@ -773,10 +765,8 @@ impl Board {
         is_move = is_move && self.update_position(rook_position, &new_rook_position);
     }
 
-
     // Check if the game is over (checkmate or stalemate)
     pub fn is_game_over(&mut self) -> bool {
-
         self.is_checkmate(Color::White)
             || self.is_checkmate(Color::Black)
             || self.is_pat(Color::White)
@@ -805,7 +795,6 @@ impl Board {
             //println!("Undo move from {:?} to {:?}", from, to);
             // Handle eaten pieces
             if eaten {
-                println!("Restoring eaten piece at {:?}", from);
                 self.squares[from.row][from.col] = (x as isize, y as isize);
                 self.pieces[x][y].position = from; // Restore the eaten piece's position
 
@@ -815,13 +804,11 @@ impl Board {
 
             // Handle pawn promotion
             if ptype == PieceType::Pawn && (to.row == 0 || to.row == BOARD_SIZE - 1) {
-                println!("Undoing pawn promotion at {:?}", to);
                 self.pieces[x][y].piece_type = PieceType::Pawn; // Restore the pawn
             }
 
             // Handle castling
             if ptype == PieceType::King && (to.col as isize - from.col as isize).abs() == 2 {
-                println!("Undoing castling");
                 let rook_from = if to.col > from.col {
                     Position::new(to.row, BOARD_SIZE - 1) // Kingside rook
                 } else {
@@ -866,11 +853,12 @@ impl Board {
 
     pub fn get_all_valid_moves(&self, color: Color) -> Vec<(Position, Position)> {
         let mut moves = Vec::new();
+        let mut temp_board = self.clone(); // Clone the board
 
         // Iterate over all pieces of the given color
         for piece in self.pieces[color as usize].iter() {
             if piece.position.row != NONE && piece.position.col != NONE {
-                for mv in piece.valid_moves(self) {
+                for mv in Piece::valid_moves(piece.position, &mut temp_board) {
                     moves.push((piece.position, mv));
                 }
             }
