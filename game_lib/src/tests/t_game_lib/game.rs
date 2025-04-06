@@ -4,6 +4,8 @@ use crate::position::Position;
 use crate::piece::Color;
 use std::io;
 use std::process::Command;
+use std::thread::sleep;
+use std::time::Duration;
 
 // #[test]
 fn t_game() {
@@ -32,6 +34,7 @@ fn t_game() {
         game.board.print_board();
     }
 }
+
 
 // #[test]
 fn t_game_custom() {
@@ -160,11 +163,14 @@ fn t_roque() {
 fn t_get_list_moves_pawn() {
     let mut game = Game::init(false);
 
-
-    assert_eq!(game.get_list_moves("e2".to_string()), 
-               Ok(vec!["e3".to_string(), "e4".to_string()]));
-    assert_eq!(game.get_list_moves("e3".to_string()),
-               Ok(Vec::<String>::new()));
+    assert_eq!(
+        game.get_list_moves("e2".to_string()),
+        Ok(vec!["e3".to_string(), "e4".to_string()])
+    );
+    assert_eq!(
+        game.get_list_moves("e3".to_string()),
+        Ok(Vec::<String>::new())
+    );
 
 }
 
@@ -177,6 +183,7 @@ fn t_get_list_moves_king() {
     game.board.add_piece("brf6");
     game.board.add_piece("bkd7");
     game.board.add_piece("wke3");
+
 
     assert_eq!(game.get_list_moves("d7".to_string()), Ok(vec!["c7".to_string(),
             "e7".to_string(), "d8".to_string(), "e6".to_string(), 
@@ -247,13 +254,13 @@ fn t_game_custom_add_remove() {
     // try to add
     assert_eq!(game.board.add_piece("bpe1"), Ok(true));
     assert_eq!(game.board.add_piece("bpe1"), Ok(false)); // there is already a piece there
-    assert_eq!(game.board.add_piece("sjfd").is_err(), true);
+    assert!(game.board.add_piece("sjfd").is_err());
     // assert_eq!(
 
     // try to remove
     assert_eq!(game.board.remove_piece("e1"), Ok(true));
     assert_eq!(game.board.remove_piece("e2"), Ok(false)); // nothing there
-    assert_eq!(game.board.remove_piece("").is_err(), true);
+    assert!(game.board.remove_piece("").is_err());
 }
 
 // #[test]
@@ -290,8 +297,8 @@ fn t_create_ai() {
 fn t_game_ai() {
     let mut game = Game::init(false);
 
-    let wai = AI::new(Difficulty::Hard, Color::White);
-    let bai = AI::new(Difficulty::Hard, Color::Black);
+    let wai = AI::new(Difficulty::Easy, Color::White);
+    let bai = AI::new(Difficulty::Easy, Color::Black);
     let mut finish_game: Result<bool, &'static str> = Ok(true);
 
     println!("Before move");
@@ -301,10 +308,19 @@ fn t_game_ai() {
         || finish_game == Err("Mouvement invalide.")
         || finish_game == Err("parse_move_str: invalid send string: <{move_piece}>")
     {
+        println!("Waiting for 1 second...");
+        sleep(Duration::from_secs(1));
+
         println!("Au {:?} de jouer", game.board.turn);
         let mut move_str = String::new();
         if game.board.turn == Color::White {
-            let best_move = wai.get_best_move(&game.board);
+            let best_move = match wai.get_best_move(&game.board) {
+                Some(mv) => mv,
+                None => {
+                    println!("No valid moves available for White");
+                    break;
+                }
+            };
             println!("Best move: {:?}", best_move);
 
             move_str = format!(
@@ -313,7 +329,14 @@ fn t_game_ai() {
                 best_move.1.to_algebraic()
             );
         } else {
-            let best_move = bai.get_best_move(&game.board);
+            println!("Au tour de l'IA de jouer");
+            let best_move = match bai.get_best_move(&game.board) {
+                Some(mv) => mv,
+                None => {
+                    println!("No valid moves available for Black");
+                    break;
+                }
+            };
             println!("Best move: {:?}", best_move);
 
             move_str = format!(
@@ -325,7 +348,6 @@ fn t_game_ai() {
 
         finish_game = game.make_move_algebraic(&move_str);
 
-        Command::new("clear").status().expect("Ca veut pas clear");
         game.board.print_board();
     }
 
