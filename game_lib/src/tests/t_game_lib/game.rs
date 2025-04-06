@@ -1,8 +1,10 @@
 use crate::automation::ai::{Difficulty, AI};
 use crate::game::Game;
+use crate::position::Position;
 use crate::piece::Color;
 use std::io;
 use std::process::Command;
+
 
 // #[test]
 fn t_game() {
@@ -12,6 +14,40 @@ fn t_game() {
 
     let mut finish_game: Result<bool, &'static str> = Ok(true);
 
+    while finish_game == Ok(true)
+        || finish_game == Err("Mouvement invalide.")
+        || finish_game == Err("parse_move_str: invalid send string: <{move_piece}>")
+    {
+        let mut move_user = String::new();
+
+        println!("Au {:?} de jouer", game.board.turn);
+        println!("Entrez votre movement: <position de depart>-><position d'arrivee>");
+
+        io::stdin()
+            .read_line(&mut move_user)
+            .expect("Échec de la lecture de l'entrée");
+
+        finish_game = game.make_move_algebraic(&move_user);
+
+        Command::new("clear").status().expect("Ca veut pas clear");
+        game.board.print_board();
+    }
+}
+
+// #[test]
+fn t_game_custom() {
+
+    let mut game = Game::init(true);
+
+    game.board.add_piece("brd6");
+    game.board.add_piece("brf6");
+    game.board.add_piece("bkd7");
+    game.board.add_piece("wke3");
+
+    game.board.print_board();
+    
+    let mut finish_game: Result<bool, &'static str> = Ok(true);
+    
     while finish_game == Ok(true)
         || finish_game == Err("Mouvement invalide.")
         || finish_game == Err("parse_move_str: invalid send string: <{move_piece}>")
@@ -83,13 +119,27 @@ fn t_eat_knight() {
     assert_eq!(game.make_move_algebraic("f7->f8"), Ok(true));
     assert_eq!(game.make_move_algebraic("b6->d5"), Ok(true));
 
-    game.board.print_board();
+}
+
+#[test] 
+fn t_eat_rook() {
+
+    let mut game = Game::init(true);
+
+    game.board.add_piece("wkf1");
+    game.board.add_piece("bkf8");
+    game.board.add_piece("brf6");
+    game.board.add_piece("wpa3");
+    
+    game.board.turn = Color::Black;
+    assert_eq!(game.make_move_algebraic("f6->f1"), Ok(true));
+
 }
 
 // >=============== get_list_moves ===============<
 
-//#[test]
-fn t_get_list_moves() {
+#[test]
+fn t_get_list_moves_pawn() {
     let mut game = Game::init(false);
 
 
@@ -98,6 +148,11 @@ fn t_get_list_moves() {
     assert_eq!(game.get_list_moves("e3".to_string()),
                Ok(Vec::<String>::new()));
 
+}
+
+#[test]
+fn t_get_list_moves_king() {
+
     let mut game = Game::init(true);
 
     game.board.add_piece("brd6");
@@ -105,12 +160,56 @@ fn t_get_list_moves() {
     game.board.add_piece("bkd7");
     game.board.add_piece("wke3");
 
+    assert_eq!(game.get_list_moves("d7".to_string()), Ok(vec!["c7".to_string(),
+            "e7".to_string(), "d8".to_string(), "e6".to_string(), 
+            "c6".to_string(), "e8".to_string(), "c8".to_string()]));
+    
     assert_eq!(game.get_list_moves("e3".to_string()),
-                Ok(vec!["e4".to_string(), "e2".to_string()]));
+            Ok(vec!["e4".to_string(), "e2".to_string()]));
+}
+
+
+#[test]
+fn t_get_list_moves_bishop() {
+    let mut game = Game::init(true);
+    
+    game.board.add_piece("wkf1");
+    game.board.add_piece("bkf8");
+    game.board.add_piece("wpd2");
+    game.board.add_piece("bpb2");
+    game.board.add_piece("wpe5");
+    game.board.add_piece("wbc3");
+
+    assert_eq!(game.get_list_moves("c3".to_string()), Ok(vec![
+                "b4".to_string(), "a5".to_string(), 
+                "b2".to_string(), "d4".to_string()
+    ]));
+
 }
 
 #[test]
-fn t_game_custom() {
+fn t_get_list_moves_protect_king() {
+    
+    let mut game = Game::init(true);
+
+    
+    game.board.add_piece("bkf8");
+    game.board.add_piece("wkf3");
+    game.board.add_piece("brf6");
+    game.board.add_piece("wqd4");
+    game.board.add_piece("wpa3");
+
+    assert_eq!(game.get_list_moves("d4".to_string()), Ok(vec![
+               "f6".to_string(), "f4".to_string()]));
+    assert_eq!(game.get_list_moves("a3".to_string()), Ok(vec![]));
+
+}
+
+
+// >=============== custom test  ===============<
+
+#[test]
+fn t_game_custom_add_remove() {
     let mut game = Game::init(true);
 
     // try to add
@@ -140,6 +239,15 @@ fn t_game_get_board() {
     }
 }
 
+// >=============== Position ===============<
+#[test]
+fn t_position_from_algebraic() {
+    assert_eq!(Position::from_algebraic("a1"),Ok(Position{row: 7, col: 0}));
+    assert_eq!(Position::from_algebraic("a3"),Ok(Position{row: 5, col: 0}));
+}
+
+// >=============== AI  ===============<
+/*
 // #[test]
 fn t_create_ai() {
     let mut game = Game::init(false);
@@ -191,3 +299,5 @@ fn t_game_ai() {
 
     println!("Game finished: {:?}", finish_game);
 }
+
+*/

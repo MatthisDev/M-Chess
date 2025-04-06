@@ -200,7 +200,24 @@ impl Board {
         }
         println!("  a b c d e f g h");
     }
+    
+    // useful for debuging
+    pub fn print_pieces(&self) {
+        println!(">================= PIECES =================<");
 
+        for icolor in 0_u8..=1_u8 {
+            
+            for piece in self.pieces[icolor as usize].iter() {
+                // don't need to print pieces with empty pos
+                if piece.position == EMPTY_POS {
+                    continue;
+                }
+
+                println!("{:?}", piece);
+            }
+        }
+
+    }
     // In the list of one type piece find a piece which is unused.
     fn find_unused_piece(&mut self, icolor: usize, ipiece: usize) -> Result<usize, &'static str> {
         let min: usize;
@@ -375,21 +392,21 @@ impl Board {
         if (NONE, NONE) != (x_piece_to, y_piece_to) {
             // push the info in the history
             self.history.push((
-                *to,
-                EMPTY_POS,
-                self.pieces[x_piece_to][y_piece_to].piece_type,
-                (x_piece_to, y_piece_to),
-                true,
+                    *to,
+                    EMPTY_POS,
+                    self.pieces[x_piece_to][y_piece_to].piece_type,
+                    (x_piece_to, y_piece_to),
+                    true,
             ));
         }
 
         // update history
         self.history.push((
-            *piece_pos,
-            *to,
-            self.pieces[x_piece][y_piece].piece_type,
-            (x_piece, y_piece), // EXCEPTIONNELLE SITUATION
-            false,              //Option<Piece> de la case
+                *piece_pos,
+                *to,
+                self.pieces[x_piece][y_piece].piece_type,
+                (x_piece, y_piece), // EXCEPTIONNELLE SITUATION
+                false,              //Option<Piece> de la case
         ));
 
         // link the piece to its new coo
@@ -471,10 +488,11 @@ impl Board {
 
         for i in 0..15 {
             // ignore eaten pieces
-
-            if self.pieces[ennemy_color as usize][i].position != EMPTY_POS {
+            if self.pieces[ennemy_color as usize][i].position == EMPTY_POS {
                 continue;
-            } else if self.pieces[ennemy_color as usize][i].is_valid_move(self, position) {
+            } 
+            else if self.pieces[ennemy_color as usize][i].is_valid_move(self, position) {
+
                 return true;
             }
         }
@@ -484,8 +502,6 @@ impl Board {
     }
 
     // look at if piece can do the move
-    //FIXME
-    //don't take moves that put the king in mate
     pub fn is_valid_move(&mut self, piece_pos: &Position, to: &Position) -> bool {
         // Algo:
         // - Si le move est possible. On le simule.
@@ -523,7 +539,7 @@ impl Board {
         match Piece::get_piece_mut(piece_pos, self) {
             Some(piece_mut) => {
                 piece_mut.position.row = to.row;
-                piece_mut.position.row = to.col;
+                piece_mut.position.col = to.col;
             }
             None => return false,
         }
@@ -541,11 +557,12 @@ impl Board {
 
     fn get_back_simulation(
         &mut self,
-        to: &Position,
         piece_pos: &Position,
+        to: &Position,
         (icolor_to, ipiece_to): (&mut isize, &mut isize),
         (icolor, ipiece): (&mut isize, &mut isize),
     ) -> bool {
+        
         match Piece::get_piece_mut(piece_pos, self) {
             Some(piece) => {
                 piece.position.row = to.row;
@@ -560,8 +577,8 @@ impl Board {
         // relink the piece if we ate one
         match Piece::get_piece_mut(piece_pos, self) {
             Some(piece) => {
-                piece.position.row = to.row;
-                piece.position.col = to.col;
+                piece.position.row = piece_pos.row;
+                piece.position.col = piece_pos.col;
             }
             None => (),
         }
@@ -570,7 +587,7 @@ impl Board {
     }
 
     // simulate a move and test if is not put in check its king
-    fn put_in_check_simulation(&mut self, piece_pos: &Position, to: &Position) -> bool {
+    pub fn put_in_check_simulation(&mut self, piece_pos: &Position, to: &Position) -> bool {
         let (mut icolor_to, mut ipiece_to): (isize, isize) = (0, 0);
         let (mut icolor, mut ipiece): (isize, isize) = (0, 0);
 
@@ -592,10 +609,11 @@ impl Board {
 
         // verification about the validity
         let is_check: bool = self.is_king_in_check(piece.color);
+        
 
         let b = self.get_back_simulation(
-            piece_pos,
             to,
+            piece_pos,
             (&mut icolor_to, &mut ipiece_to),
             (&mut icolor, &mut ipiece),
         );
@@ -605,6 +623,7 @@ impl Board {
         }
 
         is_check
+
     }
 
     pub fn is_within_bounds(&self, position: &Position) -> bool {
@@ -615,14 +634,13 @@ impl Board {
     pub fn is_king_in_check(&self, color: Color) -> bool {
         // get the king
         let king: &Piece = &self.pieces[color as usize][15];
-
-        self.is_attacked(&king.position, king.color)
+        self.is_attacked(&king.position, color)
     }
 
     // FIXME
     // Check if one color is in checkmate => no moves available and attacked
     //color of the king of the team to play
-    pub fn is_checkmate(&self, color: Color) -> bool {
+    pub fn is_checkmate(&mut self, color: Color) -> bool {
         if !self.is_king_in_check(color) {
             return false;
         }
@@ -632,15 +650,17 @@ impl Board {
         //=> à utiliser pour le path <=> is_checkmate sans le check ('_')
         //TODO remove la suite + faire les comment au dessus
         let king: &Piece = &self.pieces[color as usize][15];
-        let set_of_move = king.valid_moves(self);
+        let set_of_move = Piece::valid_moves(king.position, self);
+        // let set_of_move = king.valid_moves(self);
 
         // if the king can move
         set_of_move.is_empty()
     }
 
-    pub fn is_pat(&self, color: Color) -> bool {
+    pub fn is_pat(&mut self, color: Color) -> bool {
         for i in 0..16 {
-            let piece_moves = self.pieces[color as usize][i].valid_moves(self);
+            let piece_moves = Piece::valid_moves(self.pieces[color as usize][i].position, self);
+
             if !piece_moves.is_empty() {
                 return false;
             }
@@ -716,7 +736,7 @@ impl Board {
         is_move = is_move && self.update_position(rook_position, &new_rook_position);
     }
 
-    pub fn is_game_over(&self) -> bool {
+    pub fn is_game_over(&mut self) -> bool {
         self.is_checkmate(Color::White)
             || self.is_checkmate(Color::Black)
             || self.is_pat(Color::White)

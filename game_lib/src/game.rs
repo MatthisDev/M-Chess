@@ -186,7 +186,7 @@ impl Game {
     /// game.get_list_moves("e3".to_string()); // => []
     /// game.get_list_moves("e32".to_string()); // => Err(_)
     /// ```
-    pub fn get_list_moves(&self, cell: String) -> Result<Vec<String>, &'static str> {
+    pub fn get_list_moves(&mut self, cell: String) -> Result<Vec<String>, &'static str> {
         let mut result: Vec<String> = Vec::<String>::new();
 
         if cell.chars().count() != 2 {
@@ -205,17 +205,13 @@ impl Game {
             None => return Ok(vec![]),
         };
 
-        if piece.color != self.board.turn {
-            return Ok(vec![]);
-        }
-
-        let lst_moves: Vec<Position> = piece.valid_moves(&self.board);
-        // let lst_moves: Vec<Position> = Piece::valid_moves(position, self.board);
-
+        // let lst_moves: Vec<Position> = piece.valid_moves(&self.board);
+        let lst_moves: Vec<Position> = Piece::valid_moves(position, &mut self.board);
+        
         for i in lst_moves.iter() {
             // convert Position -> String
             result.push(i.to_algebraic());
-        }
+        } 
 
         Ok(result)
     }
