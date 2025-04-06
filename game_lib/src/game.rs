@@ -219,8 +219,11 @@ impl Game {
         Ok(result)
     }
 
+    /// This function will undo the last move made on the board.\
+    /// It will remove the last piece moved and restore the previous state of the board.
+    /// The function will also update the turn of the player.
+    /// no update of the has_moved for rook and king is implemented for the moment.
     fn undo_move(&mut self) {
-        //undo until color change => for exeptional cases as castle or hysto empty
         self.board.undo_move();
     }
 }
