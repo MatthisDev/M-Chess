@@ -10,6 +10,8 @@ pub const EMPTY_POS: Position = Position {
     col: NONE,
 };
 
+///Struct containing the board and the pieces
+/// It also contains the history of the game and the turn color
 #[derive(Debug, Clone)]
 pub struct Board {
     pub squares: [[(isize, isize); BOARD_SIZE]; BOARD_SIZE],
@@ -19,9 +21,11 @@ pub struct Board {
     pub pieces: [[Piece; 16]; 2],
     pub turn: Color,
     pub history: Vec<(Position, Position, PieceType, (usize, usize), bool)>,
+    //TODO add a count to check if there was 50 turns to stop the game
 }
 
 impl Board {
+    /// Create an empty board
     pub fn empty_init() -> Board {
         // init empty board
         let mut squares: [[(isize, isize); BOARD_SIZE]; BOARD_SIZE] =
@@ -75,6 +79,7 @@ impl Board {
         }
     }
 
+    /// Create a full board with all pieces
     pub fn full_init() -> Board {
         let mut squares: [[(isize, isize); BOARD_SIZE]; BOARD_SIZE] =
             [[EMPTY_CELL; BOARD_SIZE]; BOARD_SIZE];
@@ -163,7 +168,8 @@ impl Board {
         }
     }
 
-    // display in the terminal the board
+    /// display the board in the terminal
+    /// take a reference to the board
     pub fn print_board(&self) {
         println!("  a b c d e f g h");
         for row in 0..BOARD_SIZE {
@@ -202,6 +208,7 @@ impl Board {
     }
 
     // In the list of one type piece find a piece which is unused.
+    //used for initialization of the board
     fn find_unused_piece(&mut self, icolor: usize, ipiece: usize) -> Result<usize, &'static str> {
         let min: usize;
         let max: usize;
@@ -351,7 +358,7 @@ impl Board {
     }
 
     // move a piece to a position
-    // must be to position in args because:
+    // must be two positions in args because:
     // we dont know if there is a piece on the "from" position
     pub fn move_piece(&mut self, from: &Position, to: &Position) -> bool {
         // check if the move is valid (according to chess rules and piece range)
@@ -360,6 +367,7 @@ impl Board {
     }
 
     // update without checking chess rules and replacing pieces
+    //also update the history
     fn update_position(&mut self, piece_pos: &Position, to: &Position) -> bool {
         let (x_piece, y_piece): (usize, usize) = match self.squares[piece_pos.row][piece_pos.col] {
             (x, y) if (x, y) == EMPTY_CELL => return false,
@@ -419,6 +427,10 @@ impl Board {
         true
     }
 
+    //TODO  Duplicate with
+    ///```no_run
+    /// print_board();
+    /// ```
     /// Return a matrix of a board. Each cell contains a [`String`].
     /// String format:
     /// - empty: ".."
@@ -466,7 +478,8 @@ impl Board {
         str_board
     }
 
-    //color of the king to check
+    //Check if the piece is attacked by the ennemy
+    //stop when a move in the ennemy piece is valid and match the position of the piece
     pub fn is_attacked(&self, position: &Position, color: Color) -> bool {
         let ennemy_color = color.opposite();
 
@@ -608,15 +621,33 @@ impl Board {
         is_check
     }
 
+    /// Check if the position is within the bounds of the board
+    /// # Example
+    /// ```no_run
+    /// use m_chess::game_lib::board::{Board, BOARD_SIZE};
+    /// use m_chess::game_lib::position::Position;
+    ///
+    /// let mut board = Board::empty_init();
+    /// let position = Position::new(0, 0);
+    /// assert_eq!(board.is_within_bounds(&position), true);
+    /// let position = Position::new(8, 0);
+    /// assert_eq!(board.is_within_bounds(&position), false);
+    /// let position = Position::new(0, 8);
+    /// assert_eq!(board.is_within_bounds(&position), false);
+    /// let position = Position::new(8, 8);
+    /// assert_eq!(board.is_within_bounds(&position), false);
+    /// ```
+    /// # Complexity
+    /// `O(1)`
     pub fn is_within_bounds(&self, position: &Position) -> bool {
         position.row < BOARD_SIZE && position.col < BOARD_SIZE
     }
 
-    //color of the king to check
-    pub fn is_king_in_check(&self, color: Color) -> bool {
-        // get the king
-        let king: &Piece = &self.pieces[color as usize][15];
+    // Check if the king of the color is in check
+    // get the king of the color and check if it is attacked
 
+    pub fn is_king_in_check(&self, color: Color) -> bool {
+        let king: &Piece = &self.pieces[color as usize][15];
         self.is_attacked(&king.position, king.color)
     }
 
@@ -650,6 +681,7 @@ impl Board {
         true
     }
 
+    //Check if the king can castle with the rook
     pub fn can_castle(&self, king_position: &Position, rook_position: &Position) -> bool {
         let king: &Piece = if let Some(king) = Piece::get_piece(king_position, self) {
             king
@@ -696,6 +728,12 @@ impl Board {
         true
     }
 
+    // Perform the castling move
+    // move the king and the rook
+    // king_position: position of the king
+    // rook_position: position of the rook
+    // if the king is on the left of the rook we do a grand roque
+    // else we do a petit roque
     pub fn perform_castle(&mut self, king_position: &Position, rook_position: &Position) {
         // get new position
         let new_king_position: Position = if rook_position.col < king_position.col {
@@ -718,6 +756,7 @@ impl Board {
         is_move = is_move && self.update_position(rook_position, &new_rook_position);
     }
 
+    // Check if the game is over (checkmate or stalemate)
     pub fn is_game_over(&self) -> bool {
         self.is_checkmate(Color::White)
             || self.is_checkmate(Color::Black)
@@ -725,12 +764,15 @@ impl Board {
             || self.is_pat(Color::Black)
     }
 
-    pub fn undo_move(&mut self) {
-        // Safeguard: Ensure history is not empty
+    // Undo the last move made on the board
+    // This function restores the previous state of the board by reversing the last move.
+    // It handles the restoration of pieces, including castling, pawn promotion, and eaten pieces.
+    // The function continues to undo moves until the turn changes or the history is empty.
+    // It also flips the turn at the end of the undo operation.
 
-        // Undo moves until the turn changes
+    pub fn undo_move(&mut self) {
+        // Undo moves until the turn changes or history is empty
         while let Some((from, to, ptype, (x, y), eaten)) = self.history.pop() {
-            println!("Undoing move from {:?} to {:?}", from, to);
             // Restore the piece's position
             self.move_piece(&to, &from);
             if let Some((tfrom, tto, tptype, (tx, ty), teaten)) = self.history.pop() {
