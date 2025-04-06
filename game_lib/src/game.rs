@@ -17,7 +17,7 @@ impl Game {
     ///
     /// # Example
     /// ```no_run
-    /// use m_chess::game_lib::game::Game;
+    /// use game_lib::game::Game;
     ///
     /// let mut game1 = Game::init(false);
     /// game1.board.print_board(); // classic/full board
@@ -73,12 +73,16 @@ impl Game {
             Position::new(king.position.row, 7), // Tour côté roi
         ];
 
-        for rook_position in rook_positions.iter() {
-            if (*to_pos == Position::new(king.position.row, king.position.col - 2)
-                || *to_pos == Position::new(king.position.row, king.position.col + 2))
-                && self.board.can_castle(&king.position, rook_position)
-            {
-                self.board.perform_castle(&king.position, rook_position);
+        let to_king_pos = [
+            Position::new(king.position.row, king.position.col - 2),
+            Position::new(king.position.row, king.position.col + 2),
+        ];
+
+        for i in 0..2{
+            if *to_pos == to_king_pos[i] && 
+                self.board.can_castle(&king.position, &rook_positions[i]) {
+
+                self.board.perform_castle(&king.position, &rook_positions[i]);
                 return true;
             }
         }
@@ -97,7 +101,7 @@ impl Game {
     /// # Example
     ///
     /// ```no_run
-    /// use m_chess::game_lib::game::Game;
+    /// use game_lib::game::Game;
     ///
     /// let mut game = Game::init(false);
     /// game.make_move_algebraic("e2->e4"); // Ok(True)
@@ -134,11 +138,9 @@ impl Game {
             return Ok(true);
         }
 
-        println!("HERE");
         // if the piece can move + is moved
         if self.board.move_piece(&from_pos, &to_pos) {
 
-            println!("HERE2");
             self.board.turn = self.board.turn.opposite();
 
             println!("Success!");
@@ -180,7 +182,7 @@ impl Game {
     /// # Example
     ///
     /// ```no_run
-    /// use m_chess::game_lib::game::Game;
+    /// use game_lib::game::Game;
     ///
     /// let mut game = Game::init(false);
     ///
@@ -188,7 +190,7 @@ impl Game {
     /// game.get_list_moves("e3".to_string()); // => []
     /// game.get_list_moves("e32".to_string()); // => Err(_)
     /// ```
-    pub fn get_list_moves(&self, cell: String) -> Result<Vec<String>, &'static str> {
+    pub fn get_list_moves(&mut self, cell: String) -> Result<Vec<String>, &'static str> {
         let mut result: Vec<String> = Vec::<String>::new();
 
         if cell.chars().count() != 2 {
@@ -207,17 +209,13 @@ impl Game {
             None => return Ok(vec![]),
         };
 
-        if piece.color != self.board.turn {
-            return Ok(vec![]);
-        }
-
-        let lst_moves: Vec<Position> = piece.valid_moves(&self.board);
-        // let lst_moves: Vec<Position> = Piece::valid_moves(position, self.board);
+        // let lst_moves: Vec<Position> = piece.valid_moves(&self.board);
+        let lst_moves: Vec<Position> = Piece::valid_moves(position, &mut self.board);
 
         for i in lst_moves.iter() {
             // convert Position -> String
             result.push(i.to_algebraic());
-        }
+        } 
 
         Ok(result)
     }

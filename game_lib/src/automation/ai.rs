@@ -1,3 +1,4 @@
+
 use crate::board::Board;
 use crate::game::*;
 use crate::piece::{Color, PieceType};
@@ -16,7 +17,7 @@ pub struct AI {
     difficulty: Difficulty,
     color: Color,
 }
-
+/*
 impl AI {
     pub fn new(difficulty: Difficulty, color: Color) -> Self {
         AI { difficulty, color }
@@ -152,3 +153,4 @@ impl AI {
         }
     }
 }
+*/

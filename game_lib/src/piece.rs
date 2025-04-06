@@ -18,6 +18,15 @@ impl Color {
     }
 }
 
+impl From<u8> for Color {
+    fn from(value: u8) -> Color {
+        match value {
+            0 => Color::Black,
+            _ => Color::White
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum PieceType {
     King,
@@ -84,8 +93,9 @@ impl Piece {
 
     // get the piece from a specific position
     pub fn get_piece<'a>(position: &Position, board: &'a Board) -> Option<&'a Piece> {
+
         if position.col == NONE || position.row == NONE {
-            println!("Error: position is out of bounds");
+            // println!("Error: position is out of bounds");
             return None;
         }
 
@@ -128,15 +138,29 @@ impl Piece {
 
     // Get list of all move possible for a specific piece
     // The validity of the mo
-    pub fn valid_moves(&self, board: &Board) -> Vec<Position> {
-        match self.piece_type {
-            PieceType::Pawn => self.valid_moves_pawn(board),
-            PieceType::Knight => self.valid_moves_knight(board),
-            PieceType::Bishop => self.valid_moves_bishop(board),
-            PieceType::Rook => self.valid_moves_rook(board),
-            PieceType::Queen => self.valid_moves_queen(board),
-            PieceType::King => self.valid_moves_king(board),
-        }
+    pub fn valid_moves(piece_pos: Position, board: &mut Board) -> Vec<Position> {
+
+        let piece: &Piece =
+            match Piece::get_piece(&piece_pos, &board) {
+                Some(piece) => piece,
+                None => return vec![]
+            };
+
+        let vec: Vec<Position> = 
+            match piece.piece_type {
+                PieceType::Pawn => piece.valid_moves_pawn(board),
+                PieceType::Knight => piece.valid_moves_knight(board),
+                PieceType::Bishop => piece.valid_moves_bishop(board),
+                PieceType::Rook => piece.valid_moves_rook(board),
+                PieceType::Queen => piece.valid_moves_queen(board),
+                PieceType::King => piece.valid_moves_king(board),
+            };
+        
+        
+        vec.iter()
+           .filter(|to_pos| !board.put_in_check_simulation(&piece_pos, to_pos))
+           .cloned()
+           .collect()
     }
 
     //Pawn-----------------------------------------------------------------
@@ -181,7 +205,7 @@ impl Piece {
             );
 
             if capture != *to_pos {
-                return false;
+                continue;
             }
 
             if board.is_within_bounds(&capture)
@@ -203,14 +227,14 @@ impl Piece {
         if let Some((from, to, ptype, _, t)) = board.history.last() {
             if !t
                 && *ptype == PieceType::Pawn
-                && ((self.color == Color::White
-                    && self.position.row == 3
-                    && from.row == 1
-                    && to.row == 3)
-                    || (self.color == Color::Black
-                        && self.position.row == 5
-                        && from.row == 6
-                        && to.row == 4))
+                    && ((self.color == Color::White
+                            && self.position.row == 3
+                            && from.row == 1
+                            && to.row == 3)
+                        || (self.color == Color::Black
+                            && self.position.row == 5
+                            && from.row == 6
+                            && to.row == 4))
             {
                 let pos: Position = Position::new(to.row - 1, to.col);
 
@@ -326,7 +350,7 @@ impl Piece {
             );
 
             if target != *to_pos {
-                return false;
+                continue;
             }
 
             if board.is_within_bounds(&target) {
@@ -411,6 +435,7 @@ impl Piece {
 
         let offsets: [(i32, i32); 4] = [(-1, -1), (1, -1), (1, 1), (-1, 1)];
 
+
         // for each diag we explore the direction and add Position possible
         for &(row_offset, col_offset) in &offsets {
             self.explore_direction(board, row_offset, col_offset, &mut moves)
@@ -422,7 +447,7 @@ impl Piece {
     //Rook-----------------------------------------------------------------
     fn is_valid_move_rook(&self, board: &Board, to_pos: &Position) -> bool {
         let offsets: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, 1), (0, -1)];
-
+        
         for &(row_offset, col_offset) in &offsets {
             if self.find(board, row_offset, col_offset, to_pos) {
                 return true;
@@ -440,18 +465,19 @@ impl Piece {
         for &(row_offset, col_offset) in &offsets {
             self.explore_direction(board, row_offset, col_offset, &mut moves)
         }
-
         moves
     }
     //---------------------------------------------------------------------
 
     //Queen----------------------------------------------------------------
     fn is_valid_move_queen(&self, board: &Board, to_pos: &Position) -> bool {
+
         self.is_valid_move_bishop(board, to_pos) || self.is_valid_move_rook(board, to_pos)
     }
 
     //mix of Rook and Bishop
     fn valid_moves_queen(&self, board: &Board) -> Vec<Position> {
+
         let mut moves: Vec<Position> = self.valid_moves_bishop(board);
         moves.extend(self.valid_moves_rook(board)); //add rook moves to  bishop moves from this position
         moves
@@ -463,7 +489,6 @@ impl Piece {
         if self.piece_type != PieceType::King {
             return false;
         }
-
         self.position == *cell_pos
             || ((self.position.row + 1 == cell_pos.row || self.position.row == cell_pos.row + 1)
                 && (self.position.col + 1 == cell_pos.col || self.position.col == cell_pos.col + 1))
@@ -489,13 +514,13 @@ impl Piece {
             );
 
             if target != *to_pos {
-                return false;
+                continue;
             }
 
             if board.is_within_bounds(&target) && !board.is_attacked(&target, self.color) {
                 match Piece::get_piece(&target, board) {
-                    Some(piece) if piece.color != self.color && *to_pos == target => return true,
-                    None if *to_pos == target => return true,
+                    Some(piece) if piece.color != self.color => return true,
+                    None=> return true,
                     _ => continue,
                 };
             }
@@ -525,7 +550,7 @@ impl Piece {
                 (self.position.col as i32 + col_offset) as usize,
             );
 
-            if board.is_within_bounds(&target) && !board.is_attacked(&target, self.color) {
+            if board.is_within_bounds(&target) {
                 // get the piece if there is no piece just add the position
                 let piece: &Piece = if let Some(piece) = Piece::get_piece(&target, board) {
                     piece
@@ -575,24 +600,30 @@ impl Piece {
     fn find(&self, board: &Board, row_offset: i32, col_offset: i32, to_pos: &Position) -> bool {
         // init position the piece position
         let mut position: Position = Position::new(self.position.row, self.position.col);
-
         loop {
             // the new position is the next cell
             position = Position::new(
                 (position.row as i32 + row_offset) as usize,
                 (position.col as i32 + col_offset) as usize,
             );
-
             if !board.is_within_bounds(&position) {
                 break;
             }
+            
+            if position != *to_pos {
+                match Piece::get_piece(&position, board) {
+                    Some(piece) => break,
+                    _ => continue
+                }
 
-            match Piece::get_piece(&position, board) {
-                Some(piece) if piece.color != self.color && *to_pos == position => return true,
-                None if *to_pos == position => return true,
-                None => continue,
-                _ => break, // if there is a piece of our color
-            };
+            }else {
+                // if at this pos there is piece that i can eat or nothing then we find it.
+                match Piece::get_piece(&position, board) {
+                    Some(piece) if piece.color != self.color => return true,
+                    Some(piece) => break,
+                    None => return true
+                } 
+            }
         }
 
         false
@@ -621,7 +652,10 @@ impl Piece {
             }
 
             match Piece::get_piece(&position, board) {
-                Some(piece) if piece.color != self.color => moves.push(position),
+                Some(piece) if piece.color != self.color => {
+                    moves.push(position);
+                    break;
+                },
                 None => moves.push(position),
                 _ => break, // if there is a piece of our color
             };
