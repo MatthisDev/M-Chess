@@ -1,11 +1,30 @@
 use yew::prelude::*;
 use game_lib::game::{self, Game};
 use game_lib::board::Board;
+use std::collections::HashMap;
 
 #[derive(PartialEq, Clone, Debug)] // Add Clone and Debug traits
 enum GameMode {
     Standard,
     Sandbox,
+}
+
+fn get_piece_emoji(piece: &str) -> &str {
+    match piece {
+        "wp" => "♙", // White Pawn
+        "bp" => "♟", // Black Pawn
+        "wr" => "♖", // White Rook
+        "br" => "♜", // Black Rook
+        "wn" => "♘", // White Knight
+        "bn" => "♞", // Black Knight
+        "wb" => "♗", // White Bishop
+        "bb" => "♝", // Black Bishop
+        "wq" => "♕", // White Queen
+        "bq" => "♛", // Black Queen
+        "wk" => "♔", // White King
+        "bk" => "♚", // Black King
+        _ => "",     // Empty cell or invalid piece
+    }
 }
 
 #[function_component(App)]
@@ -54,46 +73,91 @@ fn app() -> Html {
     let start_game_from_palette = {
         let game_started = game_started.clone();
         let selected_piece = selected_piece.clone();
+        let game_mode = game_mode.clone();
         Callback::from(move |_| {
-            game_started.set(true);
-            selected_piece.set(None); // Start the game without resetting the board
+            game_started.set(true); // Mark the game as started
+            selected_piece.set(None); // Clear the selected piece
+            game_mode.set(GameMode::Standard); // Switch to Standard mode for moving pieces
+        })
+    };
+
+    let move_piece = {
+        let used_game = used_game.clone();
+        Callback::from(move |move_str: String| {
+            used_game.set({
+                let mut game = (*used_game).clone();
+                if let Err(err) = game.make_move_algebraic(&move_str) {
+                    web_sys::console::log_1(&format!("Invalid move: {}", err).into());
+                }
+                game
+            });
         })
     };
 
     let render_board = {
         let board_state = (*used_game).board.get().clone();
-        let selected_piece = selected_piece.clone();
+        let selected_piece = selected_piece.clone(); // Track the selected piece
+        let used_game = used_game.clone(); // Clone the game state
+        let game_mode = game_mode.clone(); // Clone the game mode state
+        let selected_cell = use_state(|| None as Option<String>); // Track the selected cell for movement
+
         html! {
             <div class="board">
                 { for board_state.iter().enumerate().map(|(row_idx, row)| {
                     html! {
                         { for row.iter().enumerate().map(|(col_idx, cell)| {
                             let is_dark = (row_idx + col_idx) % 2 == 1;
-                            let cell_class = if is_dark { "cell dark" } else { "cell light" };
+                            let mut cell_class = if is_dark { "cell dark".to_string() } else { "cell light".to_string() };
+
                             let position = format!("{}{}", (b'a' + col_idx as u8) as char, 8 - row_idx);
 
+                            // Add the "selected" class if this cell is selected
+                            if let Some(selected) = &*selected_cell {
+                                if selected == &position {
+                                    cell_class = format!("{} selected", cell_class);
+                                }
+                            }
+
                             let onclick = {
-                                let used_game = used_game.clone();
                                 let selected_piece = selected_piece.clone();
+                                let used_game = used_game.clone();
+                                let game_mode = game_mode.clone();
+                                let selected_cell = selected_cell.clone();
+                                let move_piece = move_piece.clone();
                                 Callback::from(move |_| {
-                                    used_game.set({
-                                        let mut game = (*used_game).clone();
+                                    if *game_mode == GameMode::Sandbox {
+                                        // Sandbox mode: Place or remove a piece
                                         if let Some(piece) = &*selected_piece {
-                                            game.board.add_piece(&format!("{}{}", piece, position)).unwrap_or(false);
+                                            let mut game = (*used_game).clone();
+                                            game.board.add_piece(&format!("{}{}", piece, position));
+                                            used_game.set(game); // Update the game state
+                                        } else {
+                                            web_sys::console::log_1(&"No piece selected!".into());
                                         }
-                                        game
-                                    })
+                                    } else if *game_mode == GameMode::Standard {
+                                        // Standard mode: Move a piece
+                                        if let Some(from) = &*selected_cell {
+                                            // Attempt to move the piece
+                                            let move_str = format!("{}->{}", from, position);
+                                            move_piece.emit(move_str);
+                                            selected_cell.set(None); // Reset selection
+                                        } else {
+                                            // Select the current cell
+                                            selected_cell.set(Some(position.clone()));
+                                        }
+                                    }
                                 })
                             };
 
                             html! {
-                                <div class={cell_class}>
-                                    <button class="invisible-button" {onclick}></button>
+                                <div class={cell_class} {onclick}>
                                     {
                                         if cell != ".." {
-                                            format!("{}", cell)
+                                            html! {
+                                                <div class="piece">{ get_piece_emoji(cell) }</div>
+                                            }
                                         } else {
-                                            "".to_string()
+                                            html! { "" }
                                         }
                                     }
                                 </div>

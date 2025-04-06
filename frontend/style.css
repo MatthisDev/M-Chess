@@ -1,60 +1,158 @@
-/* General styles */
+.cell:hover {
+    background-color: rgba(90, 90, 90, 0.438);
+}
+
+.cell.selected {
+    border: 3px solid #003b7a;
+    background-color: rgba(0, 123, 255, 0.2);
+    box-shadow: 0 0 10px rgba(0, 34, 70, 0.5);
+}
+
+.piece {
+    font-size: 40px;
+    color: rgb(0, 0, 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    width: auto;
+    height: auto;
+    aspect-ratio: 1 / 1;
+}
+
+.Pieces {
+    flex: 0 0 150px;
+    padding: 10px;
+    background-color: #333;
+    border-left: 1px solid #444;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 5px;
+}
+
+.palette h3 {
+    text-align: center;
+    margin-bottom: 5px;
+    font-size: 1rem;
+    color: #ffffff;
+}
+
+.palette-pieces {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.piece-button {
+    width: 60px;
+    height: 60px;
+    font-size: 32px;
+    background-color: #5f5f5f;
+    border: 2px solid #3b3b3b;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.piece-button:hover {
+    background-color: #444444;
+}
+
+.piece-button.selected {
+    background-color: #a0d1ff;
+    border-color: #007bff;
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+}
+
+.invisible-button {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.start-game-button {
+    margin-top: 15px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: #5f5f5f;
+    color: #ffffff;
+    border: 2px solid #3b3b3b;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    width: 100%;
+    text-align: center;
+}
+
+.start-game-button:hover {
+    background-color: #444444;
+}
+
+.start-game-button:active {
+    background-color: #222222;
+}
+
 body {
-    background-color: #1e1e1e; /* Darker background */
-    color: #ffffff; /* White text for contrast */
+    background-color: #1e1e1e;
+    color: #ffffff;
     margin: 0;
     font-family: Arial, sans-serif;
 }
 
-/* Navigation bar */
 .navbar {
     display: flex;
     justify-content: center;
     gap: 15px;
     padding: 10px;
-    background-color: #333; /* Dark background for the navbar */
-    border-bottom: 2px solid #444; /* Subtle border */
+    background-color: #333;
+    border-bottom: 2px solid #444;
 }
 
 .navbar button {
     padding: 10px 20px;
     cursor: pointer;
     border: none;
-    background-color: #444; /* Dark button background */
-    color: #ffffff; /* White text */
+    background-color: #444;
+    color: #ffffff;
     border-radius: 5px;
     font-size: 1rem;
     transition: background-color 0.3s ease;
 }
 
 .navbar button:hover {
-    background-color: #555; /* Slightly lighter on hover */
+    background-color: #555;
 }
 
 .navbar button:active {
-    background-color: #666; /* Even lighter when active */
+    background-color: #666;
 }
 
-/* Menu container */
 .menu-container {
     display: flex;
-    justify-content: center; /* Center the buttons horizontally */
-    margin-top: 20px; /* Add some spacing above the buttons */
+    justify-content: center;
+    margin-top: 20px;
 }
 
-/* Menu buttons container */
 .menu-buttons {
     display: flex;
-    gap: 10px; /* Add spacing between the buttons */
-    margin-bottom: 5px; /* Reduce space below the buttons */
+    gap: 10px;
+    margin-bottom: 5px;
 }
 
-/* Buttons */
 .menu-buttons button {
     padding: 10px 20px;
     font-size: 1rem;
-    background-color: #5f5f5f; /* Button background color */
-    color: #ffffff; /* Button text color */
+    background-color: #5f5f5f;
+    color: #ffffff;
     border: 2px solid #3b3b3b;
     border-radius: 5px;
     cursor: pointer;
@@ -62,20 +160,19 @@ body {
 }
 
 .menu-buttons button:hover {
-    background-color: #444444; /* Darker background on hover */
+    background-color: #444444;
 }
 
 .menu-buttons button:active {
-    background-color: #222222; /* Even darker background when active */
+    background-color: #222222;
 }
 
-/* Welcome message and buttons */
 .menu-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    margin: 20px 0; /* Add spacing above and below */
+    margin: 20px 0;
     text-align: center;
 }
 
@@ -89,159 +186,68 @@ body {
     padding: 10px 20px;
     cursor: pointer;
     border: none;
-    background-color: #444; /* Dark button background */
-    color: #ffffff; /* White text */
+    background-color: #444;
+    color: #ffffff;
     border-radius: 5px;
     font-size: 1rem;
-    margin: 10px 0; /* Add spacing between buttons */
+    margin: 10px 0;
     transition: background-color 0.3s ease;
 }
 
 .menu-container button:hover {
-    background-color: #555; /* Slightly lighter on hover */
+    background-color: #555;
 }
 
 .menu-container button:active {
-    background-color: #666; /* Even lighter when active */
+    background-color: #666;
 }
 
-/* Game area (board and palette) */
 .content {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px; /* Add spacing between sections */
+    gap: 20px;
 }
 
 .game-area {
     display: flex;
-    flex-direction: row; /* Align board and palette horizontally */
-    justify-content: center; /* Center the game area */
-    gap: 20px; /* Add spacing between the board and the palette */
+    flex-direction: row;
+    justify-content: center;
+    gap: 20px;
 }
 
-/* Chessboard container */
 .board {
     display: grid;
-    grid-template-rows: repeat(8, 1fr); /* 8 rows */
-    grid-template-columns: repeat(8, 1fr); /* 8 columns */
-    gap: 0; /* No space between cells */
-    width: 600px; /* Increased width for the board */
-    height: 600px; /* Increased height for the board */
-    border: 2px solid #000; /* Add a border around the board */
-    background-color: #000; /* Optional: Add a background color */
+    grid-template-rows: repeat(8, 1fr);
+    grid-template-columns: repeat(8, 1fr);
+    gap: 0;
+    width: 600px;
+    height: 600px;
+    border: 4px solid #000;
+    background-color: #000;
 }
 
-/* Individual rows (optional, for debugging layout) */
 .row {
     display: flex;
 }
 
-/* Individual cells */
 .cell {
-    width: 100%; /* Ensure cells fill the grid space */
-    height: 100%; /* Ensure cells fill the grid space */
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2rem; /* Larger font size for pieces */
+    font-size: 32px;
     font-weight: bold;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Light and dark cells */
 .cell.light {
-    background-color: #f0d9b5; /* Light square color */
+    background-color: #7e7e7e;
 }
 
 .cell.dark {
-    background-color: #b58863; /* Dark square color */
-}
-
-/* Palette container */
-.Pieces {
-    flex: 0 0 150px; /* Reduce the width of the palette */
-    padding: 10px; /* Keep padding for spacing inside the palette */
-    background-color: #333; /* Dark background to match the site */
-    border-left: 1px solid #444; /* Subtle border to separate the palette */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    border-radius: 5px;
-}
-
-/* Palette title */
-.palette h3 {
-    text-align: center;
-    margin-bottom: 5px; /* Reduce spacing below the title */
-    font-size: 1rem; /* Reduce font size */
-    color: #ffffff; /* White text for the palette title */
-}
-
-/* Palette pieces container */
-.palette-pieces {
-    display: flex;
-    flex-wrap: wrap; /* Allow buttons to wrap to the next line */
-    gap: 15px; /* Add spacing between buttons */
-    justify-content: center;
-    margin-top: 10px; /* Add spacing above the pieces */
-}
-
-/* Individual piece button */
-.piece-button {
-    width: 60px; /* Larger button width */
-    height: 60px; /* Larger button height */
-    font-size: 32px; /* Larger font size for the emoji */
-    background-color: #5f5f5f; /* Light background for visibility */
-    border: 2px solid #3b3b3b;
-    border-radius: 5px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s ease;
-}
-
-/* Hover effect for buttons */
-.piece-button:hover {
-    background-color: #444444; /* Slightly darker on hover */
-}
-
-/* Selected piece button */
-.piece-button.selected {
-    background-color: #a0d1ff; /* Light blue background for selection */
-    border-color: #007bff; /* Blue border for selection */
-    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5); /* Optional: Add a glow effect */
-}
-
-/* Invisible button */
-.invisible-button {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-}
-
-/* Start Game button */
-.start-game-button {
-    margin-top: 15px; /* Add spacing above the button */
-    padding: 10px 20px;
-    font-size: 1rem;
-    background-color: #5f5f5f; /* Button background color */
-    color: #ffffff; /* Button text color */
-    border: 2px solid #3b3b3b;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    width: 100%; /* Make the button span the width of the palette */
-    text-align: center;
-}
-
-.start-game-button:hover {
-    background-color: #444444; /* Darker background on hover */
-}
-
-.start-game-button:active {
-    background-color: #222222; /* Even darker background when active */
+    background-color: #3f3f3f;
 }
