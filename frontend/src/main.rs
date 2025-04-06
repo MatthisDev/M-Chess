@@ -13,7 +13,8 @@ enum GameMode {
 fn app() -> Html {
     let active_tab = use_state(|| "menu".to_string());
     let game_mode = use_state(|| GameMode::None);
-    let mut game = use_state(|| None as Option<Game>); // Track the current game state
+    let game = use_state(|| None as Option<Game>);
+    let selected_piece = use_state(|| None as Option<String>); // State to track the selected piece
 
     let set_tab = {
         let active_tab = active_tab.clone();
@@ -26,30 +27,50 @@ fn app() -> Html {
         Callback::from(move |mode: GameMode| {
             game_mode.set(mode.clone());
             let new_game = match mode {
-                GameMode::Standard => Game::init(false), // Initialize a standard game
-                GameMode::Sandbox => Game::init(true),   // Initialize a sandbox game
-                GameMode::None => return,
+                GameMode::Standard => Some(Game::init(false)),
+                GameMode::Sandbox => Some(Game::init(true)),
+                GameMode::None => None,
             };
-            game.set(Some(new_game)); // Update the game state
+            game.set(new_game);
         })
     };
 
     let render_board = |game: &Game| {
-        let board_state = game.board.get(); // Get the board as a matrix of strings
+        let board_state = game.board.get();
+        let game = game.clone();
+        let selected_piece = selected_piece.clone();
         html! {
             <div class="board">
                 { for board_state.iter().enumerate().map(|(row_idx, row)| {
                     html! {
                         { for row.iter().enumerate().map(|(col_idx, cell)| {
-                            let is_dark = (row_idx + col_idx) % 2 == 1; // Alternate colors based on row and column indices
+                            let is_dark = (row_idx + col_idx) % 2 == 1;
                             let cell_class = if is_dark { "cell dark" } else { "cell light" };
+                            let position = format!("{}{}", (b'a' + col_idx as u8) as char, 8 - row_idx);
+                                
+                            let onclick = {
+                                let selected_piece = selected_piece.clone();
+                                Callback::from(move |_|
+                                    {
+                                        (*game).set({
+                                            let mut game = game.clone();
+                                            if let Some(piece) = &*selected_piece {
+                                                game.board.add_piece(&format!("{}{}", piece, position));
+                                            }
+                                            game
+                                        })                                           
+                                    
+                                })
+                            };
+
                             html! {
                                 <div class={cell_class}>
+                                    <button class="invisible-button" {onclick}></button>
                                     {
                                         if cell != ".." {
-                                            format!("{}", cell) // Display the piece (e.g., "wp", "bk")
+                                            format!("{}", cell)
                                         } else {
-                                            "".to_string() // Empty cell
+                                            "".to_string()
                                         }
                                     }
                                 </div>
@@ -61,18 +82,26 @@ fn app() -> Html {
         }
     };
 
-    // Render the palette for sandbox mode
     let render_palette = || {
         let pieces = vec![
             "wp", "bp", "wr", "br", "wn", "bn", "wb", "bb", "wq", "bq", "wk", "bk",
-        ]; // List of pieces
+        ];
+        let selected_piece = selected_piece.clone();
+
         html! {
-            <div class="palette">
-                <h3>{ "Palette" }</h3>
+            <div class="Pieces">
+                <h3>{ "Pieces" }</h3>
                 <div class="palette-pieces">
                     { for pieces.iter().map(|piece| {
+                        let onclick = {
+                            let selected_piece = selected_piece.clone();
+                            let piece = piece.clone();
+                            Callback::from(move |_| selected_piece.set(Some(piece.to_string())))
+                        };
+
                         html! {
                             <div class="palette-piece">
+                                <button class="invisible-button" {onclick}></button>
                                 { piece }
                             </div>
                         }
@@ -115,7 +144,7 @@ fn app() -> Html {
                                     </div>
                                 }
                             } else {
-                                html! { <p>{ "Initializing game..." }</p> }
+                                html! {}
                             }
                         },
                         GameMode::Standard => {
@@ -126,7 +155,7 @@ fn app() -> Html {
                                     </div>
                                 }
                             } else {
-                                html! { <p>{ "Initializing game..." }</p> }
+                                html! {}
                             }
                         },
                         GameMode::None => html! {},
