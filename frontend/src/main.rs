@@ -1,10 +1,10 @@
 use yew::prelude::*;
-use game_lib::game::Game;
+use game_lib::game::{self, Game};
 use game_lib::board::Board;
 
 #[derive(PartialEq, Clone, Debug)] // Add Clone and Debug traits
 enum GameMode {
-    None,
+
     Standard,
     Sandbox,
 }
@@ -12,10 +12,10 @@ enum GameMode {
 #[function_component(App)]
 fn app() -> Html {
     let active_tab = use_state(|| "menu".to_string());
-    let game_mode = use_state(|| GameMode::None);
-    let game = use_state(|| None as Option<Game>);
+    let game_mode = use_state(|| GameMode::Sandbox);
+    let used_game = use_state(|| Game::init(true));
     let selected_piece = use_state(|| None as Option<String>); // State to track the selected piece
-
+    
     let set_tab = {
         let active_tab = active_tab.clone();
         Callback::from(move |tab: String| active_tab.set(tab))
@@ -23,21 +23,17 @@ fn app() -> Html {
 
     let start_game = {
         let game_mode = game_mode.clone();
-        let game = game.clone();
         Callback::from(move |mode: GameMode| {
             game_mode.set(mode.clone());
-            let new_game = match mode {
-                GameMode::Standard => Some(Game::init(false)),
-                GameMode::Sandbox => Some(Game::init(true)),
-                GameMode::None => None,
-            };
-            game.set(new_game);
+            used_game.set({match mode
+                {
+                GameMode::Standard =>Game::init(false),
+                GameMode::Sandbox =>Game::init(true),
+                }});
         })
     };
-
-    let render_board = |game: &Game| {
-        let board_state = game.board.get();
-        let game = game.clone();
+    let render_board = {
+        let board_state =(*used_game).board.get().clone();
         let selected_piece = selected_piece.clone();
         html! {
             <div class="board">
@@ -49,11 +45,13 @@ fn app() -> Html {
                             let position = format!("{}{}", (b'a' + col_idx as u8) as char, 8 - row_idx);
                                 
                             let onclick = {
+                                let used_game = used_game.clone();
                                 let selected_piece = selected_piece.clone();
                                 Callback::from(move |_|
                                     {
-                                        (*game).set({
-                                            let mut game = game.clone();
+                                        used_game.set({
+
+                                            let mut game = (*used_game).clone();
                                             if let Some(piece) = &*selected_piece {
                                                 game.board.add_piece(&format!("{}{}", piece, position));
                                             }
@@ -95,10 +93,9 @@ fn app() -> Html {
                     { for pieces.iter().map(|piece| {
                         let onclick = {
                             let selected_piece = selected_piece.clone();
-                            let piece = piece.clone();
+                            let piece = (*piece).to_string();
                             Callback::from(move |_| selected_piece.set(Some(piece.to_string())))
                         };
-
                         html! {
                             <div class="palette-piece">
                                 <button class="invisible-button" {onclick}></button>
@@ -136,29 +133,24 @@ fn app() -> Html {
                 {
                     match *game_mode {
                         GameMode::Sandbox => {
-                            if let Some(game) = &*game {
+                            
                                 html! {
                                     <div class="game-area">
-                                        { render_board(game) }
+                                        { render_board }
                                         { render_palette() }
                                     </div>
                                 }
-                            } else {
-                                html! {}
-                            }
+                            
                         },
                         GameMode::Standard => {
-                            if let Some(game) = &*game {
+                            
                                 html! {
                                     <div class="game-area">
-                                        { render_board(game) }
+                                        { render_board }
                                     </div>
                                 }
-                            } else {
-                                html! {}
-                            }
+                            
                         },
-                        GameMode::None => html! {},
                     }
                 }
             </div>

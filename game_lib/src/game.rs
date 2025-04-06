@@ -2,7 +2,7 @@ use crate::board::{self, Board, BOARD_SIZE, NONE, EMPTY_CELL, EMPTY_POS};
 use crate::piece::Piece;
 use crate::piece::{Color, PieceType};
 use crate::position::Position;
-
+#[derive(Clone, Debug)]
 pub struct Game {
     pub board: Board,
     pub nb_turn: usize,
