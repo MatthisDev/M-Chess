@@ -5,7 +5,6 @@ use crate::piece::Color;
 use std::io;
 use std::process::Command;
 
-
 // #[test]
 fn t_game() {
     let mut game = Game::init(false);
@@ -136,6 +135,24 @@ fn t_eat_rook() {
 
 }
 
+#[test]
+fn t_roque() {
+
+    let mut game = Game::init(true);
+
+    game.board.add_piece("wke1");
+    game.board.add_piece("bke8");
+    game.board.add_piece("wrh1");
+    game.board.add_piece("brh8");
+    game.board.add_piece("bra8");
+
+
+    assert_eq!(game.make_move_algebraic("e1->g1"), Ok(true));
+    assert_eq!(game.make_move_algebraic("e8->g8"), Err("Mouvement invalide."));
+    assert_eq!(game.make_move_algebraic("e8->c8"), Ok(true));
+    
+}
+
 // >=============== get_list_moves ===============<
 
 #[test]
@@ -203,6 +220,20 @@ fn t_get_list_moves_protect_king() {
                "f6".to_string(), "f4".to_string()]));
     assert_eq!(game.get_list_moves("a3".to_string()), Ok(vec![]));
 
+}
+
+#[test]
+fn t_get_list_moves_protect_king2() {
+
+    let mut game = Game::init(true);
+
+    game.board.add_piece("bkf8");
+    game.board.add_piece("wkf2");
+    game.board.add_piece("wqf3");
+    game.board.add_piece("bqf6");
+
+    assert_eq!(game.get_list_moves("f3".to_string()), Ok(vec![
+            "f4".to_string(), "f5".to_string(), "f6".to_string()]));
 }
 
 

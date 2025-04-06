@@ -93,8 +93,9 @@ impl Piece {
 
     // get the piece from a specific position
     pub fn get_piece<'a>(position: &Position, board: &'a Board) -> Option<&'a Piece> {
+
         if position.col == NONE || position.row == NONE {
-            println!("Error: position is out of bounds");
+            // println!("Error: position is out of bounds");
             return None;
         }
 
@@ -608,7 +609,7 @@ impl Piece {
             if !board.is_within_bounds(&position) {
                 break;
             }
-
+            
             if position != *to_pos {
                 match Piece::get_piece(&position, board) {
                     Some(piece) => break,

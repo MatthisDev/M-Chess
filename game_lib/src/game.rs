@@ -73,12 +73,16 @@ impl Game {
             Position::new(king.position.row, 7), // Tour côté roi
         ];
 
-        for rook_position in rook_positions.iter() {
-            if (*to_pos == Position::new(king.position.row, king.position.col - 2)
-                || *to_pos == Position::new(king.position.row, king.position.col + 2))
-                && self.board.can_castle(&king.position, rook_position)
-            {
-                self.board.perform_castle(&king.position, rook_position);
+        let to_king_pos = [
+            Position::new(king.position.row, king.position.col - 2),
+            Position::new(king.position.row, king.position.col + 2),
+        ];
+
+        for i in 0..2{
+            if *to_pos == to_king_pos[i] && 
+                self.board.can_castle(&king.position, &rook_positions[i]) {
+
+                self.board.perform_castle(&king.position, &rook_positions[i]);
                 return true;
             }
         }
@@ -207,7 +211,7 @@ impl Game {
 
         // let lst_moves: Vec<Position> = piece.valid_moves(&self.board);
         let lst_moves: Vec<Position> = Piece::valid_moves(position, &mut self.board);
-        
+
         for i in lst_moves.iter() {
             // convert Position -> String
             result.push(i.to_algebraic());

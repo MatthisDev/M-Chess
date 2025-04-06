@@ -685,7 +685,7 @@ impl Board {
         if king.has_moved || rook.has_moved {
             return false;
         }
-
+        
         // Vérifier qu'il n'y a pas de pièces entre le roi et la tour
         let (min_col, max_col) = if king.position.col < rook.position.col {
             (king.position.col + 1, rook.position.col)
@@ -704,11 +704,6 @@ impl Board {
             {
                 return false;
             }
-        }
-
-        // finally we check if the rook is attacked
-        if self.is_attacked(&rook.position, rook.color) {
-            return false;
         }
 
         true
