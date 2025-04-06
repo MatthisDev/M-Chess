@@ -4,7 +4,6 @@ use game_lib::board::Board;
 
 #[derive(PartialEq, Clone, Debug)] // Add Clone and Debug traits
 enum GameMode {
-
     Standard,
     Sandbox,
 }
@@ -15,7 +14,8 @@ fn app() -> Html {
     let game_mode = use_state(|| GameMode::Sandbox);
     let used_game = use_state(|| Game::init(true));
     let selected_piece = use_state(|| None as Option<String>); // State to track the selected piece
-    
+    let game_started = use_state(|| false); // State to track if the game has started
+
     let set_tab = {
         let active_tab = active_tab.clone();
         Callback::from(move |tab: String| active_tab.set(tab))
@@ -23,17 +23,43 @@ fn app() -> Html {
 
     let start_game = {
         let game_mode = game_mode.clone();
+        let game_started = game_started.clone();
+        let used_game_clone = used_game.clone();
         Callback::from(move |mode: GameMode| {
-            game_mode.set(mode.clone());
-            used_game.set({match mode
-                {
-                GameMode::Standard =>Game::init(false),
-                GameMode::Sandbox =>Game::init(true),
-                }});
+            match mode {
+                GameMode::Standard => {
+                    game_mode.set(GameMode::Standard);
+                    game_started.set(true); // Start the game without resetting the board
+                }
+                GameMode::Sandbox => {
+                    game_mode.set(GameMode::Sandbox);
+                    game_started.set(false); // Reset the game
+                    used_game_clone.set(Game::init(true)); // Reset the board
+                }
+            }
         })
     };
+
+    let start_game_from_menu = {
+        let game_mode = game_mode.clone();
+        let game_started = game_started.clone();
+        let used_game_clone = used_game.clone();
+        Callback::from(move |_| {
+            game_mode.set(GameMode::Standard); // Set the game mode to Standard
+            game_started.set(true); // Start the game
+            used_game_clone.set(Game::init(false)); // Initialize a full board with all pieces
+        })
+    };
+
+    let start_game_from_palette = {
+        let game_started = game_started.clone();
+        Callback::from(move |_| {
+            game_started.set(true); // Start the game without resetting the board
+        })
+    };
+
     let render_board = {
-        let board_state =(*used_game).board.get().clone();
+        let board_state = (*used_game).board.get().clone();
         let selected_piece = selected_piece.clone();
         html! {
             <div class="board">
@@ -43,21 +69,18 @@ fn app() -> Html {
                             let is_dark = (row_idx + col_idx) % 2 == 1;
                             let cell_class = if is_dark { "cell dark" } else { "cell light" };
                             let position = format!("{}{}", (b'a' + col_idx as u8) as char, 8 - row_idx);
-                                
+
                             let onclick = {
                                 let used_game = used_game.clone();
                                 let selected_piece = selected_piece.clone();
-                                Callback::from(move |_|
-                                    {
-                                        used_game.set({
-
-                                            let mut game = (*used_game).clone();
-                                            if let Some(piece) = &*selected_piece {
-                                                game.board.add_piece(&format!("{}{}", piece, position));
-                                            }
-                                            game
-                                        })                                           
-                                    
+                                Callback::from(move |_| {
+                                    used_game.set({
+                                        let mut game = (*used_game).clone();
+                                        if let Some(piece) = &*selected_piece {
+                                            game.board.add_piece(&format!("{}{}", piece, position)).unwrap_or(false);
+                                        }
+                                        game
+                                    })
                                 })
                             };
 
@@ -81,30 +104,44 @@ fn app() -> Html {
     };
 
     let render_palette = || {
-        let pieces = vec![
-            "wp", "bp", "wr", "br", "wn", "bn", "wb", "bb", "wq", "bq", "wk", "bk",
-        ];
-        let selected_piece = selected_piece.clone();
+        if *game_started {
+            html! {} // Do not render the palette if the game has started
+        } else {
+            let pieces = vec![
+                ("wp", "♙"), ("bp", "♟"), // Pawns
+                ("wr", "♖"), ("br", "♜"), // Rooks
+                ("wn", "♘"), ("bn", "♞"), // Knights
+                ("wb", "♗"), ("bb", "♝"), // Bishops
+                ("wq", "♕"), ("bq", "♛"), // Queens
+                ("wk", "♔"), ("bk", "♚"), // Kings
+            ];
+            let selected_piece = selected_piece.clone();
 
-        html! {
-            <div class="Pieces">
-                <h3>{ "Pieces" }</h3>
-                <div class="palette-pieces">
-                    { for pieces.iter().map(|piece| {
-                        let onclick = {
-                            let selected_piece = selected_piece.clone();
-                            let piece = (*piece).to_string();
-                            Callback::from(move |_| selected_piece.set(Some(piece.to_string())))
-                        };
-                        html! {
-                            <div class="palette-piece">
-                                <button class="invisible-button" {onclick}></button>
-                                { piece }
-                            </div>
-                        }
-                    }) }
+            html! {
+                <div class="Pieces">
+                    <div class="palette-pieces">
+                        { for pieces.iter().map(|(piece, emoji)| {
+                            let is_selected = selected_piece.as_ref().map_or(false, |selected| selected == piece);
+                            let onclick = {
+                                let selected_piece = selected_piece.clone();
+                                let piece = (*piece).to_string();
+                                Callback::from(move |_| selected_piece.set(Some(piece.clone())))
+                            };
+                            html! {
+                                <div class="palette-piece">
+                                    <button
+                                        class={classes!("piece-button", if is_selected { "selected" } else { "" })}
+                                        {onclick}
+                                    >
+                                        { emoji }
+                                    </button>
+                                </div>
+                            }
+                        }) }
+                    </div>
+                    <button class="start-game-button" onclick={start_game_from_palette}>{ "Start Game" }</button>
                 </div>
-            </div>
+            }
         }
     };
 
@@ -120,9 +157,10 @@ fn app() -> Html {
                     match active_tab.as_str() {
                         "menu" => html! {
                             <div class="menu-container">
-                                <h1>{ "Welcome to M-Chess!" }</h1>
-                                <button onclick={start_game.reform(|_| GameMode::Standard)}>{ "Start Game" }</button>
-                                <button onclick={start_game.reform(|_| GameMode::Sandbox)}>{ "Start Sandbox" }</button>
+                                <div class="menu-buttons">
+                                    <button onclick={start_game_from_menu}>{ "Start Game" }</button>
+                                    <button onclick={start_game.reform(|_| GameMode::Sandbox)}>{ "Start Sandbox" }</button>
+                                </div>
                             </div>
                         },
                         "description" => html! { <h1>{ "Description Section" }</h1> },
@@ -133,23 +171,19 @@ fn app() -> Html {
                 {
                     match *game_mode {
                         GameMode::Sandbox => {
-                            
-                                html! {
-                                    <div class="game-area">
-                                        { render_board }
-                                        { render_palette() }
-                                    </div>
-                                }
-                            
+                            html! {
+                                <div class="game-area">
+                                    { render_board }
+                                    { render_palette() }
+                                </div>
+                            }
                         },
                         GameMode::Standard => {
-                            
-                                html! {
-                                    <div class="game-area">
-                                        { render_board }
-                                    </div>
-                                }
-                            
+                            html! {
+                                <div class="game-area">
+                                    { render_board }
+                                </div>
+                            }
                         },
                     }
                 }

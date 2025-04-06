@@ -35,6 +35,40 @@ body {
     background-color: #666; /* Even lighter when active */
 }
 
+/* Menu container */
+.menu-container {
+    display: flex;
+    justify-content: center; /* Center the buttons horizontally */
+    margin-top: 20px; /* Add some spacing above the buttons */
+}
+
+/* Menu buttons container */
+.menu-buttons {
+    display: flex;
+    gap: 10px; /* Add spacing between the buttons */
+    margin-bottom: 5px; /* Reduce space below the buttons */
+}
+
+/* Buttons */
+.menu-buttons button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: #5f5f5f; /* Button background color */
+    color: #ffffff; /* Button text color */
+    border: 2px solid #3b3b3b;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.menu-buttons button:hover {
+    background-color: #444444; /* Darker background on hover */
+}
+
+.menu-buttons button:active {
+    background-color: #222222; /* Even darker background when active */
+}
+
 /* Welcome message and buttons */
 .menu-container {
     display: flex;
@@ -83,8 +117,7 @@ body {
     display: flex;
     flex-direction: row; /* Align board and palette horizontally */
     justify-content: center; /* Center the game area */
-    gap: 20px; /* Add space between the board and palette */
-    margin-top: 20px; /* Add spacing above the game area */
+    gap: 20px; /* Add spacing between the board and the palette */
 }
 
 /* Chessboard container */
@@ -93,8 +126,8 @@ body {
     grid-template-rows: repeat(8, 1fr); /* 8 rows */
     grid-template-columns: repeat(8, 1fr); /* 8 columns */
     gap: 0; /* No space between cells */
-    width: 400px; /* Fixed width for the board */
-    height: 400px; /* Fixed height for the board */
+    width: 600px; /* Increased width for the board */
+    height: 600px; /* Increased height for the board */
     border: 2px solid #000; /* Add a border around the board */
     background-color: #000; /* Optional: Add a background color */
 }
@@ -111,7 +144,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem; /* Adjust font size for pieces */
+    font-size: 2rem; /* Larger font size for pieces */
     font-weight: bold;
 }
 
@@ -124,10 +157,10 @@ body {
     background-color: #b58863; /* Dark square color */
 }
 
-/* Palette */
+/* Palette container */
 .Pieces {
-    flex: 0 0 150px;
-    padding: 10px;
+    flex: 0 0 150px; /* Reduce the width of the palette */
+    padding: 10px; /* Keep padding for spacing inside the palette */
     background-color: #333; /* Dark background to match the site */
     border-left: 1px solid #444; /* Subtle border to separate the palette */
     display: flex;
@@ -136,41 +169,48 @@ body {
     border-radius: 5px;
 }
 
+/* Palette title */
 .palette h3 {
     text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 5px; /* Reduce spacing below the title */
+    font-size: 1rem; /* Reduce font size */
     color: #ffffff; /* White text for the palette title */
 }
 
+/* Palette pieces container */
 .palette-pieces {
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+    flex-wrap: wrap; /* Allow buttons to wrap to the next line */
+    gap: 15px; /* Add spacing between buttons */
     justify-content: center;
+    margin-top: 10px; /* Add spacing above the pieces */
 }
 
-.palette-piece {
-    width: 40px;
-    height: 40px;
-    background-color: #444; /* Dark background for the pieces */
-    border: 1px solid #555; /* Subtle border for the pieces */
-    border-radius: 4px;
-    cursor: grab;
-    text-transform: uppercase;
-    font-weight: bold;
-    color: #ffffff; /* White text for the piece labels */
+/* Individual piece button */
+.piece-button {
+    width: 60px; /* Larger button width */
+    height: 60px; /* Larger button height */
+    font-size: 32px; /* Larger font size for the emoji */
+    background-color: #5f5f5f; /* Light background for visibility */
+    border: 2px solid #3b3b3b;
+    border-radius: 5px;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.2s ease;
 }
 
-.palette-piece:hover {
-    background-color: #555; /* Slightly lighter on hover */
+/* Hover effect for buttons */
+.piece-button:hover {
+    background-color: #444444; /* Slightly darker on hover */
 }
 
-.palette-piece:active {
-    background-color: #666; /* Even lighter when active */
+/* Selected piece button */
+.piece-button.selected {
+    background-color: #a0d1ff; /* Light blue background for selection */
+    border-color: #007bff; /* Blue border for selection */
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5); /* Optional: Add a glow effect */
 }
 
 /* Invisible button */
@@ -181,4 +221,27 @@ body {
     background: transparent;
     border: none;
     cursor: pointer;
+}
+
+/* Start Game button */
+.start-game-button {
+    margin-top: 15px; /* Add spacing above the button */
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: #5f5f5f; /* Button background color */
+    color: #ffffff; /* Button text color */
+    border: 2px solid #3b3b3b;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    width: 100%; /* Make the button span the width of the palette */
+    text-align: center;
+}
+
+.start-game-button:hover {
+    background-color: #444444; /* Darker background on hover */
+}
+
+.start-game-button:active {
+    background-color: #222222; /* Even darker background when active */
 }
