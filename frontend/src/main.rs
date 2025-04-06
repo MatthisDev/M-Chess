@@ -53,8 +53,10 @@ fn app() -> Html {
 
     let start_game_from_palette = {
         let game_started = game_started.clone();
+        let selected_piece = selected_piece.clone();
         Callback::from(move |_| {
-            game_started.set(true); // Start the game without resetting the board
+            game_started.set(true);
+            selected_piece.set(None); // Start the game without resetting the board
         })
     };
 
