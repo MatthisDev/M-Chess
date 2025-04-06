@@ -145,12 +145,13 @@ fn t_roque() {
     game.board.add_piece("wrh1");
     game.board.add_piece("brh8");
     game.board.add_piece("bra8");
+    game.board.add_piece("wpb2");
 
 
+    assert_eq!(game.make_move_algebraic("e1->c2"), Err("Mouvement invalide."));
     assert_eq!(game.make_move_algebraic("e1->g1"), Ok(true));
     assert_eq!(game.make_move_algebraic("e8->g8"), Err("Mouvement invalide."));
     assert_eq!(game.make_move_algebraic("e8->c8"), Ok(true));
-    
 }
 
 // >=============== get_list_moves ===============<
