@@ -27,6 +27,7 @@ impl From<u8> for Color {
     }
 }
 
+//TODO hasmoved =>u32 dans enum example King(i32) Rook(i32)
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum PieceType {
     King,

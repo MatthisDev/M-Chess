@@ -7,30 +7,53 @@ use std::process::Command;
 use std::thread::sleep;
 use std::time::Duration;
 
-// #[test]
+#[test]
 fn t_game() {
-    let mut game = Game::init(false);
+    Command::new("clear").status().expect("Ca veut pas clear");
 
-    game.board.print_board();
+    let mut game = Game::init(false);
+    let ia = AI::new(Difficulty::Medium, Color::White);
 
     let mut finish_game: Result<bool, &'static str> = Ok(true);
+
+    println!("Before move");
+    game.board.print_board();
 
     while finish_game == Ok(true)
         || finish_game == Err("Mouvement invalide.")
         || finish_game == Err("parse_move_str: invalid send string: <{move_piece}>")
     {
-        let mut move_user = String::new();
+        println!("Waiting for 1 second...");
+        println!("Turn {}: {:?}", game.board.counter, game.board.turn);
+        sleep(Duration::from_secs(1));
 
-        println!("Au {:?} de jouer", game.board.turn);
-        println!("Entrez votre movement: <position de depart>-><position d'arrivee>");
+        let mut move_str = String::new();
+        if game.board.turn == Color::White {
+            let best_move = match ia.get_best_move(&game.board) {
+                Some(mv) => mv,
+                None => {
+                    println!("No valid moves available for White");
+                    break;
+                }
+            };
+            println!("Best move: {:?}", best_move);
 
-        io::stdin()
-            .read_line(&mut move_user)
-            .expect("Échec de la lecture de l'entrée");
+            move_str = format!(
+                "{}->{}",
+                best_move.0.to_algebraic(),
+                best_move.1.to_algebraic()
+            );
+        } else {
+            println!("Entrez votre movement: <position de depart>-><position d'arrivee>");
+            io::stdin()
+                .read_line(&mut move_str)
+                .expect("Échec de la lecture de l'entrée");
+            println!("Move user: {:?}", move_str);
+        }
 
-        finish_game = game.make_move_algebraic(&move_user);
+        finish_game = game.make_move_algebraic(&move_str);
+        println!("Move result: {:?}", finish_game);
 
-        Command::new("clear").status().expect("Ca veut pas clear");
         game.board.print_board();
     }
 }
@@ -359,6 +382,9 @@ fn t_game_ai() {
             );
         }
 
+        if game.board.counter == 29 {
+            println!("Best move: ");
+        }
         finish_game = game.make_move_algebraic(&move_str);
 
         game.board.print_board();
