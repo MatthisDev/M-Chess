@@ -1,21 +1,253 @@
-nav {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
+.cell:hover {
+    background-color: rgba(90, 90, 90, 0.438);
 }
 
-button {
-    padding: 10px 20px;
-    cursor: pointer;
-    border: 1px solid #ccc;
-    background-color: #f9f9f9;
+.cell.selected {
+    border: 3px solid #003b7a;
+    background-color: rgba(0, 123, 255, 0.2);
+    box-shadow: 0 0 10px rgba(0, 34, 70, 0.5);
+}
+
+.piece {
+    font-size: 40px;
+    color: rgb(0, 0, 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    width: auto;
+    height: auto;
+    aspect-ratio: 1 / 1;
+}
+
+.Pieces {
+    flex: 0 0 150px;
+    padding: 10px;
+    background-color: #333;
+    border-left: 1px solid #444;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     border-radius: 5px;
 }
 
-button:hover {
-    background-color: #e0e0e0;
+.palette h3 {
+    text-align: center;
+    margin-bottom: 5px;
+    font-size: 1rem;
+    color: #ffffff;
 }
 
-button:active {
-    background-color: #d0d0d0;
+.palette-pieces {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.piece-button {
+    width: 60px;
+    height: 60px;
+    font-size: 32px;
+    background-color: #5f5f5f;
+    border: 2px solid #3b3b3b;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.piece-button:hover {
+    background-color: #444444;
+}
+
+.piece-button.selected {
+    background-color: #a0d1ff;
+    border-color: #007bff;
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+}
+
+.invisible-button {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.start-game-button {
+    margin-top: 15px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: #5f5f5f;
+    color: #ffffff;
+    border: 2px solid #3b3b3b;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    width: 100%;
+    text-align: center;
+}
+
+.start-game-button:hover {
+    background-color: #444444;
+}
+
+.start-game-button:active {
+    background-color: #222222;
+}
+
+body {
+    background-color: #1e1e1e;
+    color: #ffffff;
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+.navbar {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    padding: 10px;
+    background-color: #333;
+    border-bottom: 2px solid #444;
+}
+
+.navbar button {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    background-color: #444;
+    color: #ffffff;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+.navbar button:hover {
+    background-color: #555;
+}
+
+.navbar button:active {
+    background-color: #666;
+}
+
+.menu-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.menu-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.menu-buttons button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: #5f5f5f;
+    color: #ffffff;
+    border: 2px solid #3b3b3b;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.menu-buttons button:hover {
+    background-color: #444444;
+}
+
+.menu-buttons button:active {
+    background-color: #222222;
+}
+
+.menu-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.menu-container h1 {
+    margin-bottom: 20px;
+    font-size: 2.5rem;
+    color: #ffffff;
+}
+
+.menu-container button {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    background-color: #444;
+    color: #ffffff;
+    border-radius: 5px;
+    font-size: 1rem;
+    margin: 10px 0;
+    transition: background-color 0.3s ease;
+}
+
+.menu-container button:hover {
+    background-color: #555;
+}
+
+.menu-container button:active {
+    background-color: #666;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.game-area {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 20px;
+}
+
+.board {
+    display: grid;
+    grid-template-rows: repeat(8, 1fr);
+    grid-template-columns: repeat(8, 1fr);
+    gap: 0;
+    width: 600px;
+    height: 600px;
+    border: 4px solid #000;
+    background-color: #000;
+}
+
+.row {
+    display: flex;
+}
+
+.cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: bold;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cell.light {
+    background-color: #7e7e7e;
+}
+
+.cell.dark {
+    background-color: #3f3f3f;
 }

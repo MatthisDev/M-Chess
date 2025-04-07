@@ -81,7 +81,7 @@ impl Piece {
 
         match self.piece_type {
             PieceType::Pawn => str_piece.push('p'),
-            PieceType::Knight => str_piece.push('k'),
+            PieceType::Knight => str_piece.push('n'),
             PieceType::Bishop => str_piece.push('b'),
             PieceType::Rook => str_piece.push('r'),
             PieceType::Queen => str_piece.push('q'),
