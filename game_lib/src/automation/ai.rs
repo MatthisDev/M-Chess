@@ -26,7 +26,7 @@ impl AI {
     pub fn get_best_move(&self, board: &Board) -> Option<(Position, Position)> {
         let mut best_move = None;
         let mut best_value = i32::MIN;
-        let depth = match self.difficulty {
+        let max_depth = match self.difficulty {
             Difficulty::Easy => 1,
             Difficulty::Medium => 3,
             Difficulty::Hard => 5,
@@ -44,7 +44,7 @@ impl AI {
                 new_board.turn = new_board.turn.opposite(); // Update the turn after making a move
 
                 let move_value =
-                    self.recursive_minimax(&mut new_board, 0, depth, false, i32::MIN, i32::MAX);
+                    self.recursive_minimax(&mut new_board, max_depth, false, i32::MIN, i32::MAX);
 
                 if move_value > best_value {
                     best_value = move_value;
@@ -65,7 +65,6 @@ impl AI {
     fn recursive_minimax(
         &self,
         board: &mut Board,
-        depth: i32,
         max_depth: i32,
         is_maximizing: bool,
         mut alpha: i32,
@@ -78,7 +77,7 @@ impl AI {
         };
 
         // Base case: if we reach max depth or the game is over
-        if depth == max_depth || board.is_game_over() {
+        if max_depth == 0 || board.is_game_over() {
             let eval = self.evaluate_board(board);
             return eval;
         }
@@ -150,7 +149,7 @@ impl AI {
 
             // Recursively evaluate the move
             let move_value =
-                self.recursive_minimax(board, depth + 1, max_depth, !is_maximizing, alpha, beta);
+                self.recursive_minimax(board, max_depth - 1, !is_maximizing, alpha, beta);
 
             // Undo the move
             board.undo_move();

@@ -40,7 +40,7 @@ pub enum PieceType {
 impl PieceType {
     pub fn get_value(&self) -> i32 {
         match self {
-            PieceType::King => 1000,
+            PieceType::King => -1000,
             PieceType::Queen => 9,
             PieceType::Rook => 5,
             PieceType::Bishop => 3,
@@ -81,7 +81,7 @@ impl Piece {
 
         match self.piece_type {
             PieceType::Pawn => str_piece.push('p'),
-            PieceType::Knight => str_piece.push('k'),
+            PieceType::Knight => str_piece.push('n'),
             PieceType::Bishop => str_piece.push('b'),
             PieceType::Rook => str_piece.push('r'),
             PieceType::Queen => str_piece.push('q'),
