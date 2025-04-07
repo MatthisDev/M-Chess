@@ -10,6 +10,8 @@ pub const EMPTY_POS: Position = Position {
     col: NONE,
 };
 
+///Struct containing the board and the pieces
+/// It also contains the history of the game and the turn color
 #[derive(Debug, Clone)]
 pub struct Board {
     pub squares: [[(isize, isize); BOARD_SIZE]; BOARD_SIZE],
@@ -19,9 +21,11 @@ pub struct Board {
     pub pieces: [[Piece; 16]; 2],
     pub turn: Color,
     pub history: Vec<(Position, Position, PieceType, (usize, usize), bool)>,
+    //TODO add a count to check if there was 50 turns to stop the game
 }
 
 impl Board {
+    /// Create an empty board
     pub fn empty_init() -> Board {
         // init empty board
         let mut squares: [[(isize, isize); BOARD_SIZE]; BOARD_SIZE] =
@@ -75,6 +79,7 @@ impl Board {
         }
     }
 
+    /// Create a full board with all pieces
     pub fn full_init() -> Board {
         let mut squares: [[(isize, isize); BOARD_SIZE]; BOARD_SIZE] =
             [[EMPTY_CELL; BOARD_SIZE]; BOARD_SIZE];
@@ -163,11 +168,12 @@ impl Board {
         }
     }
 
-    // display in the terminal the board
+    /// display the board in the terminal
+    /// take a reference to the board
     pub fn print_board(&self) {
         println!("  a b c d e f g h");
         for row in 0..BOARD_SIZE {
-            print!("{} ", 8 - row);
+            print!("{} ", row);
             for col in 0..BOARD_SIZE {
                 let position: Position = Position::new(row, col);
                 let piece_option: Option<&Piece> = Piece::get_piece(&position, self);
@@ -196,17 +202,16 @@ impl Board {
                 };
                 print!("{} ", color_char);
             }
-            println!("{}", 8 - row);
+            println!("{}", row);
         }
         println!("  a b c d e f g h");
     }
-    
+
     // useful for debuging
     pub fn print_pieces(&self) {
         println!(">================= PIECES =================<");
 
         for icolor in 0_u8..=1_u8 {
-            
             for piece in self.pieces[icolor as usize].iter() {
                 // don't need to print pieces with empty pos
                 if piece.position == EMPTY_POS {
@@ -216,9 +221,9 @@ impl Board {
                 println!("{:?}", piece);
             }
         }
-
     }
     // In the list of one type piece find a piece which is unused.
+    //used for initialization of the board
     fn find_unused_piece(&mut self, icolor: usize, ipiece: usize) -> Result<usize, &'static str> {
         let min: usize;
         let max: usize;
@@ -368,7 +373,7 @@ impl Board {
     }
 
     // move a piece to a position
-    // must be to position in args because:
+    // must be two positions in args because:
     // we dont know if there is a piece on the "from" position
     pub fn move_piece(&mut self, from: &Position, to: &Position) -> bool {
         // check if the move is valid (according to chess rules and piece range)
@@ -377,6 +382,7 @@ impl Board {
     }
 
     // update without checking chess rules and replacing pieces
+    //also update the history
     fn update_position(&mut self, piece_pos: &Position, to: &Position) -> bool {
         let (x_piece, y_piece): (usize, usize) = match self.squares[piece_pos.row][piece_pos.col] {
             (x, y) if (x, y) == EMPTY_CELL => return false,
@@ -392,21 +398,22 @@ impl Board {
         if (NONE, NONE) != (x_piece_to, y_piece_to) {
             // push the info in the history
             self.history.push((
-                    *to,
-                    EMPTY_POS,
-                    self.pieces[x_piece_to][y_piece_to].piece_type,
-                    (x_piece_to, y_piece_to),
-                    true,
+                *to,
+                EMPTY_POS,
+                self.pieces[x_piece_to][y_piece_to].piece_type,
+                (x_piece_to, y_piece_to),
+                true,
             ));
+            self.pieces[x_piece_to][y_piece_to].position = EMPTY_POS;
         }
 
         // update history
         self.history.push((
-                *piece_pos,
-                *to,
-                self.pieces[x_piece][y_piece].piece_type,
-                (x_piece, y_piece), // EXCEPTIONNELLE SITUATION
-                false,              //Option<Piece> de la case
+            *piece_pos,
+            *to,
+            self.pieces[x_piece][y_piece].piece_type,
+            (x_piece, y_piece), // EXCEPTIONNELLE SITUATION
+            false,              //Option<Piece> de la case
         ));
 
         // link the piece to its new coo
@@ -435,6 +442,10 @@ impl Board {
         true
     }
 
+    //TODO  Duplicate with
+    ///```no_run
+    /// print_board();
+    /// ```
     /// Return a matrix of a board. Each cell contains a [`String`].
     /// String format:
     /// - empty: ".."
@@ -482,7 +493,8 @@ impl Board {
         str_board
     }
 
-    //color of the king to check
+    //Check if the piece is attacked by the ennemy
+    //stop when a move in the ennemy piece is valid and match the position of the piece
     pub fn is_attacked(&self, position: &Position, color: Color) -> bool {
         let ennemy_color = color.opposite();
 
@@ -490,9 +502,7 @@ impl Board {
             // ignore eaten pieces
             if self.pieces[ennemy_color as usize][i].position == EMPTY_POS {
                 continue;
-            } 
-            else if self.pieces[ennemy_color as usize][i].is_valid_move(self, position) {
-
+            } else if self.pieces[ennemy_color as usize][i].is_valid_move(self, position) {
                 return true;
             }
         }
@@ -562,7 +572,6 @@ impl Board {
         (icolor_to, ipiece_to): (&mut isize, &mut isize),
         (icolor, ipiece): (&mut isize, &mut isize),
     ) -> bool {
-        
         match Piece::get_piece_mut(piece_pos, self) {
             Some(piece) => {
                 piece.position.row = to.row;
@@ -609,7 +618,6 @@ impl Board {
 
         // verification about the validity
         let is_check: bool = self.is_king_in_check(piece.color);
-        
 
         let b = self.get_back_simulation(
             to,
@@ -623,17 +631,36 @@ impl Board {
         }
 
         is_check
-
     }
 
+    /// Check if the position is within the bounds of the board
+    /// # Example
+    /// ```no_run
+    /// use m_chess::game_lib::board::{Board, BOARD_SIZE};
+    /// use m_chess::game_lib::position::Position;
+    ///
+    /// let mut board = Board::empty_init();
+    /// let position = Position::new(0, 0);
+    /// assert_eq!(board.is_within_bounds(&position), true);
+    /// let position = Position::new(8, 0);
+    /// assert_eq!(board.is_within_bounds(&position), false);
+    /// let position = Position::new(0, 8);
+    /// assert_eq!(board.is_within_bounds(&position), false);
+    /// let position = Position::new(8, 8);
+    /// assert_eq!(board.is_within_bounds(&position), false);
+    /// ```
+    /// # Complexity
+    /// `O(1)`
     pub fn is_within_bounds(&self, position: &Position) -> bool {
         position.row < BOARD_SIZE && position.col < BOARD_SIZE
     }
 
-    //color of the king to check
+    // Check if the king of the color is in check
+    // get the king of the color and check if it is attacked
+
     pub fn is_king_in_check(&self, color: Color) -> bool {
-        // get the king
         let king: &Piece = &self.pieces[color as usize][15];
+
         self.is_attacked(&king.position, color)
     }
 
@@ -668,6 +695,7 @@ impl Board {
         true
     }
 
+    //Check if the king can castle with the rook
     pub fn can_castle(&self, king_position: &Position, rook_position: &Position) -> bool {
         let king: &Piece = if let Some(king) = Piece::get_piece(king_position, self) {
             king
@@ -685,7 +713,7 @@ impl Board {
         if king.has_moved || rook.has_moved {
             return false;
         }
-        
+
         // Vérifier qu'il n'y a pas de pièces entre le roi et la tour
         let (min_col, max_col) = if king.position.col < rook.position.col {
             (king.position.col + 1, rook.position.col)
@@ -709,6 +737,12 @@ impl Board {
         true
     }
 
+    // Perform the castling move
+    // move the king and the rook
+    // king_position: position of the king
+    // rook_position: position of the rook
+    // if the king is on the left of the rook we do a grand roque
+    // else we do a petit roque
     pub fn perform_castle(&mut self, king_position: &Position, rook_position: &Position) {
         // get new position
         let new_king_position: Position = if rook_position.col < king_position.col {
@@ -731,10 +765,213 @@ impl Board {
         is_move = is_move && self.update_position(rook_position, &new_rook_position);
     }
 
+    // Check if the game is over (checkmate or stalemate)
     pub fn is_game_over(&mut self) -> bool {
         self.is_checkmate(Color::White)
             || self.is_checkmate(Color::Black)
             || self.is_pat(Color::White)
             || self.is_pat(Color::Black)
+    }
+
+    // Undo the last move made on the board
+    // This function restores the previous state of the board by reversing the last move.
+    // It handles the restoration of pieces, including castling, pawn promotion, and eaten pieces.
+    // The function continues to undo moves until the turn changes or the history is empty.
+    // It also flips the turn at the end of the undo operation.
+
+    pub fn undo_move(&mut self) {
+        // Undo moves until the turn changes or history is empty
+        while let Some((from, to, ptype, (x, y), eaten)) = self.history.pop() {
+            // Restore the piece's position
+            self.move_piece(&to, &from);
+            if let Some((tfrom, tto, tptype, (tx, ty), teaten)) = self.history.pop() {
+                if tfrom == to && tto == from && tptype == ptype && (tx, ty) == (x, y) {
+                    // Restore the piece's position
+                } else {
+                    // If the move doesn't match, push it back to history
+                    self.history.push((tfrom, tto, tptype, (tx, ty), teaten));
+                }
+            }
+            //println!("Undo move from {:?} to {:?}", from, to);
+            // Handle eaten pieces
+            if eaten {
+                self.squares[from.row][from.col] = (x as isize, y as isize);
+                self.pieces[x][y].position = from; // Restore the eaten piece's position
+
+                // Undo one more move to restore the piece that performed the capture
+                continue;
+            }
+
+            // Handle pawn promotion
+            if ptype == PieceType::Pawn && (to.row == 0 || to.row == BOARD_SIZE - 1) {
+                self.pieces[x][y].piece_type = PieceType::Pawn; // Restore the pawn
+            }
+
+            // Handle castling
+            if ptype == PieceType::King && (to.col as isize - from.col as isize).abs() == 2 {
+                let rook_from = if to.col > from.col {
+                    Position::new(to.row, BOARD_SIZE - 1) // Kingside rook
+                } else {
+                    Position::new(to.row, 0) // Queenside rook
+                };
+                let rook_to = if to.col > from.col {
+                    Position::new(to.row, to.col - 1) // Kingside rook's new position
+                } else {
+                    Position::new(to.row, to.col + 1) // Queenside rook's new position
+                };
+                self.move_piece(&rook_to, &rook_from); // Restore the rook's position
+            }
+
+            // Check if the turn has changed
+            if self.turn == self.pieces[x][y].color.opposite() {
+                break;
+            }
+        }
+
+        // Flip the turn
+        self.turn = self.turn.opposite();
+    }
+
+    /// Check if a pawn is isolated (no friendly pawns on adjacent files)
+    pub fn is_pawn_isolated(&self, position: &Position) -> bool {
+        let col = position.col;
+        let row = position.row;
+
+        // Check adjacent files for friendly pawns
+        for offset in [-1, 1] {
+            if let Ok(adj_col) = (col as isize + offset).try_into() {
+                for piece in self.pieces[self.turn as usize].iter() {
+                    if piece.piece_type == PieceType::Pawn && piece.position.col == adj_col {
+                        return false; // Found a friendly pawn on an adjacent file
+                    }
+                }
+            }
+        }
+
+        true // No friendly pawns found on adjacent files
+    }
+
+    pub fn get_all_valid_moves(&self, color: Color) -> Vec<(Position, Position)> {
+        let mut moves = Vec::new();
+        let mut temp_board = self.clone(); // Clone the board
+
+        // Iterate over all pieces of the given color
+        for piece in self.pieces[color as usize].iter() {
+            if piece.position.row != NONE && piece.position.col != NONE {
+                for mv in Piece::valid_moves(piece.position, &mut temp_board) {
+                    moves.push((piece.position, mv));
+                }
+            }
+        }
+
+        moves
+    }
+
+    pub fn is_pawn_doubled(&self, position: &Position) -> bool {
+        let col = position.col;
+
+        // Check for other friendly pawns on the same file
+        for piece in self.pieces[self.turn as usize].iter() {
+            if piece.piece_type == PieceType::Pawn
+                && piece.position.col == col
+                && piece.position != *position
+            {
+                return true; // Found another friendly pawn on the same file
+            }
+        }
+
+        false // No other friendly pawns found on the same file
+    }
+
+    pub fn is_open_file(&self, col: usize) -> bool {
+        for row in 0..BOARD_SIZE {
+            let (x, y) = self.squares[row][col];
+            if x != NONE as isize
+                && self.pieces[x as usize][y as usize].piece_type == PieceType::Pawn
+            {
+                return false; // Found a pawn on the file
+            }
+        }
+
+        true // No pawns found on the file
+    }
+
+    pub fn is_king_exposed(&self, position: &Position) -> bool {
+        let king_row = position.row;
+        let king_col = position.col;
+
+        // Check surrounding cells for friendly pawns
+        for row_offset in -1isize..=1 {
+            for col_offset in -1isize..=1 {
+                if row_offset == 0 && col_offset == 0 {
+                    continue; // Skip the king's position
+                }
+
+                // Calculate adjacent row and column
+                let adj_row = king_row as isize + row_offset;
+                let adj_col = king_col as isize + col_offset;
+
+                // Ensure the indices are within bounds
+                if adj_row >= 0
+                    && adj_row < BOARD_SIZE as isize
+                    && adj_col >= 0
+                    && adj_col < BOARD_SIZE as isize
+                {
+                    let adj_row = adj_row as usize;
+                    let adj_col = adj_col as usize;
+
+                    // Access the square and check for friendly pawns
+                    let (x, y) = self.squares[adj_row][adj_col];
+                    if x != NONE as isize
+                        && self.pieces[x as usize][y as usize].piece_type == PieceType::Pawn
+                        && self.pieces[x as usize][y as usize].color == self.turn
+                    {
+                        return false; // Found a friendly pawn protecting the king
+                    }
+                }
+            }
+        }
+
+        true // No friendly pawns found protecting the king
+    }
+
+    pub fn is_castling_move(&self, from: &Position, to: &Position) -> bool {
+        // Check if the piece is a king
+        if let Some(piece) = Piece::get_piece(from, self) {
+            if piece.piece_type == PieceType::King {
+                // Check if the move is a castling move (king moves two squares horizontally)
+                return (to.col as isize - from.col as isize).abs() == 2;
+            }
+        }
+        false
+    }
+
+    pub fn is_capture(&self, to: &Position) -> bool {
+        if let Some(piece) = Piece::get_piece(to, self) {
+            // Check if the piece at the destination belongs to the opponent
+            return piece.color != self.turn;
+        }
+        false
+    }
+    pub fn is_safe_move(&self, from: &Position, to: &Position) -> bool {
+        // Simulate the move
+        let mut temp_board = self.clone();
+        temp_board.move_piece(from, to);
+
+        // Check if the destination square is attacked after the move
+        !temp_board.is_attacked(to, self.turn.opposite())
+    }
+
+    pub fn is_pawn_double_move(&self, from: &Position, to: &Position) -> bool {
+        if let Some(piece) = Piece::get_piece(from, self) {
+            if piece.piece_type == PieceType::Pawn {
+                // Check if the pawn is moving two squares forward from its starting position
+                let direction = if piece.color == Color::White { -1 } else { 1 };
+                let start_row = if piece.color == Color::White { 6 } else { 1 };
+                return from.row == start_row
+                    && (to.row as isize - from.row as isize) == 2 * direction;
+            }
+        }
+        false
     }
 }
