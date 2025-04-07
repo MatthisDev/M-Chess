@@ -328,7 +328,7 @@ fn t_game_ai() {
 
         let mut move_str = String::new();
         if game.board.turn == Color::White {
-            let best_move = match wai.get_best_move(&mut game.board) {
+            let best_move = match wai.get_best_move(&game.board) {
                 Some(mv) => mv,
                 None => {
                     println!("No valid moves available for White");
@@ -343,7 +343,7 @@ fn t_game_ai() {
                 best_move.1.to_algebraic()
             );
         } else {
-            let best_move = match bai.get_best_move(&mut game.board) {
+            let best_move = match bai.get_best_move(&game.board) {
                 Some(mv) => mv,
                 None => {
                     println!("No valid moves available for Black");
