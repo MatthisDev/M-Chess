@@ -21,6 +21,7 @@ pub struct Board {
     pub pieces: [[Piece; 16]; 2],
     pub turn: Color,
     pub history: Vec<(Position, Position, PieceType, (usize, usize), bool)>,
+    pub counter: usize,
     //TODO add a count to check if there was 50 turns to stop the game
 }
 
@@ -76,6 +77,7 @@ impl Board {
             pieces,
             turn: Color::White,
             history: Vec::new(),
+            counter: 0,
         }
     }
 
@@ -165,6 +167,7 @@ impl Board {
             pieces,
             turn: Color::White,
             history: Vec::new(),
+            counter: 0,
         }
     }
 
@@ -439,13 +442,11 @@ impl Board {
         self.squares[to.row][to.col] = self.squares[piece_pos.row][piece_pos.col];
         self.squares[piece_pos.row][piece_pos.col] = EMPTY_CELL;
 
+        self.counter += if self.turn == Color::White { 0 } else { 1 };
+
         true
     }
 
-    //TODO  Duplicate with
-    ///```no_run
-    /// print_board();
-    /// ```
     /// Return a matrix of a board. Each cell contains a [`String`].
     /// String format:
     /// - empty: ".."
@@ -636,8 +637,8 @@ impl Board {
     /// Check if the position is within the bounds of the board
     /// # Example
     /// ```no_run
-    /// use m_chess::game_lib::board::{Board, BOARD_SIZE};
-    /// use m_chess::game_lib::position::Position;
+    /// use crate::game_lib::board::{Board, BOARD_SIZE};
+    /// use crate::game_lib::position::Position;
     ///
     /// let mut board = Board::empty_init();
     /// let position = Position::new(0, 0);
@@ -767,7 +768,8 @@ impl Board {
 
     // Check if the game is over (checkmate or stalemate)
     pub fn is_game_over(&mut self) -> bool {
-        self.is_checkmate(Color::White)
+        self.counter == 50
+            || self.is_checkmate(Color::White)
             || self.is_checkmate(Color::Black)
             || self.is_pat(Color::White)
             || self.is_pat(Color::Black)
@@ -824,12 +826,13 @@ impl Board {
 
             // Check if the turn has changed
             if self.turn == self.pieces[x][y].color.opposite() {
+                self.turn = self.turn.opposite();
+                if self.counter > 0 {
+                    self.counter -= if self.turn == Color::Black { 1 } else { 0 };
+                }
                 break;
             }
         }
-
-        // Flip the turn
-        self.turn = self.turn.opposite();
     }
 
     /// Check if a pawn is isolated (no friendly pawns on adjacent files)

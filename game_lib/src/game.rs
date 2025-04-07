@@ -78,11 +78,12 @@ impl Game {
             Position::new(king.position.row, king.position.col + 2),
         ];
 
-        for i in 0..2{
-            if *to_pos == to_king_pos[i] && 
-                self.board.can_castle(&king.position, &rook_positions[i]) {
-
-                self.board.perform_castle(&king.position, &rook_positions[i]);
+        for i in 0..2 {
+            if *to_pos == to_king_pos[i]
+                && self.board.can_castle(&king.position, &rook_positions[i])
+            {
+                self.board
+                    .perform_castle(&king.position, &rook_positions[i]);
                 return true;
             }
         }
@@ -140,7 +141,6 @@ impl Game {
 
         // if the piece can move + is moved
         if self.board.move_piece(&from_pos, &to_pos) {
-
             self.board.turn = self.board.turn.opposite();
 
             println!("Success!");
@@ -161,7 +161,7 @@ impl Game {
             }
 
             // PAT SITUATION
-            if self.board.is_pat(self.board.turn) {
+            if self.board.is_pat(self.board.turn) || self.board.counter == 51 {
                 println!("PAT! AUCUN JOUEUR GAGNE.");
                 return Ok(false);
             }
@@ -214,7 +214,7 @@ impl Game {
         for i in lst_moves.iter() {
             // convert Position -> String
             result.push(i.to_algebraic());
-        } 
+        }
 
         Ok(result)
     }

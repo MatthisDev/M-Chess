@@ -198,6 +198,7 @@ fn t_get_list_moves_king() {
 }
 
 #[test]
+
 fn t_get_list_moves_bishop() {
     let mut game = Game::init(true);
 
@@ -299,18 +300,19 @@ fn t_position_from_algebraic() {
 
 // >=============== AI  ===============<
 
-// #[test]
+#[test]
 fn t_create_ai() {
     let mut game = Game::init(false);
 
     let ai = AI::new(Difficulty::Easy, Color::White);
 }
+#[ignore = "only manual launch"]
 #[test]
 fn t_game_ai() {
     let mut game = Game::init(false);
 
-    let wai = AI::new(Difficulty::Hard, Color::White);
-    let bai = AI::new(Difficulty::Hard, Color::Black);
+    let wai = AI::new(Difficulty::Medium, Color::White);
+    let bai = AI::new(Difficulty::Medium, Color::Black);
     let mut finish_game: Result<bool, &'static str> = Ok(true);
 
     println!("Before move");
@@ -321,12 +323,12 @@ fn t_game_ai() {
         || finish_game == Err("parse_move_str: invalid send string: <{move_piece}>")
     {
         println!("Waiting for 1 second...");
+        println!("Turn {}: {:?}", game.board.counter, game.board.turn);
         sleep(Duration::from_secs(1));
 
-        println!("Au {:?} de jouer", game.board.turn);
         let mut move_str = String::new();
         if game.board.turn == Color::White {
-            let best_move = match wai.get_best_move(&game.board) {
+            let best_move = match wai.get_best_move(&mut game.board) {
                 Some(mv) => mv,
                 None => {
                     println!("No valid moves available for White");
@@ -341,8 +343,7 @@ fn t_game_ai() {
                 best_move.1.to_algebraic()
             );
         } else {
-            println!("Au tour de l'IA de jouer");
-            let best_move = match bai.get_best_move(&game.board) {
+            let best_move = match bai.get_best_move(&mut game.board) {
                 Some(mv) => mv,
                 None => {
                     println!("No valid moves available for Black");
