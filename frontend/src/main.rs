@@ -34,6 +34,7 @@ fn app() -> Html {
     let used_game = use_state(|| Game::init(true));
     let selected_piece = use_state(|| None as Option<String>); // State to track the selected piece
     let game_started = use_state(|| false); // State to track if the game has started
+    let game_over_message = use_state(|| None as Option<String>);
 
     let set_tab = {
         let active_tab = active_tab.clone();
@@ -83,11 +84,32 @@ fn app() -> Html {
 
     let move_piece = {
         let used_game = used_game.clone();
+        let game_mode = game_mode.clone();
+        let game_started = game_started.clone();
+        let game_over_message = game_over_message.clone();
         Callback::from(move |move_str: String| {
             used_game.set({
                 let mut game = (*used_game).clone();
                 if let Err(err) = game.make_move_algebraic(&move_str) {
                     web_sys::console::log_1(&format!("Invalid move: {}", err).into());
+                } else {
+                    // Vérifiez si la partie est terminée
+                    if game.board.is_game_over() {
+                        game_started.set(false); // Arrêtez la partie
+                        let message = if game.board.is_checkmate(game.board.turn) {
+                            format!(
+                                "Échec et mat ! Le joueur {} a gagné.",
+                                if game.board.turn == game_lib::piece::Color::White {
+                                    "Noir"
+                                } else {
+                                    "Blanc"
+                                }
+                            )
+                        } else {
+                            "Pat ! Aucun joueur ne gagne.".to_string()
+                        };
+                        game_over_message.set(Some(message));
+                    }
                 }
                 game
             });
@@ -220,37 +242,28 @@ fn app() -> Html {
             </nav>
             <div class="content">
                 {
-                    match active_tab.as_str() {
-                        "menu" => html! {
-                            <div class="menu-container">
-                                <div class="menu-buttons">
-                                    <button onclick={start_game_from_menu}>{ "Start Game" }</button>
-                                    <button onclick={start_game.reform(|_| GameMode::Sandbox)}>{ "Start Sandbox" }</button>
-                                </div>
-                            </div>
-                        },
-                        "description" => html! { <h1>{ "Description Section" }</h1> },
-                        "install" => html! { <h1>{ "Install Section" }</h1> },
-                        _ => html! { <h1>{ "404: Not Found" }</h1> },
-                    }
-                }
-                {
-                    match *game_mode {
-                        GameMode::Sandbox => {
-                            html! {
-                                <div class="game-area">
-                                    { render_board }
-                                    { render_palette() }
-                                </div>
+                    if let Some(message) = &*game_over_message {
+                        html! { <h1>{ message }</h1> }
+                    } else {
+                        html! {
+                            match *game_mode {
+                                GameMode::Sandbox => {
+                                    html! {
+                                        <div class="game-area">
+                                            { render_board }
+                                            { render_palette() }
+                                        </div>
+                                    }
+                                },
+                                GameMode::Standard => {
+                                    html! {
+                                        <div class="game-area">
+                                            { render_board }
+                                        </div>
+                                    }
+                                },
                             }
-                        },
-                        GameMode::Standard => {
-                            html! {
-                                <div class="game-area">
-                                    { render_board }
-                                </div>
-                            }
-                        },
+                        }
                     }
                 }
             </div>
