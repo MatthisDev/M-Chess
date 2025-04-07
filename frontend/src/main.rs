@@ -242,28 +242,37 @@ fn app() -> Html {
             </nav>
             <div class="content">
                 {
-                    if let Some(message) = &*game_over_message {
-                        html! { <h1>{ message }</h1> }
-                    } else {
-                        html! {
-                            match *game_mode {
-                                GameMode::Sandbox => {
-                                    html! {
-                                        <div class="game-area">
-                                            { render_board }
-                                            { render_palette() }
-                                        </div>
-                                    }
-                                },
-                                GameMode::Standard => {
-                                    html! {
-                                        <div class="game-area">
-                                            { render_board }
-                                        </div>
-                                    }
-                                },
+                    match active_tab.as_str() {
+                        "menu" => html! {
+                            <div class="menu-container">
+                                <div class="menu-buttons">
+                                    <button onclick={start_game_from_menu}>{ "Start Game" }</button>
+                                    <button onclick={start_game.reform(|_| GameMode::Sandbox)}>{ "Start Sandbox" }</button>
+                                </div>
+                            </div>
+                        },
+                        "description" => html! { <h1>{ "Description Section" }</h1> },
+                        "install" => html! { <h1>{ "Install Section" }</h1> },
+                        _ => html! { <h1>{ "404: Not Found" }</h1> },
+                    }
+                }
+                {
+                    match *game_mode {
+                        GameMode::Sandbox => {
+                            html! {
+                                <div class="game-area">
+                                    { render_board }
+                                    { render_palette() }
+                                </div>
                             }
-                        }
+                        },
+                        GameMode::Standard => {
+                            html! {
+                                <div class="game-area">
+                                    { render_board }
+                                </div>
+                            }
+                        },
                     }
                 }
             </div>
