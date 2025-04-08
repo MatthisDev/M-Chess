@@ -27,7 +27,7 @@ impl Position {
             return Err("parse_move_str: invalid send string: <{move_piece}>");
         }
         let col: usize = algebraic.chars().next().unwrap() as usize - 'a' as usize;
-        let row: usize = 8 - (algebraic.chars().nth(1).unwrap() as usize - '0' as usize);
+        let row: usize = (algebraic.chars().nth(1).unwrap() as usize - '0' as usize);
 
         if col >= BOARD_SIZE || row >= BOARD_SIZE {
             return Err("parse_move_str: invalid send string: <{move_piece}>");
@@ -38,11 +38,7 @@ impl Position {
 
     // Convert a Position to a String
     pub fn to_algebraic(self) -> String {
-        format!(
-            "{}{}",
-            ('a' as usize + self.col) as u8 as char,
-            8 - self.row
-        )
+        format!("{}{}", ('a' as usize + self.col) as u8 as char, self.row)
     }
     pub fn is_center(&self) -> bool {
         (self.row == 3 || self.row == 4) && (self.col == 3 || self.col == 4)

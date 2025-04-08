@@ -768,7 +768,7 @@ impl Board {
 
     // Check if the game is over (checkmate or stalemate)
     pub fn is_game_over(&mut self) -> bool {
-        self.counter == 50
+        self.counter == 100
             || self.is_checkmate(Color::White)
             || self.is_checkmate(Color::Black)
             || self.is_pat(Color::White)
