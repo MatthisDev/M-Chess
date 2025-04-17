@@ -68,6 +68,10 @@ impl Game {
 
     fn castle_situation(&mut self, king: &Piece, to_pos: &Position) -> bool {
         // Vérifier si le mouvement est un roque
+        if king.piece_type == PieceType::King(0) {
+            return false;
+        }
+
         let rook_positions = [
             Position::new(king.position.row, 0), // Tour côté dame
             Position::new(king.position.row, 7), // Tour côté roi
@@ -127,14 +131,14 @@ impl Game {
         };
 
         if piece.color != self.board.turn {
-            return Err("Mouvement invalid.");
+            return Err("Invalid movement.");
         }
 
         //TODO
         // if self.board.is_king_in_check(turn) => if pion != roi || move protège le roi => false
 
         // rock situtation
-        if piece.piece_type == PieceType::King && self.castle_situation(piece, &to_pos) {
+        if matches!(piece.piece_type, PieceType::King(_)) && self.castle_situation(piece, &to_pos) {
             self.board.turn = self.board.turn.opposite();
             return Ok(true);
         }
@@ -168,7 +172,7 @@ impl Game {
 
             Ok(true)
         } else {
-            Err("Mouvement invalide.")
+            Err("Invalid movement.")
         }
     }
 

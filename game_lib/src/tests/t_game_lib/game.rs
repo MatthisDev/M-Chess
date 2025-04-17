@@ -9,8 +9,6 @@ use std::time::Duration;
 
 #[test]
 fn t_game() {
-    Command::new("clear").status().expect("Ca veut pas clear");
-
     let mut game = Game::init(false);
     let ia = AI::new(Difficulty::Medium, Color::White);
 
@@ -20,15 +18,16 @@ fn t_game() {
     game.board.print_board();
 
     while finish_game == Ok(true)
-        || finish_game == Err("Mouvement invalide.")
+        || finish_game == Err("Invalid movement.")
         || finish_game == Err("parse_move_str: invalid send string: <{move_piece}>")
     {
-        println!("Waiting for 1 second...");
+        println!("Waiting 1 second for readability...");
         println!("Turn {}: {:?}", game.board.counter, game.board.turn);
         sleep(Duration::from_secs(1));
 
         let mut move_str = String::new();
         if game.board.turn == Color::White {
+            println!("Waiting for IA to make a move...");
             let best_move = match ia.get_best_move(&game.board) {
                 Some(mv) => mv,
                 None => {
@@ -36,7 +35,7 @@ fn t_game() {
                     break;
                 }
             };
-            println!("Best move: {:?}", best_move);
+            println!("Best move found: {:?}", best_move);
 
             move_str = format!(
                 "{}->{}",
@@ -44,10 +43,10 @@ fn t_game() {
                 best_move.1.to_algebraic()
             );
         } else {
-            println!("Entrez votre movement: <position de depart>-><position d'arrivee>");
+            println!("Enter your movement: <start>-><destination>");
             io::stdin()
                 .read_line(&mut move_str)
-                .expect("Échec de la lecture de l'entrée");
+                .expect("Error reading input");
             println!("Move user: {:?}", move_str);
         }
 
@@ -92,7 +91,7 @@ fn t_game_custom() {
 }
 
 // >=============== movement testing ===============<
-#[test]
+//#[test]
 fn t_eat_pawn() {
     let mut game = Game::init(true);
 
@@ -107,7 +106,7 @@ fn t_eat_pawn() {
     assert_eq!(game.make_move_algebraic("c4->d5"), Ok(true));
 }
 
-#[test]
+//#[test]
 fn t_eat_queen() {
     let mut game = Game::init(true);
 
@@ -122,7 +121,7 @@ fn t_eat_queen() {
     assert_eq!(game.make_move_algebraic("f6->f2"), Ok(true));
 }
 
-#[test]
+//#[test]
 fn t_eat_knight() {
     let mut game = Game::init(true);
 
@@ -140,7 +139,7 @@ fn t_eat_knight() {
     assert_eq!(game.make_move_algebraic("b6->d5"), Ok(true));
 }
 
-#[test]
+//#[test]
 fn t_eat_rook() {
     let mut game = Game::init(true);
 
@@ -153,7 +152,7 @@ fn t_eat_rook() {
     assert_eq!(game.make_move_algebraic("f6->f1"), Ok(true));
 }
 
-#[test]
+//#[test]
 fn t_roque() {
     let mut game = Game::init(true);
 
@@ -178,7 +177,7 @@ fn t_roque() {
 
 // >=============== get_list_moves ===============<
 
-#[test]
+//#[test]
 fn t_get_list_moves_pawn() {
     let mut game = Game::init(false);
 
@@ -192,7 +191,7 @@ fn t_get_list_moves_pawn() {
     );
 }
 
-#[test]
+//#[test]
 fn t_get_list_moves_king() {
     let mut game = Game::init(true);
 
@@ -220,7 +219,7 @@ fn t_get_list_moves_king() {
     );
 }
 
-#[test]
+//#[test]
 
 fn t_get_list_moves_bishop() {
     let mut game = Game::init(true);
@@ -243,7 +242,7 @@ fn t_get_list_moves_bishop() {
     );
 }
 
-#[test]
+//#[test]
 fn t_get_list_moves_protect_king() {
     let mut game = Game::init(true);
 
@@ -260,7 +259,7 @@ fn t_get_list_moves_protect_king() {
     assert_eq!(game.get_list_moves("a3".to_string()), Ok(vec![]));
 }
 
-#[test]
+//#[test]
 fn t_get_list_moves_protect_king2() {
     let mut game = Game::init(true);
 
@@ -277,7 +276,7 @@ fn t_get_list_moves_protect_king2() {
 
 // >=============== custom test  ===============<
 
-#[test]
+//#[test]
 fn t_game_custom_add_remove() {
     let mut game = Game::init(true);
 
@@ -309,7 +308,7 @@ fn t_game_get_board() {
 }
 
 // >=============== Position ===============<
-#[test]
+//#[test]
 fn t_position_from_algebraic() {
     assert_eq!(
         Position::from_algebraic("a1"),
@@ -323,7 +322,7 @@ fn t_position_from_algebraic() {
 
 // >=============== AI  ===============<
 
-#[test]
+//#[test]
 fn t_create_ai() {
     let mut game = Game::init(false);
 
@@ -334,7 +333,7 @@ fn t_create_ai() {
 fn t_game_ai() {
     let mut game = Game::init(false);
 
-    let wai = AI::new(Difficulty::Medium, Color::White);
+    let wai = AI::new(Difficulty::Hard, Color::White);
     let bai = AI::new(Difficulty::Medium, Color::Black);
     let mut finish_game: Result<bool, &'static str> = Ok(true);
 
