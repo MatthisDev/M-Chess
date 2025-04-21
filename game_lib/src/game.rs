@@ -127,7 +127,7 @@ impl Game {
         };
 
         if piece.color != self.board.turn {
-            return Err("Mouvement invalide.");
+            return Err("Mouvement invalid.");
         }
 
         //TODO
