@@ -27,12 +27,11 @@ impl From<u8> for Color {
     }
 }
 
-//TODO hasmoved =>u32 dans enum example King(i32) Rook(i32)
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum PieceType {
-    King,
+    King(u32),
     Queen,
-    Rook,
+    Rook(u32),
     Bishop,
     Knight,
     Pawn,
@@ -41,9 +40,9 @@ pub enum PieceType {
 impl PieceType {
     pub fn get_value(&self) -> i32 {
         match self {
-            PieceType::King => -1000,
+            PieceType::King(_) => 0,
             PieceType::Queen => 9,
-            PieceType::Rook => 5,
+            PieceType::Rook(_) => 5,
             PieceType::Bishop => 3,
             PieceType::Knight => 3,
             PieceType::Pawn => 1,
@@ -56,7 +55,6 @@ impl PieceType {
 pub struct Piece {
     pub color: Color,
     pub piece_type: PieceType,
-    pub has_moved: bool, //for special moves
     pub position: Position,
 }
 
@@ -66,7 +64,6 @@ impl Piece {
         Piece {
             color,
             piece_type,
-            has_moved: false,
             position,
         }
     }
@@ -84,7 +81,7 @@ impl Piece {
             PieceType::Pawn => str_piece.push('p'),
             PieceType::Knight => str_piece.push('n'),
             PieceType::Bishop => str_piece.push('b'),
-            PieceType::Rook => str_piece.push('r'),
+            PieceType::Rook(_) => str_piece.push('r'),
             PieceType::Queen => str_piece.push('q'),
             _ => str_piece.push('k'),
         }
@@ -127,9 +124,9 @@ impl Piece {
             PieceType::Pawn => self.is_valid_move_pawn(board, to_pos),
             PieceType::Knight => self.is_valid_move_knight(board, to_pos),
             PieceType::Bishop => self.is_valid_move_bishop(board, to_pos),
-            PieceType::Rook => self.is_valid_move_rook(board, to_pos),
+            PieceType::Rook(_) => self.is_valid_move_rook(board, to_pos),
             PieceType::Queen => self.is_valid_move_queen(board, to_pos),
-            PieceType::King => self.is_valid_move_king(board, to_pos),
+            PieceType::King(_) => self.is_valid_move_king(board, to_pos),
         }
     }
 
@@ -145,9 +142,9 @@ impl Piece {
             PieceType::Pawn => piece.valid_moves_pawn(board),
             PieceType::Knight => piece.valid_moves_knight(board),
             PieceType::Bishop => piece.valid_moves_bishop(board),
-            PieceType::Rook => piece.valid_moves_rook(board),
+            PieceType::Rook(_) => piece.valid_moves_rook(board),
             PieceType::Queen => piece.valid_moves_queen(board),
-            PieceType::King => piece.valid_moves_king(board),
+            PieceType::King(_) => piece.valid_moves_king(board),
         };
 
         vec.iter()
@@ -480,7 +477,7 @@ impl Piece {
 
     //King-----------------------------------------------------------------
     pub fn is_in_king_hitbox(&self, cell_pos: &Position) -> bool {
-        if self.piece_type != PieceType::King {
+        if !matches!(self.piece_type, PieceType::King(_)) {
             return false;
         }
         self.position == *cell_pos
@@ -563,7 +560,7 @@ impl Piece {
         //ajouter condition pour roques
 
         // If the king moved we can not castle
-        if self.has_moved {
+        if self.piece_type != PieceType::King(0) {
             return moves;
         }
 

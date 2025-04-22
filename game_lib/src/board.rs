@@ -22,7 +22,6 @@ pub struct Board {
     pub turn: Color,
     pub history: Vec<(Position, Position, PieceType, (usize, usize), bool)>,
     pub counter: usize,
-    //TODO add a count to check if there was 50 turns to stop the game
 }
 
 impl Board {
@@ -43,14 +42,14 @@ impl Board {
                 Piece::new(Color::Black, PieceType::Pawn, Position::new(NONE, NONE)),
                 Piece::new(Color::Black, PieceType::Pawn, Position::new(NONE, NONE)),
                 Piece::new(Color::Black, PieceType::Pawn, Position::new(NONE, NONE)),
-                Piece::new(Color::Black, PieceType::Rook, Position::new(NONE, NONE)),
-                Piece::new(Color::Black, PieceType::Rook, Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::Rook(0), Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::Rook(0), Position::new(NONE, NONE)),
                 Piece::new(Color::Black, PieceType::Knight, Position::new(NONE, NONE)),
                 Piece::new(Color::Black, PieceType::Knight, Position::new(NONE, NONE)),
                 Piece::new(Color::Black, PieceType::Bishop, Position::new(NONE, NONE)),
                 Piece::new(Color::Black, PieceType::Bishop, Position::new(NONE, NONE)),
                 Piece::new(Color::Black, PieceType::Queen, Position::new(NONE, NONE)),
-                Piece::new(Color::Black, PieceType::King, Position::new(NONE, NONE)),
+                Piece::new(Color::Black, PieceType::King(0), Position::new(NONE, NONE)),
             ],
             [
                 Piece::new(Color::White, PieceType::Pawn, Position::new(NONE, NONE)),
@@ -61,14 +60,14 @@ impl Board {
                 Piece::new(Color::White, PieceType::Pawn, Position::new(NONE, NONE)),
                 Piece::new(Color::White, PieceType::Pawn, Position::new(NONE, NONE)),
                 Piece::new(Color::White, PieceType::Pawn, Position::new(NONE, NONE)),
-                Piece::new(Color::White, PieceType::Rook, Position::new(NONE, NONE)),
-                Piece::new(Color::White, PieceType::Rook, Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::Rook(0), Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::Rook(0), Position::new(NONE, NONE)),
                 Piece::new(Color::White, PieceType::Knight, Position::new(NONE, NONE)),
                 Piece::new(Color::White, PieceType::Knight, Position::new(NONE, NONE)),
                 Piece::new(Color::White, PieceType::Bishop, Position::new(NONE, NONE)),
                 Piece::new(Color::White, PieceType::Bishop, Position::new(NONE, NONE)),
                 Piece::new(Color::White, PieceType::Queen, Position::new(NONE, NONE)),
-                Piece::new(Color::White, PieceType::King, Position::new(NONE, NONE)),
+                Piece::new(Color::White, PieceType::King(0), Position::new(NONE, NONE)),
             ],
         ];
 
@@ -97,14 +96,14 @@ impl Board {
                 Piece::new(Color::Black, PieceType::Pawn, Position::new(1, 5)),
                 Piece::new(Color::Black, PieceType::Pawn, Position::new(1, 6)),
                 Piece::new(Color::Black, PieceType::Pawn, Position::new(1, 7)),
-                Piece::new(Color::Black, PieceType::Rook, Position::new(0, 0)),
-                Piece::new(Color::Black, PieceType::Rook, Position::new(0, 7)),
+                Piece::new(Color::Black, PieceType::Rook(0), Position::new(0, 0)),
+                Piece::new(Color::Black, PieceType::Rook(0), Position::new(0, 7)),
                 Piece::new(Color::Black, PieceType::Knight, Position::new(0, 1)),
                 Piece::new(Color::Black, PieceType::Knight, Position::new(0, 6)),
                 Piece::new(Color::Black, PieceType::Bishop, Position::new(0, 2)),
                 Piece::new(Color::Black, PieceType::Bishop, Position::new(0, 5)),
                 Piece::new(Color::Black, PieceType::Queen, Position::new(0, 3)),
-                Piece::new(Color::Black, PieceType::King, Position::new(0, 4)),
+                Piece::new(Color::Black, PieceType::King(0), Position::new(0, 4)),
             ],
             [
                 Piece::new(Color::White, PieceType::Pawn, Position::new(6, 0)),
@@ -115,14 +114,14 @@ impl Board {
                 Piece::new(Color::White, PieceType::Pawn, Position::new(6, 5)),
                 Piece::new(Color::White, PieceType::Pawn, Position::new(6, 6)),
                 Piece::new(Color::White, PieceType::Pawn, Position::new(6, 7)),
-                Piece::new(Color::White, PieceType::Rook, Position::new(7, 0)),
-                Piece::new(Color::White, PieceType::Rook, Position::new(7, 7)),
+                Piece::new(Color::White, PieceType::Rook(0), Position::new(7, 0)),
+                Piece::new(Color::White, PieceType::Rook(0), Position::new(7, 7)),
                 Piece::new(Color::White, PieceType::Knight, Position::new(7, 1)),
                 Piece::new(Color::White, PieceType::Knight, Position::new(7, 6)),
                 Piece::new(Color::White, PieceType::Bishop, Position::new(7, 2)),
                 Piece::new(Color::White, PieceType::Bishop, Position::new(7, 5)),
                 Piece::new(Color::White, PieceType::Queen, Position::new(7, 3)),
-                Piece::new(Color::White, PieceType::King, Position::new(7, 4)),
+                Piece::new(Color::White, PieceType::King(0), Position::new(7, 4)),
             ],
         ];
 
@@ -190,9 +189,9 @@ impl Board {
 
                 let piece: &Piece = piece.unwrap();
                 let piece_char = match piece.piece_type {
-                    PieceType::King => 'K',
+                    PieceType::King(_) => 'K',
                     PieceType::Queen => 'Q',
-                    PieceType::Rook => 'R',
+                    PieceType::Rook(_) => 'R',
                     PieceType::Bishop => 'B',
                     PieceType::Knight => 'N',
                     PieceType::Pawn => 'P',
@@ -425,8 +424,10 @@ impl Board {
                 piece.position.row = to.row;
                 piece.position.col = to.col;
 
-                if piece.piece_type == PieceType::King {
-                    piece.has_moved = true;
+                if matches!(piece.piece_type, PieceType::King(_)) {
+                    if let PieceType::King(ref mut value) = piece.piece_type {
+                        *value += 1; // Increment the value stored in the King variant
+                    }
                 }
             }
             None => return false,
@@ -665,7 +666,6 @@ impl Board {
         self.is_attacked(&king.position, color)
     }
 
-    // FIXME
     // Check if one color is in checkmate => no moves available and attacked
     //color of the king of the team to play
     pub fn is_checkmate(&mut self, color: Color) -> bool {
@@ -676,7 +676,6 @@ impl Board {
         //pour chaques positions de ses valid moves si
         //      dans les valids moves d'au moins un pions adverse
         //=> à utiliser pour le path <=> is_checkmate sans le check ('_')
-        //TODO remove la suite + faire les comment au dessus
         let king: &Piece = &self.pieces[color as usize][15];
         let set_of_move = Piece::valid_moves(king.position, self);
         // let set_of_move = king.valid_moves(self);
@@ -711,7 +710,7 @@ impl Board {
         };
 
         // Vérifier que le roi et la tour n'ont pas bougé
-        if king.has_moved || rook.has_moved {
+        if king.piece_type != PieceType::King(0) || rook.piece_type != PieceType::Rook(0) {
             return false;
         }
 
@@ -775,67 +774,8 @@ impl Board {
             || self.is_pat(Color::Black)
     }
 
-    // Undo the last move made on the board
-    // This function restores the previous state of the board by reversing the last move.
-    // It handles the restoration of pieces, including castling, pawn promotion, and eaten pieces.
-    // The function continues to undo moves until the turn changes or the history is empty.
-    // It also flips the turn at the end of the undo operation.
-
-    pub fn undo_move(&mut self) {
-        // Undo moves until the turn changes or history is empty
-        while let Some((from, to, ptype, (x, y), eaten)) = self.history.pop() {
-            // Restore the piece's position
-            self.move_piece(&to, &from);
-            if let Some((tfrom, tto, tptype, (tx, ty), teaten)) = self.history.pop() {
-                if tfrom == to && tto == from && tptype == ptype && (tx, ty) == (x, y) {
-                    // Restore the piece's position
-                } else {
-                    // If the move doesn't match, push it back to history
-                    self.history.push((tfrom, tto, tptype, (tx, ty), teaten));
-                }
-            }
-            //println!("Undo move from {:?} to {:?}", from, to);
-            // Handle eaten pieces
-            if eaten {
-                self.squares[from.row][from.col] = (x as isize, y as isize);
-                self.pieces[x][y].position = from; // Restore the eaten piece's position
-
-                // Undo one more move to restore the piece that performed the capture
-                continue;
-            }
-
-            // Handle pawn promotion
-            if ptype == PieceType::Pawn && (to.row == 0 || to.row == BOARD_SIZE - 1) {
-                self.pieces[x][y].piece_type = PieceType::Pawn; // Restore the pawn
-            }
-
-            // Handle castling
-            if ptype == PieceType::King && (to.col as isize - from.col as isize).abs() == 2 {
-                let rook_from = if to.col > from.col {
-                    Position::new(to.row, BOARD_SIZE - 1) // Kingside rook
-                } else {
-                    Position::new(to.row, 0) // Queenside rook
-                };
-                let rook_to = if to.col > from.col {
-                    Position::new(to.row, to.col - 1) // Kingside rook's new position
-                } else {
-                    Position::new(to.row, to.col + 1) // Queenside rook's new position
-                };
-                self.move_piece(&rook_to, &rook_from); // Restore the rook's position
-            }
-
-            // Check if the turn has changed
-            if self.turn == self.pieces[x][y].color.opposite() {
-                self.turn = self.turn.opposite();
-                if self.counter > 0 {
-                    self.counter -= if self.turn == Color::Black { 1 } else { 0 };
-                }
-                break;
-            }
-        }
-    }
-
-    /// Check if a pawn is isolated (no friendly pawns on adjacent files)
+    //------------------------------- IA Heuristics ----------------------------------------------------------//
+    // Check if a pawn is isolated (no friendly pawns on adjacent files)
     pub fn is_pawn_isolated(&self, position: &Position) -> bool {
         let col = position.col;
         let row = position.row;
@@ -852,22 +792,6 @@ impl Board {
         }
 
         true // No friendly pawns found on adjacent files
-    }
-
-    pub fn get_all_valid_moves(&self, color: Color) -> Vec<(Position, Position)> {
-        let mut moves = Vec::new();
-        let mut temp_board = self.clone(); // Clone the board
-
-        // Iterate over all pieces of the given color
-        for piece in self.pieces[color as usize].iter() {
-            if piece.position.row != NONE && piece.position.col != NONE {
-                for mv in Piece::valid_moves(piece.position, &mut temp_board) {
-                    moves.push((piece.position, mv));
-                }
-            }
-        }
-
-        moves
     }
 
     pub fn is_pawn_doubled(&self, position: &Position) -> bool {
@@ -941,7 +865,7 @@ impl Board {
     pub fn is_castling_move(&self, from: &Position, to: &Position) -> bool {
         // Check if the piece is a king
         if let Some(piece) = Piece::get_piece(from, self) {
-            if piece.piece_type == PieceType::King {
+            if matches!(piece.piece_type, PieceType::King(_)) {
                 // Check if the move is a castling move (king moves two squares horizontally)
                 return (to.col as isize - from.col as isize).abs() == 2;
             }
@@ -956,6 +880,7 @@ impl Board {
         }
         false
     }
+
     pub fn is_safe_move(&self, from: &Position, to: &Position) -> bool {
         // Simulate the move
         let mut temp_board = self.clone();
@@ -976,5 +901,72 @@ impl Board {
             }
         }
         false
+    }
+}
+
+// History of the game
+impl Board {
+    // Undo the last move made on the board
+    // This function restores the previous state of the board by reversing the last move.
+    // It handles the restoration of pieces, including castling, pawn promotion, and eaten pieces.
+    // The function continues to undo moves until the turn changes or the history is empty.
+    // It also flips the turn at the end of the undo operation.
+
+    pub fn undo_move(&mut self) {
+        // Undo moves until the turn changes or history is empty
+        while let Some((from, to, ptype, (x, y), eaten)) = self.history.pop() {
+            // Restore the piece's position
+            self.move_piece(&to, &from);
+            if let Some((tfrom, tto, tptype, (tx, ty), teaten)) = self.history.pop() {
+                if let Some(last) = self.history.last() {
+                    if last.0 == to && last.1 == from && last.2 == ptype && last.3 == (x, y) {
+                        // Restore the piece's position
+                        self.history.pop();
+                    } else {
+                        // If the move doesn't match, push it back to history
+                    }
+                }
+            }
+            //println!("Undo move from {:?} to {:?}", from, to);
+            // Handle eaten pieces
+            if eaten {
+                self.squares[from.row][from.col] = (x as isize, y as isize);
+                self.pieces[x][y].position = from; // Restore the eaten piece's position
+
+                // Undo one more move to restore the piece that performed the capture
+                continue;
+            }
+
+            // Handle pawn promotion
+            if ptype == PieceType::Pawn && (to.row == 0 || to.row == BOARD_SIZE - 1) {
+                self.pieces[x][y].piece_type = PieceType::Pawn; // Restore the pawn
+            }
+
+            // Handle castling
+            if matches!(ptype, PieceType::King(_))
+                && (to.col as isize - from.col as isize).abs() == 2
+            {
+                let rook_from = if to.col > from.col {
+                    Position::new(to.row, BOARD_SIZE - 1) // Kingside rook
+                } else {
+                    Position::new(to.row, 0) // Queenside rook
+                };
+                let rook_to = if to.col > from.col {
+                    Position::new(to.row, to.col - 1) // Kingside rook's new position
+                } else {
+                    Position::new(to.row, to.col + 1) // Queenside rook's new position
+                };
+                self.move_piece(&rook_to, &rook_from); // Restore the rook's position
+            }
+
+            // Check if the turn has changed
+            if self.turn == self.pieces[x][y].color.opposite() {
+                self.turn = self.turn.opposite();
+                if self.counter > 0 {
+                    self.counter -= if self.turn == Color::Black { 1 } else { 0 };
+                }
+                break;
+            }
+        }
     }
 }
