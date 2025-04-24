@@ -7,7 +7,6 @@ use game_lib::game::Game;
 use serde_json::json;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
-use std::process::Command;
 use tower_http::services::fs::ServeDir;
 
 #[tokio::main]
@@ -17,8 +16,8 @@ async fn main() {
 
     let app = Router::new()
         .route("/create", get(create_game_handler))
-        .route("/join/:uid", get(join_game_handler))
-        .route("/ws/:uid", get(ws_handler))
+        .route("/join/{uid}", get(join_game_handler))
+        .route("/ws/{uid}", get(ws_handler))
         .fallback_service(get_service(ServeDir::new("web/dist")))
         .with_state(games);
 
@@ -41,7 +40,7 @@ async fn create_game_handler(
 
     // Return the game state as JSON
     Json(json!({
-        "game_id": game_id,
+        "game_id": game_id.to_string(),
         "status": "created"
     }))
 }
@@ -54,10 +53,10 @@ async fn join_game_handler(
     let games_lock = games.lock().unwrap();
 
     // Find the game with the given ID
-    if let Some(game) = games_lock.iter().find(|g| g.uid == game_id) {
+    if let Some(game) = games_lock.iter().find(|g| g.uid.to_string() == game_id) {
         Json(json!({
             "status": "ok",
-            "game_id": game_id
+            "game_id": game_id.to_string(),
         }))
     } else {
         Json(json!({

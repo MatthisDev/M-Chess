@@ -38,7 +38,7 @@ impl Game {
                 Board::full_init()
             },
             nb_turn: 0,
-            uid: uuid::Uuid::new_v4().to_string(),
+            uid: uuid::Uuid::new_v4()
         }
     }
     /*
