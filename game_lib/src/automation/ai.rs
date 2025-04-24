@@ -35,7 +35,6 @@ impl AI {
         // Iterate over all possible moves for the AI's pieces
         for piece in board.pieces[self.color as usize].iter() {
             if piece.position.row == NONE || piece.position.col == NONE {
-                println!("Skipping unused piece");
                 continue; // Skip unused pieces
             }
             for mv in Piece::valid_moves(piece.position, &mut board.clone()) {
@@ -120,7 +119,7 @@ impl AI {
             if let Some(piece) = Piece::get_piece(from, board) {
                 match piece.piece_type {
                     PieceType::Queen => priority -= 80,
-                    PieceType::Rook => priority -= 70,
+                    PieceType::Rook(_) => priority -= 70,
                     PieceType::Bishop => priority -= 60,
                     PieceType::Knight => priority -= 50,
                     PieceType::Pawn => priority -= 40,
@@ -178,6 +177,19 @@ impl AI {
     }
 
     fn evaluate_board(&self, board: &Board) -> i32 {
+        {
+            let mut t = board.clone();
+            // Check for game-ending conditions
+            if t.is_checkmate(self.color) {
+                return -100_000; // Loss
+            }
+            if t.is_checkmate(self.color.opposite()) {
+                return 100_000; // Win
+            }
+            if t.is_pat(self.color) || t.is_pat(self.color.opposite()) {
+                return 0; // Draw
+            }
+        }
         let mut score = 0;
 
         // Material value
@@ -198,31 +210,29 @@ impl AI {
                 match piece.piece_type {
                     PieceType::Pawn => {
                         if piece.position.is_center() {
-                            score += 10; // Bonus for pawns in the center
+                            score += 1; // Bonus for pawns in the center
                         }
                         if board.is_pawn_isolated(&piece.position) {
-                            score -= 5; // Penalty for isolated pawns
+                            score -= 1; // Penalty for isolated pawns
                         }
                         if board.is_pawn_doubled(&piece.position) {
-                            score -= 5; // Penalty for doubled pawns
+                            score -= 1; // Penalty for doubled pawns
                         }
                     }
-                    PieceType::Rook => {
+                    PieceType::Rook(_) => {
                         if board.is_open_file(piece.position.col) {
-                            score += 20; // Bonus for rooks on open files
+                            score += 3; // Bonus for rooks on open files
                         }
                     }
                     PieceType::Knight => {
                         if piece.position.is_center() {
-                            score += 15; // Bonus for knights in the center
+                            score += 3; // Bonus for knights in the center
                         }
                     }
-                    PieceType::Bishop => {
-                        score += 10; // General bonus for bishops
-                    }
-                    PieceType::King => {
+
+                    PieceType::King(_) => {
                         if board.is_king_exposed(&piece.position) {
-                            score -= 30; // Penalty for exposed king
+                            score -= 10; // Penalty for exposed king
                         }
                     }
                     _ => {}
@@ -236,39 +246,34 @@ impl AI {
                 match piece.piece_type {
                     PieceType::Pawn => {
                         if piece.position.is_center() {
-                            score -= 10; // Penalty for opponent's pawns in the center
+                            score -= 1; // Penalty for opponent's pawns in the center
                         }
                         if board.is_pawn_isolated(&piece.position) {
-                            score += 5; // Bonus for opponent's isolated pawns
+                            score += 1; // Bonus for opponent's isolated pawns
                         }
                         if board.is_pawn_doubled(&piece.position) {
-                            score += 5; // Bonus for opponent's doubled pawns
+                            score += 1; // Bonus for opponent's doubled pawns
                         }
                     }
-                    PieceType::Rook => {
+                    PieceType::Rook(_) => {
                         if board.is_open_file(piece.position.col) {
-                            score -= 20; // Penalty for opponent's rooks on open files
+                            score -= 3; // Penalty for opponent's rooks on open files
                         }
                     }
                     PieceType::Knight => {
                         if piece.position.is_center() {
-                            score -= 15; // Penalty for opponent's knights in the center
+                            score -= 3; // Penalty for opponent's knights in the center
                         }
                     }
-                    PieceType::King => {
+                    PieceType::King(_) => {
                         if board.is_king_exposed(&piece.position) {
-                            score += 30; // Bonus for opponent's exposed king
+                            score += 10; // Bonus for opponent's exposed king
                         }
                     }
                     _ => {}
                 }
             }
         }
-
-        // Mobility (number of valid moves)
-        let my_mobility = board.get_all_valid_moves(self.color).len() as i32;
-        let opponent_mobility = board.get_all_valid_moves(self.color.opposite()).len() as i32;
-        score += my_mobility - opponent_mobility;
 
         score
     }
