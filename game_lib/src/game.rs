@@ -1,4 +1,5 @@
 use crate::board::{self, Board, BOARD_SIZE, EMPTY_CELL, EMPTY_POS, NONE};
+use uuid::Uuid;
 use crate::piece::Piece;
 use crate::piece::{Color, PieceType};
 use crate::position::Position;
@@ -6,6 +7,7 @@ use crate::position::Position;
 pub struct Game {
     pub board: Board,
     pub nb_turn: usize,
+    pub uid: Uuid
 }
 
 impl Game {
@@ -36,6 +38,7 @@ impl Game {
                 Board::full_init()
             },
             nb_turn: 0,
+            uid: uuid::Uuid::new_v4().to_string(),
         }
     }
     /*
