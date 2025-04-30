@@ -324,25 +324,6 @@ fn app() -> Html {
                         _ => html! { <h1>{ "404: Not Found" }</h1> },
                     }
                 }
-                {
-                    match *game_mode {
-                        GameMode::Sandbox => {
-                            html! {
-                                <div class="game-area">
-                                    { render_board }
-                                    { render_palette() }
-                                </div>
-                            }
-                        },
-                        GameMode::Standard => {
-                            html! {
-                                <div class="game-area">
-                                    { render_board }
-                                </div>
-                            }
-                        },
-                    }
-                }
             </div>
         </div>
     }
