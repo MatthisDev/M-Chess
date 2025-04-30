@@ -242,19 +242,45 @@ fn app() -> Html {
     html! {
         <div class="app-container">
             <nav class="navbar">
-                <button onclick={set_tab.reform(|_| "menu".to_string())}>{ "Menu" }</button>
+                <button onclick={set_tab.reform(|_| "game".to_string())}>{ "Game" }</button>
+                <button onclick={set_tab.reform(|_| "lobby".to_string())}>{ "Lobby" }</button>
                 <button onclick={set_tab.reform(|_| "description".to_string())}>{ "Description" }</button>
                 <button onclick={set_tab.reform(|_| "install".to_string())}>{ "Install" }</button>
             </nav>
             <div class="content">
                 {
                     match active_tab.as_str() {
-                        "menu" => html! {
+                        "game" => html! {
                             <div class="menu-container">
                                 <div class="menu-buttons">
                                     <button onclick={start_game_from_menu}>{ "Start Game" }</button>
                                     <button onclick={start_game.reform(|_| GameMode::Sandbox)}>{ "Start Sandbox" }</button>
                                 </div>
+                                <>{
+                                    match *game_mode {
+                                        GameMode::Sandbox => {
+                                            html! {
+                                                <div class="game-area">
+                                                    { render_board }
+                                                    { render_palette() }
+                                                </div>
+                                            }
+                                        },
+                                        GameMode::Standard => {
+                                            html! {
+                                                <div class="game-area">
+                                                    { render_board }
+                                                </div>
+                                            }
+                                        },
+                                    }
+                                }</>
+                            </div>
+                        },
+                        "lobby" => html! {
+                            <div class="lobby-container">
+                                <h2>{ "Lobby" }</h2>
+                                <p>{ "This is the lobby where players can join or create games." }</p>
                             </div>
                         },
                         "description" => html! {
