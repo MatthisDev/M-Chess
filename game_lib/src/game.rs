@@ -1,11 +1,15 @@
+use crate::automation::ai::AI;
 use crate::board::{self, Board, BOARD_SIZE, EMPTY_CELL, EMPTY_POS, NONE};
 use crate::piece::Piece;
 use crate::piece::{Color, PieceType};
 use crate::position::Position;
+
 #[derive(Clone, Debug)]
 pub struct Game {
     pub board: Board,
     pub nb_turn: usize,
+    pub ai1: Option<AI>,
+    pub ai2: Option<AI>,
 }
 
 impl Game {
@@ -36,6 +40,8 @@ impl Game {
                 Board::full_init()
             },
             nb_turn: 0,
+            ai1: None,
+            ai2: None,
         }
     }
     /*
@@ -229,5 +235,41 @@ impl Game {
     /// no update of the has_moved for rook and king is implemented for the moment.
     fn undo_move(&mut self) {
         self.board.undo_move();
+    }
+
+    fn get_ai_move(&mut self) -> Result<String, &'static str> {
+        if self.board.turn == Color::White {
+            if let Some(ai) = &mut self.ai1 {
+                let best_move = match ai.get_best_move(&self.board) {
+                    Some(mv) => mv,
+                    None => {
+                        return Err("No valid moves available for White");
+                    }
+                };
+                let move_str = format!(
+                    "{}->{}",
+                    best_move.0.to_algebraic(),
+                    best_move.1.to_algebraic()
+                );
+                Ok(move_str)
+            } else {
+                Err("AI1 is not initialized")
+            }
+        } else if let Some(ai) = &mut self.ai2 {
+            let best_move = match ai.get_best_move(&self.board) {
+                Some(mv) => mv,
+                None => {
+                    return Err("No valid moves available for White");
+                }
+            };
+            let move_str = format!(
+                "{}->{}",
+                best_move.0.to_algebraic(),
+                best_move.1.to_algebraic()
+            );
+            Ok(move_str)
+        } else {
+            Err("AI2 is not initialized")
+        }
     }
 }
