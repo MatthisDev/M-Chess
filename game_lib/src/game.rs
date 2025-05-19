@@ -238,8 +238,21 @@ impl Game {
     }
 
     fn get_ai_move(&mut self) -> Result<String, &'static str> {
-        if self.board.turn == Color::White {
-            if let Some(ai) = &mut self.ai1 {
+        if let Some(ai) = &mut self.ai1 {
+            if ai.color == self.board.turn {
+                let best_move = match ai.get_best_move(&self.board) {
+                    Some(mv) => mv,
+                    None => {
+                        return Err("No valid moves available for White");
+                    }
+                };
+                let move_str = format!(
+                    "{}->{}",
+                    best_move.0.to_algebraic(),
+                    best_move.1.to_algebraic()
+                );
+                Ok(move_str)
+            } else if let Some(ai) = &mut self.ai2 {
                 let best_move = match ai.get_best_move(&self.board) {
                     Some(mv) => mv,
                     None => {
@@ -253,23 +266,10 @@ impl Game {
                 );
                 Ok(move_str)
             } else {
-                Err("AI1 is not initialized")
+                Err("AI is not initialized")
             }
-        } else if let Some(ai) = &mut self.ai2 {
-            let best_move = match ai.get_best_move(&self.board) {
-                Some(mv) => mv,
-                None => {
-                    return Err("No valid moves available for White");
-                }
-            };
-            let move_str = format!(
-                "{}->{}",
-                best_move.0.to_algebraic(),
-                best_move.1.to_algebraic()
-            );
-            Ok(move_str)
         } else {
-            Err("AI2 is not initialized")
+            Err("AI is not initialized")
         }
     }
 }

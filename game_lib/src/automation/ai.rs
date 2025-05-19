@@ -17,7 +17,7 @@ pub enum Difficulty {
 #[derive(Clone, Debug)]
 pub struct AI {
     difficulty: Difficulty,
-    color: Color,
+    pub color: Color,
 }
 
 impl AI {
