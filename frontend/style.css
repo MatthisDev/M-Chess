@@ -8,6 +8,18 @@
     box-shadow: 0 0 10px rgba(0, 34, 70, 0.5);
 }
 
+.cell.possible-move {
+    background-color: rgba(0, 255, 0, 0.3); /* Light green background for possible moves */
+    border: 2px dashed #00ff00; /* Dashed green border */
+}
+
+/* Highlight the king in check */
+.cell.king-in-check {
+    background-color: rgba(255, 0, 0, 0.3); /* Light red background */
+    border: 3px solid red; /* Red border */
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+}
+
 .piece {
     font-size: 40px;
     color: rgb(0, 0, 0);
@@ -355,4 +367,20 @@ body {
 .blue-theme div:nth-child(2),
 .blue-theme div:nth-child(3) {
     background-color: #4682b4;
+}
+
+/* Game over message */
+.game-over-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    font-size: 1.5rem;
+    text-align: center;
+    z-index: 1000;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
 }

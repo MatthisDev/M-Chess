@@ -32,10 +32,12 @@ fn app() -> Html {
     let active_tab = use_state(|| "menu".to_string());
     let game_mode = use_state(|| GameMode::Sandbox);
     let used_game = use_state(|| Game::init(true));
-    let selected_piece = use_state(|| None as Option<String>); // State to track the selected piece
-    let game_started = use_state(|| false); // State to track if the game has started
+    let selected_piece = use_state(|| None as Option<String>);
+    let game_started = use_state(|| false);
     let game_over_message = use_state(|| None as Option<String>);
-    let board_theme = use_state(|| "default".to_string()); // State to track the current board theme
+    let board_theme = use_state(|| "default".to_string());
+    let possible_moves = use_state(|| Vec::<String>::new());
+    let king_in_check = use_state(|| None as Option<String>); // State to track the king in check
 
     let set_tab = {
         let active_tab = active_tab.clone();
@@ -46,7 +48,15 @@ fn app() -> Html {
         let game_mode = game_mode.clone();
         let game_started = game_started.clone();
         let used_game_clone = used_game.clone();
+        let game_over_message = game_over_message.clone();
+        let possible_moves = possible_moves.clone();
+        let king_in_check = king_in_check.clone();
         Callback::from(move |mode: GameMode| {
+            // Réinitialiser les états
+            game_over_message.set(None);
+            possible_moves.set(Vec::new());
+            king_in_check.set(None);
+
             match mode {
                 GameMode::Standard => {
                     game_mode.set(GameMode::Standard);
@@ -65,7 +75,15 @@ fn app() -> Html {
         let game_mode = game_mode.clone();
         let game_started = game_started.clone();
         let used_game_clone = used_game.clone();
+        let game_over_message = game_over_message.clone();
+        let possible_moves = possible_moves.clone();
+        let king_in_check = king_in_check.clone();
         Callback::from(move |_| {
+            // Réinitialiser les états
+            game_over_message.set(None);
+            possible_moves.set(Vec::new());
+            king_in_check.set(None);
+
             game_mode.set(GameMode::Standard); // Set the game mode to Standard
             game_started.set(true); // Start the game
             used_game_clone.set(Game::init(false)); // Initialize a full board with all pieces
@@ -76,7 +94,15 @@ fn app() -> Html {
         let game_started = game_started.clone();
         let selected_piece = selected_piece.clone();
         let game_mode = game_mode.clone();
+        let game_over_message = game_over_message.clone();
+        let possible_moves = possible_moves.clone();
+        let king_in_check = king_in_check.clone();
         Callback::from(move |_| {
+            // Réinitialiser les états
+            game_over_message.set(None);
+            possible_moves.set(Vec::new());
+            king_in_check.set(None);
+
             game_started.set(true); // Mark the game as started
             selected_piece.set(None); // Clear the selected piece
             game_mode.set(GameMode::Standard); // Switch to Standard mode for moving pieces
@@ -95,6 +121,8 @@ fn app() -> Html {
         let game_mode = game_mode.clone();
         let game_started = game_started.clone();
         let game_over_message = game_over_message.clone();
+        let possible_moves = possible_moves.clone();
+        let king_in_check = king_in_check.clone();
         Callback::from(move |move_str: String| {
             used_game.set({
                 let mut game = (*used_game).clone();
@@ -103,10 +131,10 @@ fn app() -> Html {
                 } else {
                     // Vérifiez si la partie est terminée
                     if game.board.is_game_over() {
-                        game_started.set(false); // Arrêtez la partie
+                        game_started.set(false);
                         let message = if game.board.is_checkmate(game.board.turn) {
                             format!(
-                                "Checkmate ! {} won.",
+                                "Checkmate! {} won.",
                                 if game.board.turn == game_lib::piece::Color::White {
                                     "Black"
                                 } else {
@@ -114,11 +142,20 @@ fn app() -> Html {
                                 }
                             )
                         } else {
-                            "Pat ! No one won".to_string()
+                            "Pat! No one won.".to_string()
                         };
                         game_over_message.set(Some(message));
+                    } else {
+                        // Vérifiez si le roi est en échec
+                        let king_position = game.board.pieces[game.board.turn as usize][15].position;
+                        if game.board.is_king_in_check(game.board.turn) {
+                            king_in_check.set(Some(king_position.to_algebraic()));
+                        } else {
+                            king_in_check.set(None);
+                        }
                     }
                 }
+                possible_moves.set(Vec::new());
                 game
             });
         })
@@ -126,11 +163,13 @@ fn app() -> Html {
 
     let render_board = {
         let board_state = (*used_game).board.get().clone();
-        let selected_piece = selected_piece.clone(); // Track the selected piece
-        let used_game = used_game.clone(); // Clone the game state
-        let game_mode = game_mode.clone(); // Clone the game mode state
-        let selected_cell = use_state(|| None as Option<String>); // Track the selected cell for movement
-        let board_theme = board_theme.clone(); // Clone the board theme state
+        let selected_piece = selected_piece.clone();
+        let used_game = used_game.clone();
+        let game_mode = game_mode.clone();
+        let selected_cell = use_state(|| None as Option<String>);
+        let board_theme = board_theme.clone();
+        let possible_moves = possible_moves.clone();
+        let king_in_check = king_in_check.clone();
 
         html! {
             <div class={classes!("board", (*board_theme).clone())}>
@@ -140,7 +179,19 @@ fn app() -> Html {
                             let is_dark = (row_idx + col_idx) % 2 == 1;
                             let mut cell_class = if is_dark { "cell dark".to_string() } else { "cell light".to_string() };
 
-                            let position = format!("{}{}", (b'a' + col_idx as u8) as char,  row_idx);
+                            let position = format!("{}{}", (b'a' + col_idx as u8) as char, row_idx);
+
+                            // Highlight possible moves
+                            if possible_moves.contains(&position) {
+                                cell_class = format!("{} possible-move", cell_class);
+                            }
+
+                            // Highlight the king in check
+                            if let Some(king_pos) = &*king_in_check {
+                                if king_pos == &position {
+                                    cell_class = format!("{} king-in-check", cell_class);
+                                }
+                            }
 
                             // Add the "selected" class if this cell is selected
                             if let Some(selected) = &*selected_cell {
@@ -155,26 +206,27 @@ fn app() -> Html {
                                 let game_mode = game_mode.clone();
                                 let selected_cell = selected_cell.clone();
                                 let move_piece = move_piece.clone();
+                                let possible_moves = possible_moves.clone();
                                 Callback::from(move |_| {
                                     if *game_mode == GameMode::Sandbox {
-                                        // Sandbox mode: Place or remove a piece
                                         if let Some(piece) = &*selected_piece {
                                             let mut game = (*used_game).clone();
                                             game.board.add_piece(&format!("{}{}", piece, position));
-                                            used_game.set(game); // Update the game state
+                                            used_game.set(game);
                                         } else {
                                             web_sys::console::log_1(&"No piece selected!".into());
                                         }
                                     } else if *game_mode == GameMode::Standard {
-                                        // Standard mode: Move a piece
                                         if let Some(from) = &*selected_cell {
-                                            // Attempt to move the piece
                                             let move_str = format!("{}->{}", from, position);
                                             move_piece.emit(move_str);
-                                            selected_cell.set(None); // Reset selection
+                                            selected_cell.set(None);
                                         } else {
-                                            // Select the current cell
                                             selected_cell.set(Some(position.clone()));
+                                            let mut game = (*used_game).clone();
+                                            if let Ok(moves) = game.get_list_moves(position.clone()) {
+                                                possible_moves.set(moves);
+                                            }
                                         }
                                     }
                                 })
@@ -246,17 +298,17 @@ fn app() -> Html {
                     <div class="theme-buttons">
                         <button class="theme-button" onclick={change_theme.reform(|_| "default".to_string())}>
                             <div class="theme-preview-grid default-theme">
-                                { for (0..4).map(|i| html! { <div></div> }) }
+                                { for (0..16).map(|i| html! { <div></div> }) }
                             </div>
                         </button>
                         <button class="theme-button" onclick={change_theme.reform(|_| "brown".to_string())}>
                             <div class="theme-preview-grid brown-theme">
-                                { for (0..4).map(|i| html! { <div></div> }) }
+                                { for (0..16).map(|i| html! { <div></div> }) }
                             </div>
                         </button>
                         <button class="theme-button" onclick={change_theme.reform(|_| "blue".to_string())}>
                             <div class="theme-preview-grid blue-theme">
-                                { for (0..4).map(|i| html! { <div></div> }) }
+                                { for (0..16).map(|i| html! { <div></div> }) }
                             </div>
                         </button>
                     </div>
@@ -341,6 +393,17 @@ fn app() -> Html {
                                 </div>
                             }
                         },
+                    }
+                }
+                {
+                    if let Some(message) = &*game_over_message {
+                        html! {
+                            <div class="game-over-message">
+                                { message }
+                            </div>
+                        }
+                    } else {
+                        html! {}
                     }
                 }
             </div>
