@@ -35,6 +35,7 @@ fn app() -> Html {
     let selected_piece = use_state(|| None as Option<String>); // State to track the selected piece
     let game_started = use_state(|| false); // State to track if the game has started
     let game_over_message = use_state(|| None as Option<String>);
+    let board_theme = use_state(|| "default".to_string()); // State to track the current board theme
 
     let set_tab = {
         let active_tab = active_tab.clone();
@@ -82,6 +83,13 @@ fn app() -> Html {
         })
     };
 
+    let change_theme = {
+        let board_theme = board_theme.clone();
+        Callback::from(move |theme: String| {
+            board_theme.set(theme); // Update the board theme
+        })
+    };
+
     let move_piece = {
         let used_game = used_game.clone();
         let game_mode = game_mode.clone();
@@ -122,9 +130,10 @@ fn app() -> Html {
         let used_game = used_game.clone(); // Clone the game state
         let game_mode = game_mode.clone(); // Clone the game mode state
         let selected_cell = use_state(|| None as Option<String>); // Track the selected cell for movement
+        let board_theme = board_theme.clone(); // Clone the board theme state
 
         html! {
-            <div class="board">
+            <div class={classes!("board", (*board_theme).clone())}>
                 { for board_state.iter().enumerate().map(|(row_idx, row)| {
                     html! {
                         { for row.iter().enumerate().map(|(col_idx, cell)| {
@@ -234,6 +243,23 @@ fn app() -> Html {
                         }) }
                     </div>
                     <button class="start-game-button" onclick={start_game_from_palette}>{ "Start Game" }</button>
+                    <div class="theme-buttons">
+                        <button class="theme-button" onclick={change_theme.reform(|_| "default".to_string())}>
+                            <div class="theme-preview-grid default-theme">
+                                { for (0..4).map(|i| html! { <div></div> }) }
+                            </div>
+                        </button>
+                        <button class="theme-button" onclick={change_theme.reform(|_| "brown".to_string())}>
+                            <div class="theme-preview-grid brown-theme">
+                                { for (0..4).map(|i| html! { <div></div> }) }
+                            </div>
+                        </button>
+                        <button class="theme-button" onclick={change_theme.reform(|_| "blue".to_string())}>
+                            <div class="theme-preview-grid blue-theme">
+                                { for (0..4).map(|i| html! { <div></div> }) }
+                            </div>
+                        </button>
+                    </div>
                 </div>
             }
         }

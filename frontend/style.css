@@ -251,3 +251,108 @@ body {
 .cell.dark {
     background-color: #3f3f3f;
 }
+
+.board.default .cell.light {
+    background-color: #7e7e7e;
+}
+
+.board.default .cell.dark {
+    background-color: #3f3f3f;
+}
+
+.board.brown .cell.light {
+    background-color: #d2b48c;
+}
+
+.board.brown .cell.dark {
+    background-color: #8b4513;
+}
+
+.board.blue .cell.light {
+    background-color: #add8e6;
+}
+
+.board.blue .cell.dark {
+    background-color: #4682b4;
+}
+
+.theme-buttons {
+    display: flex; /* Utiliser flexbox pour aligner les boutons */
+    flex-direction: row; /* Disposer les boutons horizontalement */
+    justify-content: center; /* Centrer les boutons horizontalement */
+    gap: 10px; /* Ajouter un espace entre les boutons */
+    margin-top: 10px;
+    width: 100%; /* S'assurer que le conteneur prend toute la largeur disponible */
+}
+
+.theme-button {
+    width: 40px; /* Réduire la largeur des boutons */
+    height: 40px; /* Réduire la hauteur des boutons */
+    padding: 0; /* Supprimer le padding */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #5f5f5f;
+    border: 2px solid #3b3b3b;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.theme-button:hover {
+    background-color: #444444;
+}
+
+.theme-preview {
+    width: 40px; /* Réduire la taille de la prévisualisation */
+    height: 20px;
+    border-radius: 5px;
+    border: 1px solid #333;
+    margin: auto;
+}
+
+.theme-preview-grid {
+    display: grid; /* Utiliser une grille pour aligner les carrés */
+    grid-template-columns: repeat(2, 1fr); /* 2 colonnes */
+    grid-template-rows: repeat(2, 1fr); /* 2 lignes */
+    width: 30px; /* Taille totale de la grille */
+    height: 30px;
+    border: 1px solid #333;
+    border-radius: 2px;
+    margin: auto;
+}
+
+.theme-preview-grid div {
+    width: 100%; /* Chaque carré occupe tout l'espace de sa cellule */
+    height: 100%;
+}
+
+.default-theme div:nth-child(1),
+.default-theme div:nth-child(4) {
+    background-color: #7e7e7e;
+}
+
+.default-theme div:nth-child(2),
+.default-theme div:nth-child(3) {
+    background-color: #3f3f3f;
+}
+
+.brown-theme div:nth-child(1),
+.brown-theme div:nth-child(4) {
+    background-color: #d2b48c;
+}
+
+.brown-theme div:nth-child(2),
+.brown-theme div:nth-child(3) {
+    background-color: #8b4513;
+}
+
+.blue-theme div:nth-child(1),
+.blue-theme div:nth-child(4) {
+    background-color: #add8e6;
+}
+
+.blue-theme div:nth-child(2),
+.blue-theme div:nth-child(3) {
+    background-color: #4682b4;
+}
