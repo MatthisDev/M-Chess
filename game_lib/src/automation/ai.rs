@@ -7,14 +7,14 @@ use crate::board::NONE;
 use crate::position;
 use std::collections::HashMap;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Difficulty {
     Easy,
     Medium,
     Hard,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct AI {
     difficulty: Difficulty,
     pub color: Color,

@@ -1,5 +1,5 @@
 use crate::automation::ai::{Difficulty, AI};
-use crate::game::Game;
+use crate::game::{Game, GameMode};
 use crate::piece::Color;
 use crate::position::Position;
 use std::io;
@@ -9,8 +9,8 @@ use std::time::Duration;
 
 #[test]
 fn t_game() {
-    let mut game = Game::init(false);
-    let ia = AI::new(Difficulty::Medium, Color::White);
+    let mut game = Game::init(GameMode::PlayerVsAI);
+    let ia = game.ai1.clone().unwrap();
 
     let mut finish_game: Result<bool, &'static str> = Ok(true);
 
@@ -59,7 +59,7 @@ fn t_game() {
 
 // #[test]
 fn t_game_custom() {
-    let mut game = Game::init(true);
+    let mut game = Game::init(GameMode::Sandbox);
 
     game.board.add_piece("brd6");
     game.board.add_piece("brf6");
@@ -93,7 +93,7 @@ fn t_game_custom() {
 // >=============== movement testing ===============<
 //#[test]
 fn t_eat_pawn() {
-    let mut game = Game::init(true);
+    let mut game = Game::init(GameMode::Sandbox);
 
     game.board.add_piece("wkf1");
     game.board.add_piece("bkf8");
@@ -108,7 +108,7 @@ fn t_eat_pawn() {
 
 //#[test]
 fn t_eat_queen() {
-    let mut game = Game::init(true);
+    let mut game = Game::init(GameMode::Sandbox);
 
     game.board.add_piece("wkf1");
     game.board.add_piece("bkf8");
@@ -123,7 +123,7 @@ fn t_eat_queen() {
 
 //#[test]
 fn t_eat_knight() {
-    let mut game = Game::init(true);
+    let mut game = Game::init(GameMode::Sandbox);
 
     game.board.add_piece("wkf1");
     game.board.add_piece("bkf8");
@@ -141,7 +141,7 @@ fn t_eat_knight() {
 
 //#[test]
 fn t_eat_rook() {
-    let mut game = Game::init(true);
+    let mut game = Game::init(GameMode::Sandbox);
 
     game.board.add_piece("wkf1");
     game.board.add_piece("bkf8");
@@ -154,7 +154,7 @@ fn t_eat_rook() {
 
 //#[test]
 fn t_roque() {
-    let mut game = Game::init(true);
+    let mut game = Game::init(GameMode::Sandbox);
 
     game.board.add_piece("wke1");
     game.board.add_piece("bke8");
@@ -179,7 +179,7 @@ fn t_roque() {
 
 //#[test]
 fn t_get_list_moves_pawn() {
-    let mut game = Game::init(false);
+    let mut game = Game::init(GameMode::PlayerVsPlayer);
 
     assert_eq!(
         game.get_list_moves("e2".to_string()),
@@ -193,7 +193,7 @@ fn t_get_list_moves_pawn() {
 
 //#[test]
 fn t_get_list_moves_king() {
-    let mut game = Game::init(true);
+    let mut game = Game::init(GameMode::Sandbox);
 
     game.board.add_piece("brd6");
     game.board.add_piece("brf6");
@@ -222,7 +222,7 @@ fn t_get_list_moves_king() {
 //#[test]
 
 fn t_get_list_moves_bishop() {
-    let mut game = Game::init(true);
+    let mut game = Game::init(GameMode::Sandbox);
 
     game.board.add_piece("wkf1");
     game.board.add_piece("bkf8");
@@ -244,7 +244,7 @@ fn t_get_list_moves_bishop() {
 
 //#[test]
 fn t_get_list_moves_protect_king() {
-    let mut game = Game::init(true);
+    let mut game = Game::init(GameMode::Sandbox);
 
     game.board.add_piece("bkf8");
     game.board.add_piece("wkf3");
@@ -261,7 +261,7 @@ fn t_get_list_moves_protect_king() {
 
 //#[test]
 fn t_get_list_moves_protect_king2() {
-    let mut game = Game::init(true);
+    let mut game = Game::init(GameMode::Sandbox);
 
     game.board.add_piece("bkf8");
     game.board.add_piece("wkf2");
@@ -278,7 +278,7 @@ fn t_get_list_moves_protect_king2() {
 
 //#[test]
 fn t_game_custom_add_remove() {
-    let mut game = Game::init(true);
+    let mut game = Game::init(GameMode::Sandbox);
 
     // try to add
     assert_eq!(game.board.add_piece("bpe1"), Ok(true));
@@ -294,7 +294,7 @@ fn t_game_custom_add_remove() {
 
 // #[test]
 fn t_game_get_board() {
-    let mut game = Game::init(false);
+    let mut game = Game::init(GameMode::PlayerVsPlayer);
 
     let board = game.board.get();
 
@@ -324,14 +324,14 @@ fn t_position_from_algebraic() {
 
 //#[test]
 fn t_create_ai() {
-    let mut game = Game::init(false);
+    let mut game = Game::init(GameMode::AIvsAI);
 
     let ai = AI::new(Difficulty::Easy, Color::White);
 }
 #[ignore = "only manual launch"]
 #[test]
 fn t_game_ai() {
-    let mut game = Game::init(false);
+    let mut game = Game::init(GameMode::AIvsAI);
 
     let wai = AI::new(Difficulty::Hard, Color::White);
     let bai = AI::new(Difficulty::Medium, Color::Black);

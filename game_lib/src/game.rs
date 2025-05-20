@@ -1,13 +1,30 @@
-use crate::automation::ai::AI;
+use std::collections::HashMap;
+
+use crate::automation::ai::{Difficulty, AI};
 use crate::board::{self, Board, BOARD_SIZE, EMPTY_CELL, EMPTY_POS, NONE};
 use crate::piece::Piece;
 use crate::piece::{Color, PieceType};
 use crate::position::Position;
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GameMode {
+    Sandbox,
+    PlayerVsAI,
+    PlayerVsPlayer,
+    AIvsAI,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlayerType {
+    Human,
+    Ai,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Game {
     pub board: Board,
     pub nb_turn: usize,
+    mode: GameMode,
+    players: HashMap<Color, PlayerType>,
     pub ai1: Option<AI>,
     pub ai2: Option<AI>,
 }
@@ -32,17 +49,40 @@ impl Game {
     ///
     /// # See more
     /// [`Board::add_piece`] and [`Board::remove_piece`]
-    pub fn init(custom: bool) -> Self {
-        Game {
-            board: if custom {
+    pub fn init(custom: GameMode) -> Self {
+        use Color::*;
+        use PlayerType::*;
+
+        let mut game = Game {
+            board: if custom == GameMode::Sandbox {
                 Board::empty_init()
             } else {
                 Board::full_init()
             },
             nb_turn: 0,
+            mode: custom,
+            players: HashMap::new(),
             ai1: None,
             ai2: None,
-        }
+        };
+
+        match custom {
+            GameMode::Sandbox => (),
+            GameMode::PlayerVsAI => {
+                game.players = HashMap::from([(White, Human), (Black, Ai)]);
+                game.ai1 = Some(AI::new(Difficulty::Medium, Black));
+            }
+            GameMode::PlayerVsPlayer => {
+                game.players = HashMap::from([(White, Human), (Black, Human)]);
+            }
+            GameMode::AIvsAI => {
+                game.players = HashMap::from([(White, Ai), (Black, Ai)]);
+                game.ai1 = Some(AI::new(Difficulty::Medium, White));
+                game.ai2 = Some(AI::new(Difficulty::Medium, Black));
+            }
+        };
+
+        game
     }
     /*
      * Waited string format:
@@ -233,11 +273,11 @@ impl Game {
     /// It will remove the last piece moved and restore the previous state of the board.
     /// The function will also update the turn of the player.
     /// no update of the has_moved for rook and king is implemented for the moment.
-    fn undo_move(&mut self) {
+    pub fn undo_move(&mut self) {
         self.board.undo_move();
     }
 
-    fn get_ai_move(&mut self) -> Result<String, &'static str> {
+    pub fn get_ai_move(&mut self) -> Result<String, &'static str> {
         if let Some(ai) = &mut self.ai1 {
             if ai.color == self.board.turn {
                 let best_move = match ai.get_best_move(&self.board) {
@@ -270,6 +310,46 @@ impl Game {
             }
         } else {
             Err("AI is not initialized")
+        }
+    }
+
+    pub fn get_current_turn(&self) -> Color {
+        self.board.turn
+    }
+    pub fn is_ai_turn(&self) -> bool {
+        if let Some(player_type) = self.players.get(&self.board.turn) {
+            *player_type == PlayerType::Ai
+        } else {
+            false
+        }
+    }
+
+    pub fn run_ai_turn(&mut self) -> Result<bool, &'static str> {
+        if self.is_ai_turn() {
+            let ai_move = self.get_ai_move()?;
+            println!("AI ({:?}) plays: {}", self.board.turn, ai_move);
+            return self.make_move_algebraic(&ai_move);
+        }
+        Ok(false)
+    }
+
+    pub fn run_ai_loop(&mut self) {
+        loop {
+            if !self.is_ai_turn() {
+                break;
+            }
+
+            match self.run_ai_turn() {
+                Ok(true) => continue,
+                Ok(false) => {
+                    println!("Game over (AI)");
+                    break;
+                }
+                Err(err) => {
+                    println!("AI error: {}", err);
+                    break;
+                }
+            }
         }
     }
 }

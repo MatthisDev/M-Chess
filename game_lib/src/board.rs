@@ -12,7 +12,7 @@ pub const EMPTY_POS: Position = Position {
 
 ///Struct containing the board and the pieces
 /// It also contains the history of the game and the turn color
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Board {
     pub squares: [[(isize, isize); BOARD_SIZE]; BOARD_SIZE],
     // tableau des pions
@@ -968,5 +968,21 @@ impl Board {
                 break;
             }
         }
+    }
+
+    pub fn export_display_board(&self) -> Vec<Vec<Option<String>>> {
+        let mut display_board = vec![vec![None; BOARD_SIZE]; BOARD_SIZE];
+
+        for row in 0..BOARD_SIZE {
+            for col in 0..BOARD_SIZE {
+                let (piece_color, piece_index) = self.squares[row][col];
+                if piece_color != NONE as isize {
+                    let piece = &self.pieces[piece_color as usize][piece_index as usize];
+                    display_board[row][col] = Some(piece.the_string());
+                }
+            }
+        }
+
+        display_board
     }
 }
