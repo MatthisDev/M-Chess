@@ -1,32 +1,17 @@
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
+
 use crate::automation::ai::{Difficulty, AI};
 use crate::board::{self, Board, BOARD_SIZE, EMPTY_CELL, EMPTY_POS, NONE};
 use crate::piece::Piece;
 use crate::piece::{Color, PieceType};
 use crate::position::Position;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GameMode {
-    Sandbox,
-    PlayerVsAI,
-    PlayerVsPlayer,
-    AIvsAI,
-}
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PlayerType {
-    Human,
-    Ai,
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct Game {
     pub board: Board,
     pub nb_turn: usize,
-    mode: GameMode,
-    players: HashMap<Color, PlayerType>,
-    pub ai1: Option<AI>,
-    pub ai2: Option<AI>,
 }
 
 impl Game {
@@ -49,37 +34,16 @@ impl Game {
     ///
     /// # See more
     /// [`Board::add_piece`] and [`Board::remove_piece`]
-    pub fn init(custom: GameMode) -> Self {
+    pub fn init(custom: bool) -> Self {
         use Color::*;
-        use PlayerType::*;
 
         let mut game = Game {
-            board: if custom == GameMode::Sandbox {
+            board: if custom {
                 Board::empty_init()
             } else {
                 Board::full_init()
             },
             nb_turn: 0,
-            mode: custom,
-            players: HashMap::new(),
-            ai1: None,
-            ai2: None,
-        };
-
-        match custom {
-            GameMode::Sandbox => (),
-            GameMode::PlayerVsAI => {
-                game.players = HashMap::from([(White, Human), (Black, Ai)]);
-                game.ai1 = Some(AI::new(Difficulty::Medium, Black));
-            }
-            GameMode::PlayerVsPlayer => {
-                game.players = HashMap::from([(White, Human), (Black, Human)]);
-            }
-            GameMode::AIvsAI => {
-                game.players = HashMap::from([(White, Ai), (Black, Ai)]);
-                game.ai1 = Some(AI::new(Difficulty::Medium, White));
-                game.ai2 = Some(AI::new(Difficulty::Medium, Black));
-            }
         };
 
         game
@@ -277,79 +241,12 @@ impl Game {
         self.board.undo_move();
     }
 
-    pub fn get_ai_move(&mut self) -> Result<String, &'static str> {
-        if let Some(ai) = &mut self.ai1 {
-            if ai.color == self.board.turn {
-                let best_move = match ai.get_best_move(&self.board) {
-                    Some(mv) => mv,
-                    None => {
-                        return Err("No valid moves available for White");
-                    }
-                };
-                let move_str = format!(
-                    "{}->{}",
-                    best_move.0.to_algebraic(),
-                    best_move.1.to_algebraic()
-                );
-                Ok(move_str)
-            } else if let Some(ai) = &mut self.ai2 {
-                let best_move = match ai.get_best_move(&self.board) {
-                    Some(mv) => mv,
-                    None => {
-                        return Err("No valid moves available for White");
-                    }
-                };
-                let move_str = format!(
-                    "{}->{}",
-                    best_move.0.to_algebraic(),
-                    best_move.1.to_algebraic()
-                );
-                Ok(move_str)
-            } else {
-                Err("AI is not initialized")
-            }
+    pub fn skip_turn(&mut self) {
+        self.board.turn = self.board.turn.opposite();
+        self.board.counter += if self.board.turn == Color::White {
+            1
         } else {
-            Err("AI is not initialized")
-        }
-    }
-
-    pub fn get_current_turn(&self) -> Color {
-        self.board.turn
-    }
-    pub fn is_ai_turn(&self) -> bool {
-        if let Some(player_type) = self.players.get(&self.board.turn) {
-            *player_type == PlayerType::Ai
-        } else {
-            false
-        }
-    }
-
-    pub fn run_ai_turn(&mut self) -> Result<bool, &'static str> {
-        if self.is_ai_turn() {
-            let ai_move = self.get_ai_move()?;
-            println!("AI ({:?}) plays: {}", self.board.turn, ai_move);
-            return self.make_move_algebraic(&ai_move);
-        }
-        Ok(false)
-    }
-
-    pub fn run_ai_loop(&mut self) {
-        loop {
-            if !self.is_ai_turn() {
-                break;
-            }
-
-            match self.run_ai_turn() {
-                Ok(true) => continue,
-                Ok(false) => {
-                    println!("Game over (AI)");
-                    break;
-                }
-                Err(err) => {
-                    println!("AI error: {}", err);
-                    break;
-                }
-            }
-        }
+            0
+        };
     }
 }

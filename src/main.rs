@@ -1,203 +1,397 @@
-use std::collections::HashMap;
-use std::env;
-use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
-
 use futures::{SinkExt, StreamExt};
+use game_lib::game::Game;
+use game_lib::piece::Color;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
 use tokio::sync::mpsc;
+use tokio::sync::mpsc::UnboundedSender;
+use tokio::time::Instant;
 use tokio_tungstenite::tungstenite::Utf8Bytes;
-use tokio_tungstenite::{accept_async, tungstenite::protocol::Message};
+use tokio_tungstenite::{accept_async, tungstenite::Message};
+use uuid::Uuid;
 
-use game_lib::game::{Game, GameMode, PlayerType};
-use game_lib::piece::Color;
+mod messages;
+use messages::{ClientMessage, ServerMessage};
+mod sharedenums;
+use sharedenums::GameMode;
 
-// Assuming AI lives here
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "type")]
-enum ClientMessage {
-    Join,
-    Move { mv: String },
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RoomStatus {
+    WaitingPlayers,
+    WaitingReady,
+    ReadyToStart,
+    Running,
+    Finished,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "type")]
-enum ServerMessage {
-    AssignColor {
-        color: Color,
-    },
-    State {
-        board: Vec<Vec<Option<String>>>,
-        turn: Color,
-    },
-    Error {
-        message: String,
-    },
-    GameOver {
-        result: String,
-    },
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlayerRole {
+    White,
+    Black,
+    Spectator,
+    Solo,
 }
 
-struct Player {
-    color: Color,
-    sender: mpsc::UnboundedSender<Message>,
+pub struct Client {
+    pub id: Uuid,
+    pub room_id: Option<Uuid>,
+    pub sender: UnboundedSender<Message>,
+    pub ready: bool,
 }
+
+pub struct Player {
+    pub id: Uuid,
+    pub role: PlayerRole,
+    pub ready: bool,
+    pub sender: UnboundedSender<Message>,
+}
+
+pub struct Room {
+    pub id: Uuid,
+    pub mode: GameMode,
+    pub status: RoomStatus,
+    pub players: HashMap<Uuid, Player>,
+    pub game: Game,
+}
+
+pub struct ServerState {
+    pub clients: HashMap<Uuid, Client>,
+    pub rooms: HashMap<Uuid, Room>,
+}
+
+pub type SharedServerState = Arc<Mutex<ServerState>>;
 
 #[tokio::main]
 async fn main() {
-    env_logger::init();
-    let args: Vec<String> = env::args().collect();
-    let mode = parse_mode(args.get(1));
-    let game = Arc::new(Mutex::new(Game::init(mode)));
+    let state = Arc::new(Mutex::new(ServerState {
+        clients: HashMap::new(),
+        rooms: HashMap::new(),
+    }));
 
-    let addr = "127.0.0.1:9001";
-    let listener = TcpListener::bind(&addr).await.expect("Failed to bind");
-    println!("Server running on {}", addr);
+    let listener = TcpListener::bind("127.0.0.1:9001").await.unwrap();
+    println!("Server started on ws://127.0.0.1:9001");
 
-    let players: Arc<Mutex<HashMap<Color, Player>>> = Arc::new(Mutex::new(HashMap::new()));
+    while let Ok((stream, _)) = listener.accept().await {
+        let state = Arc::clone(&state);
 
-    // Instant AI vs AI
-    if mode == GameMode::AIvsAI {
-        let mut game = game.lock().unwrap();
-        game.run_ai_loop();
-        return;
-    }
-
-    // Connection loop
-    while players.lock().unwrap().len() < 2 && mode != GameMode::Sandbox {
-        let (stream, _addr) = listener.accept().await.expect("Accept failed");
-        let ws_stream = accept_async(stream)
-            .await
-            .expect("WebSocket handshake failed");
-        let (mut ws_sender, mut ws_receiver) = ws_stream.split();
-
-        let color = {
-            let mut players_guard = players.lock().unwrap();
-            if players_guard.contains_key(&Color::White) {
-                Color::Black
-            } else {
-                Color::White
-            }
-        };
-
-        ws_sender
-            .send(Message::Text(Utf8Bytes::from(
-                serde_json::to_string(&ServerMessage::AssignColor { color }).unwrap(),
-            )))
-            .await
-            .unwrap();
-
-        let (tx, mut rx) = mpsc::unbounded_channel::<Message>();
-        {
-            let mut players_guard = players.lock().unwrap();
-            players_guard.insert(
-                color,
-                Player {
-                    color,
-                    sender: tx.clone(),
-                },
-            );
-        }
-
-        // Sender task
-        let tx_sender = tx.clone();
         tokio::spawn(async move {
-            while let Some(msg) = rx.recv().await {
-                if let Err(e) = ws_sender.send(msg).await {
-                    eprintln!("Send error: {}", e);
-                    break;
+            let ws_stream = match accept_async(stream).await {
+                Ok(ws) => ws,
+                Err(e) => {
+                    eprintln!("WebSocket handshake failed: {}", e);
+                    return;
                 }
+            };
+            let (mut ws_tx, mut ws_rx) = ws_stream.split();
+            let (tx, mut rx) = mpsc::unbounded_channel::<Message>();
+
+            let client_id = Uuid::new_v4();
+
+            {
+                let mut state_lock = state.lock().unwrap();
+                state_lock.clients.insert(
+                    client_id,
+                    Client {
+                        id: client_id,
+                        room_id: None,
+                        sender: tx.clone(),
+                        ready: false,
+                    },
+                );
             }
-        });
 
-        // Receiver task
-        let game_arc = Arc::clone(&game);
-        let players_arc = Arc::clone(&players);
-        tokio::spawn(async move {
-            while let Some(Ok(Message::Text(text))) = ws_receiver.next().await {
-                if let Ok(ClientMessage::Move { mv }) = serde_json::from_str(&text) {
-                    let mut game = game_arc.lock().unwrap();
-
-                    if game.get_current_turn() != color {
-                        let _ = tx_sender.send(Message::Text(Utf8Bytes::from(
-                            serde_json::to_string(&ServerMessage::Error {
-                                message: "Not your turn.".into(),
-                            })
-                            .unwrap(),
-                        )));
-                        continue;
+            // WebSocket sender task
+            tokio::spawn(async move {
+                while let Some(msg) = rx.recv().await {
+                    if let Err(e) = ws_tx.send(msg).await {
+                        eprintln!("WebSocket send error: {}", e);
+                        break;
                     }
+                }
+            });
 
-                    match game.make_move_algebraic(&mv) {
-                        Ok(true) => {
-                            broadcast_state(&game, &players_arc);
-                            if game.is_ai_turn() {
-                                if let Ok(true) = game.run_ai_turn() {
-                                    broadcast_state(&game, &players_arc);
-                                }
+            // Message handler loop
+            while let Some(Ok(Message::Text(text))) = ws_rx.next().await {
+                println!("Received message from client {}: {}", client_id, text);
+                let parsed: Result<ClientMessage, _> = serde_json::from_str(&text);
+                match parsed {
+                    Ok(ClientMessage::Connect) => {
+                        println!("Client {} sent Connect", client_id);
+                    }
+                    Ok(ClientMessage::Quit) => {
+                        println!("Client {} is disconnecting", client_id);
+                        break;
+                    }
+                    Ok(ClientMessage::JoinRoom { room_id }) => {
+                        println!("Client {} wants to join room {:?}", client_id, room_id);
+                        let msg = handle_join_room(client_id, room_id, &mut state.lock().unwrap());
+                        if let Some(msg) = msg {
+                            if let Err(e) =
+                                send_to_client(&state.lock().unwrap().clients[&client_id], &msg)
+                            {
+                                eprintln!("Failed to send message to client {}: {}", client_id, e);
                             }
-                        }
-                        Ok(false) => {
-                            broadcast_gameover(&players_arc, "Game over.");
-                        }
-                        Err(e) => {
-                            let _ = tx_sender.send(Message::Text(Utf8Bytes::from(
-                                serde_json::to_string(&ServerMessage::Error {
-                                    message: e.to_string(),
-                                })
-                                .unwrap(),
-                            )));
+                            println!("Successfully joined room");
+                            println!("Sent message to client {}: {:?}", client_id, msg);
+                        } else {
+                            println!("Failed to join room");
                         }
                     }
-                } else {
-                    let _ = tx_sender.send(Message::Text(Utf8Bytes::from(
-                        serde_json::to_string(&ServerMessage::Error {
-                            message: "Invalid message format.".into(),
-                        })
-                        .unwrap(),
-                    )));
+                    Ok(ClientMessage::CreateRoom { mode, difficulty }) => {
+                        println!(
+                            "Client {} wants to create room in {:?} mode",
+                            client_id, mode
+                        );
+
+                        let msg = handle_create_room(
+                            client_id,
+                            mode,
+                            difficulty,
+                            &mut state.lock().unwrap(),
+                        );
+                        // Handle room creation logic here.
+                        if let Some(msg) = msg {
+                            if let Err(e) =
+                                send_to_client(&state.lock().unwrap().clients[&client_id], &msg)
+                            {
+                                eprintln!("Failed to send message to client {}: {}", client_id, e);
+                            }
+                            println!("Sent message to client {}: {:?}", client_id, msg);
+                        }
+                        println!("Room created successfully");
+                    }
+                    Ok(ClientMessage::Ready) => {
+                        println!("Client {} is ready", client_id);
+                        handle_set_ready(client_id, &state);
+                    }
+                    Err(e) => {
+                        eprintln!("Invalid message from client {}: {}", client_id, e);
+                    }
+                    _ => {
+                        println!("Unhandled message from client {}", client_id);
+                    }
                 }
+            }
+
+            {
+                let mut state = state.lock().unwrap();
+                state.clients.remove(&client_id);
+                println!("Client {} disconnected", client_id);
+                println!(
+                    "Current clients: {:?}",
+                    state.clients.keys().collect::<Vec<_>>()
+                );
             }
         });
     }
-
-    println!("Game started.");
 }
 
-fn parse_mode(arg: Option<&String>) -> GameMode {
-    match arg.map(|s| s.as_str()) {
-        Some("sandbox") => GameMode::Sandbox,
-        Some("pvai") => GameMode::PlayerVsAI,
-        Some("pvp") => GameMode::PlayerVsPlayer,
-        Some("aivai") => GameMode::AIvsAI,
+pub fn send_to_client(client: &Client, msg: &ServerMessage) -> Result<(), String> {
+    let serialized = serde_json::to_string(msg)
+        .map_err(|e| format!("Failed to serialize ServerMessage: {}", e))?;
+    client
+        .sender
+        .send(Message::Text(serialized.into()))
+        .map_err(|e| format!("Failed to send to client: {}", e))
+}
+
+pub fn send_to_player(player: &Player, msg: &ServerMessage) -> Result<(), String> {
+    let serialized = serde_json::to_string(msg)
+        .map_err(|e| format!("Failed to serialize ServerMessage: {}", e))?;
+    player
+        .sender
+        .send(Message::Text(serialized.into()))
+        .map_err(|e| format!("Failed to send to player: {}", e))
+}
+
+pub fn handle_create_room(
+    client_id: Uuid,
+    mode: GameMode,
+    difficulty: Option<game_lib::automation::ai::Difficulty>,
+    server_state: &mut ServerState,
+) -> Option<ServerMessage> {
+    let client = server_state.clients.get(&client_id)?;
+    let room_id = Uuid::new_v4();
+    let game = Game::init(matches!(mode, GameMode::Sandbox));
+    let mut players = HashMap::new();
+    let status = match mode {
+        GameMode::PlayerVsPlayer => RoomStatus::WaitingPlayers,
+        _ => RoomStatus::WaitingReady,
+    };
+    println!("Creating room with ID: {:?}", room_id);
+
+    let role = match mode {
+        GameMode::PlayerVsPlayer => PlayerRole::White,
+        GameMode::PlayerVsAI => PlayerRole::White,
+        GameMode::AIvsAI => PlayerRole::Spectator,
+        GameMode::Sandbox => PlayerRole::Solo,
+    };
+
+    players.insert(
+        client_id,
+        Player {
+            id: client_id,
+            role,
+            ready: false,
+            sender: client.sender.clone(),
+        },
+    );
+
+    server_state.rooms.insert(
+        room_id,
+        Room {
+            id: room_id,
+            mode,
+            status,
+            players,
+            game,
+        },
+    );
+
+    if let Some(c) = server_state.clients.get_mut(&client_id) {
+        c.room_id = Some(room_id);
+    }
+    println!("returning from craeting room");
+
+    Some(ServerMessage::Joined {
+        color: Some(Color::White),
+        room_id,
+    })
+}
+
+pub fn handle_join_room(
+    client_id: Uuid,
+    room_id: Uuid,
+    server_state: &mut ServerState,
+) -> Option<ServerMessage> {
+    let client = server_state.clients.get(&client_id)?;
+    let room = server_state.rooms.get_mut(&room_id)?;
+
+    if matches!(room.status, RoomStatus::Running | RoomStatus::Finished) {
+        return Some(ServerMessage::Error {
+            msg: "Cannot join this room.".into(),
+        });
+    }
+
+    if room.players.contains_key(&client_id) {
+        return Some(ServerMessage::Error {
+            msg: "You already joined this room.".into(),
+        });
+    }
+
+    let role = match room.mode {
+        GameMode::PlayerVsPlayer if room.players.len() == 1 => PlayerRole::Black,
+        GameMode::AIvsAI => PlayerRole::Spectator,
         _ => {
-            println!("Defaulting to PlayerVsAI. Use one of: sandbox, pvai, pvp, aivai");
-            GameMode::PlayerVsAI
+            return Some(ServerMessage::Error {
+                msg: "Unsupported or full room.".into(),
+            })
         }
+    };
+
+    room.players.insert(
+        client_id,
+        Player {
+            id: client_id,
+            role,
+            ready: false,
+            sender: client.sender.clone(),
+        },
+    );
+
+    if let Some(c) = server_state.clients.get_mut(&client_id) {
+        c.room_id = Some(room_id);
+    }
+
+    Some(ServerMessage::Joined {
+        color: None,
+        room_id,
+    })
+}
+
+pub fn handle_game_over(room: &mut Room, reason: &str, state: &ServerState) {
+    room.status = RoomStatus::Finished;
+    for player in room.players.values() {
+        let _ = send_to_player(
+            player,
+            &ServerMessage::GameOver {
+                result: reason.to_string(),
+            },
+        );
     }
 }
 
-fn broadcast_state(game: &Game, players: &Arc<Mutex<HashMap<Color, Player>>>) {
-    let msg = ServerMessage::State {
-        board: game.board.export_display_board(), // assume this returns Vec<Vec<Option<String>>>
-        turn: game.get_current_turn(),
+pub fn send_game_state_to_clients(room: &Room, state: &ServerState) {
+    let board = room.game.board.export_display_board();
+    let turn = if room.game.board.turn == Color::White {
+        "White".to_string()
+    } else {
+        "Black".to_string()
     };
-    let msg_text = Message::Text(Utf8Bytes::from(serde_json::to_string(&msg).unwrap()));
 
-    for player in players.lock().unwrap().values() {
-        let _ = player.sender.send(msg_text.clone());
+    for player in room.players.values() {
+        let _ = send_to_player(
+            player,
+            &ServerMessage::State {
+                board: board.clone(),
+                turn: turn.clone(),
+            },
+        );
     }
 }
 
-fn broadcast_gameover(players: &Arc<Mutex<HashMap<Color, Player>>>, reason: &str) {
-    let msg = ServerMessage::GameOver {
-        result: reason.to_string(),
+pub fn handle_set_ready(client_id: Uuid, server_state: &Arc<Mutex<ServerState>>) {
+    let mut state = server_state.lock().unwrap();
+    let client = match state.clients.get(&client_id) {
+        Some(c) => c,
+        None => return,
     };
-    let msg_text = Message::Text(Utf8Bytes::from(serde_json::to_string(&msg).unwrap()));
+    let room_id = match client.room_id {
+        Some(id) => id,
+        None => return,
+    };
+    let room = match state.rooms.get_mut(&room_id) {
+        Some(r) => r,
+        None => return,
+    };
+    let player = match room.players.get_mut(&client_id) {
+        Some(p) => p,
+        None => return,
+    };
 
-    for player in players.lock().unwrap().values() {
-        let _ = player.sender.send(msg_text.clone());
+    player.ready = true;
+    let _ = send_to_player(
+        player,
+        &ServerMessage::Info {
+            msg: "You are ready.".into(),
+        },
+    );
+
+    if room.mode == GameMode::PlayerVsPlayer
+        && matches!(
+            room.status,
+            RoomStatus::WaitingReady | RoomStatus::WaitingPlayers
+        )
+    {
+        let all_ready = room
+            .players
+            .values()
+            .filter(|p| matches!(p.role, PlayerRole::White | PlayerRole::Black))
+            .all(|p| p.ready);
+        let player_count = room
+            .players
+            .values()
+            .filter(|p| matches!(p.role, PlayerRole::White | PlayerRole::Black))
+            .count();
+
+        if all_ready && player_count == 2 {
+            room.status = RoomStatus::Running;
+            for player in room.players.values() {
+                let _ = send_to_player(player, &ServerMessage::GameStarted);
+            }
+            println!("Room {:?} game started (PvP)", room.id);
+        }
     }
 }
