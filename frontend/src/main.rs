@@ -12,8 +12,8 @@ use yew::prelude::*;
 
 pub mod messages;
 pub mod sharedenums;
-use frontend::messages::{ClientMessage, ServerMessage};
-use frontend::sharedenums::GameMode;
+use messages::{ClientMessage, ServerMessage};
+use sharedenums::GameMode;
 #[derive(PartialEq, Clone, Debug)]
 enum Page {
     Home,
@@ -255,7 +255,7 @@ fn app() -> Html {
                                 <div class="create-game-page">
                                     <h2>{ "Choose Game Mode" }</h2>
                                 <div class="mode-buttons">
-                                    <button onclick={select_mode.clone().reform(|_| GameMode::PlayerVsPlayer)}>{ "Player vs Player" }</button>
+                                    <button class= "" onclick={select_mode.clone().reform(|_| GameMode::PlayerVsPlayer)}>{ "Player vs Player" }</button>
                                         <button onclick={select_mode.clone().reform(|_| GameMode::PlayerVsAI)}>{ "Player vs AI" }</button>
                                         <button onclick={select_mode.clone().reform(|_| GameMode::AIvsAI)}>{ "AI vs AI    " }</button>
                                     <button onclick={select_mode.clone().reform(|_| GameMode::Sandbox)  }>   { "Sandbox"  }</button>

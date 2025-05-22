@@ -18,7 +18,7 @@ pub enum Difficulty {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct AI {
-    difficulty: Difficulty,
+    pub difficulty: Difficulty,
     pub color: Color,
 }
 

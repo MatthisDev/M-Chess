@@ -1,8 +1,8 @@
+use crate::sharedenums::GameMode;
+use crate::sharedenums::PlayerRole;
 use game_lib::{automation::ai::Difficulty, piece::Color};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-use super::sharedenums::GameMode;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
@@ -11,7 +11,7 @@ pub enum ServerMessage {
         room_id: Uuid,
     },
     Joined {
-        color: Option<Color>,
+        role: PlayerRole,
         room_id: Uuid, // Some("White") / Some("Black") or None for spectator
     },
     GameStarted,

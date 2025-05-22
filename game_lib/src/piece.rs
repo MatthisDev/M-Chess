@@ -1,8 +1,7 @@
+use super::position;
 use crate::board::{Board, BOARD_SIZE, EMPTY_CELL, NONE};
 use crate::position::Position;
 use serde::{Deserialize, Serialize};
-
-use super::position;
 
 // Color enum for teams
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
