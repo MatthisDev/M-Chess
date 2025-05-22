@@ -105,7 +105,7 @@ pub fn handle_create_room(
         client_id,
         Player {
             id: client_id,
-            role,
+            role: role.clone(),
             ready: false,
             sender: Some(client.sender.clone()),
             kind: PlayerType::Human,
@@ -129,10 +129,7 @@ pub fn handle_create_room(
     }
     println!("returning from craeting room");
 
-    Some(ServerMessage::Joined {
-        role: PlayerRole::White,
-        room_id,
-    })
+    Some(ServerMessage::Joined { role, room_id })
 }
 
 //Join a room using the room id
@@ -391,7 +388,7 @@ pub async fn run_ai_vs_ai_game(room_id: Uuid, server_state: SharedServerState) {
             }
         }
 
-        let (ai_move, board_snapshot, player_ids) = {
+        let (ai_move, board_snapshot, turn, player_ids) = {
             let mut state = server_state.lock().unwrap();
             let room = match state.rooms.get_mut(&room_id) {
                 Some(r) => r,
@@ -421,6 +418,7 @@ pub async fn run_ai_vs_ai_game(room_id: Uuid, server_state: SharedServerState) {
             (
                 Some(algebraic),
                 room.game.board.export_display_board(),
+                room.game.board.turn,
                 room.players
                     .values()
                     .filter_map(|p| p.sender.as_ref().map(|_| p.id))
@@ -434,7 +432,7 @@ pub async fn run_ai_vs_ai_game(room_id: Uuid, server_state: SharedServerState) {
                     client,
                     &ServerMessage::State {
                         board: board_snapshot.clone(),
-                        turn: "White".to_string(),
+                        turn,
                     },
                 );
             }
@@ -448,18 +446,14 @@ pub async fn run_ai_vs_ai_game(room_id: Uuid, server_state: SharedServerState) {
 // This function is called after every move to update the game state
 pub fn send_game_state_to_clients(room: &Room) {
     let board = room.game.board.export_display_board();
-    let turn = if room.game.board.turn == Color::White {
-        "White".to_string()
-    } else {
-        "Black".to_string()
-    };
+    let turn = room.game.board.turn;
 
     for player in room.players.values() {
         if let Some(sender) = &player.sender {
             let _ = sender.send(Message::Text(
                 serde_json::to_string(&ServerMessage::State {
                     board: board.clone(),
-                    turn: turn.clone(),
+                    turn,
                 })
                 .unwrap()
                 .into(),
@@ -526,6 +520,8 @@ pub fn toggle_pause_game(room_id: Uuid, server_state: &SharedServerState) -> Opt
 // This function is called when the player quits the game
 // It removes the player from the room and updates the game state
 // It also deletes the room if there are no players left
+// It sends a message to all players remainging in the room
+//Confirmation message to the player quitting
 pub fn handle_quit(client_id: Uuid, server_state: &Arc<Mutex<ServerState>>) {
     let (room_id_opt, was_last_human);
 
@@ -560,7 +556,9 @@ pub fn handle_quit(client_id: Uuid, server_state: &Arc<Mutex<ServerState>>) {
         };
 
         // On enlève le joueur
-        room.players.remove(&client_id);
+        if let Some(player) = room.players.remove(&client_id) {
+            send_to_player(&player, &ServerMessage::QuitGame);
+        }
         println!("Client {} removed from room {}", client_id, room_id);
 
         // S'il reste des humains ?
@@ -584,12 +582,18 @@ pub fn handle_quit(client_id: Uuid, server_state: &Arc<Mutex<ServerState>>) {
             {
                 room.status = RoomStatus::Finished;
                 let msg = ServerMessage::GameOver {
-                    result: format!("Victory by forfeit for {:?}", winner.role),
+                    result: format!(
+                        "A player quit the game!!\nVictory by forfeit for {:?} !!!",
+                        winner.role
+                    ),
                 };
                 for p in room.players.values() {
                     let _ = send_to_player(p, &msg);
                 }
-                println!("Game in room {} ended by forfeit.", room_id);
+                println!(
+                    "Player {} quit the game. Victory by forfeit for {:?}.",
+                    client_id, winner.role
+                );
             }
         }
 

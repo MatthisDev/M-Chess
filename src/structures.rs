@@ -28,6 +28,7 @@ pub struct Client {
     pub room_id: Option<Uuid>,
     pub sender: UnboundedSender<Message>,
     pub last_active: Instant,
+    pub hb: Instant,
 }
 
 #[derive(Debug, Clone)]

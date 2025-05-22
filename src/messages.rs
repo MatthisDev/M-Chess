@@ -17,7 +17,7 @@ pub enum ServerMessage {
     GameStarted,
     State {
         board: Vec<Vec<Option<String>>>,
-        turn: String,
+        turn: Color,
     },
     GameOver {
         result: String,
@@ -35,6 +35,8 @@ pub enum ServerMessage {
         piece: String,
         pos: String,
     },
+    QuitGame,
+    Ping,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -64,4 +66,5 @@ pub enum ClientMessage {
         pos: String,
     },
     PauseRequest,
+    Pong,
 }

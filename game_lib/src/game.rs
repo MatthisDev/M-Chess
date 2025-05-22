@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::automation::ai::{Difficulty, AI};
 use crate::board::{self, Board, BOARD_SIZE, EMPTY_CELL, EMPTY_POS, NONE};
 use crate::piece::Piece;
 use crate::piece::{Color, PieceType};

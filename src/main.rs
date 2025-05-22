@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
 use tokio::sync::{mpsc, mpsc::UnboundedSender};
 use tokio::time::{interval, Duration, Instant};
+use tokio_tungstenite::tungstenite::Bytes;
 use tokio_tungstenite::{
     accept_async,
     tungstenite::{Message, Utf8Bytes},
@@ -34,6 +35,8 @@ async fn main() {
     println!("Server started on ws://127.0.0.1:9001");
 
     tokio::spawn(cleanup_inactive_rooms(state.clone()));
+    tokio::spawn(inactivity_check(state.clone()));
+    tokio::spawn(server_ping_loop(state.clone()));
 
     while let Ok((stream, _)) = listener.accept().await {
         let state = Arc::clone(&state);
@@ -60,6 +63,7 @@ async fn main() {
                         room_id: None,
                         sender: tx.clone(),
                         last_active: Instant::now(),
+                        hb: Instant::now(),
                     },
                 );
             }
@@ -211,6 +215,13 @@ async fn main() {
                             toggle_pause_game(room_id, &state);
                         }
                     }
+                    Ok(ClientMessage::Pong) => {
+                        println!("Client {} sent Pong", client_id);
+                        let mut state = state.lock().unwrap();
+                        if let Some(client) = state.clients.get_mut(&client_id) {
+                            client.hb = Instant::now();
+                        }
+                    }
                     Err(e) => {
                         eprintln!("Invalid message from client {}: {}", client_id, e);
                     }
@@ -304,6 +315,54 @@ pub async fn cleanup_inactive_rooms(state: SharedServerState) {
                 }
             }
             println!("Room {:?} removed", room_id);
+        }
+    }
+}
+
+pub async fn inactivity_check(state: SharedServerState) {
+    let mut interval = interval(Duration::from_secs(60)); // Vérifie toutes les 60s
+    loop {
+        interval.tick().await;
+
+        let mut state_guard = match state.lock() {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!(
+                    "Failed to acquire state lock during inactivity check: {}",
+                    e
+                );
+                continue;
+            }
+        };
+
+        let mut to_remove: Vec<Uuid> = Vec::new();
+        let now = Instant::now();
+        for client in state_guard.clients.values_mut() {
+            if now.duration_since(client.hb) > Duration::from_secs(300) {
+                println!("Client {:?} is inactive for too long", client.id);
+                handle_quit(client.id, &state);
+                to_remove.push(client.id);
+            }
+        }
+
+        for id in to_remove {
+            state_guard.clients.remove(&id);
+        }
+    }
+}
+
+pub async fn server_ping_loop(state: SharedServerState) {
+    let mut interval = interval(Duration::from_secs(30));
+    loop {
+        interval.tick().await;
+
+        let state_guard = match state.lock() {
+            Ok(s) => s,
+            Err(_) => continue,
+        };
+
+        for client in state_guard.clients.values() {
+            let _ = send_to_client(client, &ServerMessage::Ping);
         }
     }
 }
