@@ -315,6 +315,10 @@ pub async fn cleanup_inactive_rooms(state: SharedServerState) {
                 }
             }
             println!("Room {:?} removed", room_id);
+            println!(
+                "Current rooms: {:?}",
+                state.rooms.keys().collect::<Vec<_>>()
+            );
         }
     }
 }
@@ -323,6 +327,7 @@ pub async fn inactivity_check(state: SharedServerState) {
     let mut interval = interval(Duration::from_secs(60)); // Vérifie toutes les 60s
     loop {
         interval.tick().await;
+        println!("Inactivity check...");
 
         let mut state_guard = match state.lock() {
             Ok(s) => s,
@@ -347,7 +352,12 @@ pub async fn inactivity_check(state: SharedServerState) {
 
         for id in to_remove {
             state_guard.clients.remove(&id);
+            println!("Removed inactive client {:?}", id);
         }
+        println!(
+            "Current clients: {:?}",
+            state_guard.clients.keys().collect::<Vec<_>>()
+        );
     }
 }
 
@@ -355,6 +365,7 @@ pub async fn server_ping_loop(state: SharedServerState) {
     let mut interval = interval(Duration::from_secs(30));
     loop {
         interval.tick().await;
+        println!("Sending ping to clients...");
 
         let state_guard = match state.lock() {
             Ok(s) => s,
