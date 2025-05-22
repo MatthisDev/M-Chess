@@ -31,11 +31,16 @@ pub enum ServerMessage {
     Info {
         msg: String,
     },
+    SandboxPieceAdded {
+        piece: String,
+        pos: String,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum ClientMessage {
+    //Game
     CreateRoom {
         mode: GameMode,
         difficulty: Option<Difficulty>, // for AI
@@ -49,6 +54,14 @@ pub enum ClientMessage {
         mv: String,
     },
     Quit,
-    Disconnect,
+    // Server connection
     Connect,
+    Disconnect,
+    // Sandbox
+    StartSandboxGame,
+    AddPiece {
+        piece: String,
+        pos: String,
+    },
+    PauseRequest,
 }
