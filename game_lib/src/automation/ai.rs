@@ -6,7 +6,10 @@ use crate::position::Position;
 use crate::board::NONE;
 use crate::position;
 use std::collections::HashMap;
+use ::serde::Serialize;
+use uuid::serde;
 
+#[derive(Debug, Serialize)]
 pub enum Difficulty {
     Easy,
     Medium,
