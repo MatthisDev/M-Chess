@@ -1,7 +1,8 @@
+use crate::position::Position;
 use crate::sharedenums::GameMode;
 use crate::sharedenums::PlayerRole;
 use crate::sharedenums::RoomStatus;
-use game_lib::{automation::ai::Difficulty, piece::Color};
+use crate::{automation::ai::Difficulty, piece::Color};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -52,6 +53,7 @@ pub enum ServerMessage {
     QuitGame,
     Ping,
 }
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum ClientMessage {

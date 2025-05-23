@@ -6,7 +6,7 @@ use gloo_net::websocket::{futures::WebSocket, Message};
 use serde::{Deserialize, Serialize};
 use yew::{platform::spawn_local, prelude::*};
 
-use crate::messages::{ClientMessage, ServerMessage};
+use game_lib::messages::{ClientMessage, ServerMessage};
 
 #[derive(Clone, PartialEq)]
 pub struct WsContext {

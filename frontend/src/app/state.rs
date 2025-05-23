@@ -1,5 +1,5 @@
-use crate::sharedenums::{PlayerRole, RoomStatus};
 use game_lib::piece::Color;
+use game_lib::sharedenums::{PlayerRole, RoomStatus};
 use std::rc::Rc;
 use uuid::Uuid;
 use yew::prelude::*;
@@ -7,6 +7,7 @@ use yew::prelude::*;
 #[derive(Clone, PartialEq)]
 pub struct ServerState {
     pub host: bool,
+    pub ping: bool,
     pub joined: bool,
     pub room_id: Option<Uuid>,
     pub room_status: Option<RoomStatus>,
@@ -26,6 +27,7 @@ impl Default for ServerState {
     fn default() -> Self {
         Self {
             host: false,
+            ping: false,
             joined: false,
             room_id: None,
             room_status: None,
@@ -85,6 +87,10 @@ impl Reducible for ServerState {
             ServerAction::SetQuit => {
                 new_state = ServerState::default();
             }
+            ServerAction::Ping => {
+                new_state.ping = true;
+            }
+            ServerAction::ResetPing => new_state.ping = false,
         }
 
         Rc::new(new_state)
@@ -105,4 +111,6 @@ pub enum ServerAction {
     SetError(String),
     SetJoined(bool, bool, RoomStatus),
     SetQuit,
+    Ping,
+    ResetPing,
 }

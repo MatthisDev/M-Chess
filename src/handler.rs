@@ -15,10 +15,10 @@ use tokio_tungstenite::{
 };
 use uuid::Uuid;
 
-use crate::messages::{ClientMessage, ServerMessage};
-use crate::sharedenums::{GameMode, PlayerRole, RoomStatus};
 use crate::structures::{Player, PlayerType, Room, ServerState, SharedServerState};
 use crate::{send_to_client, send_to_player};
+use game_lib::messages::{ClientMessage, ServerMessage};
+use game_lib::sharedenums::{GameMode, PlayerRole, RoomStatus};
 
 pub fn to_player_role(color: Color) -> PlayerRole {
     match color {
@@ -439,9 +439,7 @@ pub fn handle_move(
                 handle_game_over(room, &result);
                 return None;
             }
-            if room.mode != GameMode::PlayerVsPlayer {
-                handle_ai_turn(room);
-            }
+
             None
         }
         Err(e) => Some(ServerMessage::Error {
@@ -454,8 +452,28 @@ pub fn handle_move(
 // If the AI makes a move, send the new game state to all players (Spectators included)
 // If the game is over, send the game over message to all players
 // If the AI cannot make a move, send an error message to the player |----Should Not Happen----|
-fn handle_ai_turn(room: &mut Room) {
+pub fn handle_ai_turn(
+    client_id: Uuid,
+    server_state: &Arc<Mutex<ServerState>>,
+) -> Option<ServerMessage> {
+    let room_id;
+    {
+        let state = server_state.lock().unwrap();
+        room_id = state.clients.get(&client_id)?.room_id?;
+    }
+
+    let mut state = server_state.lock().unwrap();
+    let room = state.rooms.get_mut(&room_id)?;
+    if room.status != RoomStatus::Running {
+        return Some(ServerMessage::Error {
+            msg: "The game hasn't started yet.".into(),
+        });
+    }
     let next_color = room.game.board.turn;
+    if room.mode == GameMode::PlayerVsPlayer || room.mode == GameMode::Sandbox {
+        return None;
+    }
+
     let ai_player = room.players.values().find(|p| match &p.kind {
         PlayerType::Ai { ai } => ai.color == next_color,
         _ => false,
@@ -488,6 +506,7 @@ fn handle_ai_turn(room: &mut Room) {
             }
         }
     }
+    None
 }
 
 //---------------------

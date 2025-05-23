@@ -1,10 +1,13 @@
 use futures::{SinkExt, StreamExt};
 use game_lib::automation::ai::{Difficulty, AI};
 use game_lib::game::Game;
+use game_lib::messages::{ClientMessage, ServerMessage};
 use game_lib::piece::Color;
+use game_lib::sharedenums::{GameMode, PlayerRole, RoomStatus};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::thread::sleep;
 use tokio::net::TcpListener;
 use tokio::sync::{mpsc, mpsc::UnboundedSender};
 use tokio::time::{interval, Duration, Instant};
@@ -14,11 +17,6 @@ use tokio_tungstenite::{
     tungstenite::{Message, Utf8Bytes},
 };
 use uuid::Uuid;
-
-mod messages;
-use messages::{ClientMessage, ServerMessage};
-mod sharedenums;
-use sharedenums::{GameMode, PlayerRole, RoomStatus};
 mod handler;
 use handler::*;
 mod structures;
@@ -159,6 +157,9 @@ async fn main() {
                             if let Some(client) = state_guard.clients.get(&client_id) {
                                 let _ = send_to_client(client, &reply);
                             }
+                        } else {
+                            tokio::time::sleep(Duration::from_millis(50)).await;
+                            let _ = handle_ai_turn(client_id, &state);
                         }
                     }
                     Ok(ClientMessage::StartGame) => {
@@ -194,7 +195,9 @@ async fn main() {
                         if let Some(room_id) = state.clients.get(&client_id).and_then(|c| c.room_id)
                         {
                             if let Some(room) = state.rooms.get_mut(&room_id) {
-                                if room.mode == GameMode::Sandbox {
+                                if room.mode == GameMode::Sandbox
+                                    && room.status == RoomStatus::WaitingReady
+                                {
                                     room.game.board.add_piece(&format!("{}{}", piece, pos));
                                     send_game_state_to_clients(room);
                                     if let Some(player) = room.players.get(&client_id) {

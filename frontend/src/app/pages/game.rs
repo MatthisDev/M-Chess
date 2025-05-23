@@ -1,9 +1,5 @@
-use crate::{
-    app::{state::ServerState, ServerAction},
-    messages::ClientMessage,
-    sharedenums::RoomStatus,
-};
-use game_lib::position::Position;
+use crate::app::{state::ServerState, ServerAction};
+use game_lib::{messages::ClientMessage, position::Position, sharedenums::RoomStatus};
 use uuid::Uuid;
 use yew::prelude::*;
 
