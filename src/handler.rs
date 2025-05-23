@@ -392,6 +392,8 @@ pub fn handle_move(
     }
 
     let player = room.players.get(&client_id)?;
+    println!("{:?}", player);
+    println!("{:?}", room.players);
     let expected_color = room.game.board.turn;
     let player_color = match player.role {
         PlayerRole::White => Color::White,
@@ -411,6 +413,17 @@ pub fn handle_move(
 
     match room.game.make_move_algebraic(&mv) {
         Ok(_) => {
+            println!("Moved");
+            for player in room.players.values() {
+                send_to_player(
+                    player,
+                    &ServerMessage::State {
+                        board: room.game.board.export_display_board(),
+                        turn: room.game.board.turn,
+                    },
+                );
+            }
+
             if room.game.board.is_game_over() {
                 let result = if room.game.board.is_checkmate(expected_color) {
                     format!(
@@ -426,8 +439,9 @@ pub fn handle_move(
                 handle_game_over(room, &result);
                 return None;
             }
-
-            handle_ai_turn(room);
+            if room.mode != GameMode::PlayerVsPlayer {
+                handle_ai_turn(room);
+            }
             None
         }
         Err(e) => Some(ServerMessage::Error {
