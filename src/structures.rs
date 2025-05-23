@@ -11,17 +11,7 @@ use tokio::{sync::mpsc::UnboundedSender, time::Instant};
 use tokio_tungstenite::tungstenite::Message;
 use uuid::Uuid;
 
-use crate::sharedenums::{GameMode, PlayerRole};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RoomStatus {
-    WaitingPlayers,
-    WaitingReady,
-    ReadyToStart,
-    Running,
-    Finished,
-    Paused,
-}
+use crate::sharedenums::{GameMode, PlayerRole, RoomStatus};
 
 pub struct Client {
     pub id: Uuid,
@@ -37,6 +27,7 @@ pub enum PlayerType {
     Ai { ai: AI }, // tu peux même ajouter un champ `name`, `strategy`, etc.
 }
 
+#[derive(Debug)]
 pub struct Player {
     pub id: Uuid,
     pub role: PlayerRole,
@@ -45,6 +36,7 @@ pub struct Player {
     pub kind: PlayerType,
 }
 
+#[derive(Debug)]
 pub struct Room {
     pub id: Uuid,
     pub mode: GameMode,

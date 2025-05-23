@@ -5,6 +5,7 @@ use game_lib::piece::Color;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::thread;
 use tokio::net::TcpListener;
 use tokio::sync::{mpsc, mpsc::UnboundedSender};
 use tokio::time::{interval, Duration, Instant};
@@ -15,8 +16,8 @@ use tokio_tungstenite::{
 use uuid::Uuid;
 
 use crate::messages::{ClientMessage, ServerMessage};
-use crate::sharedenums::{GameMode, PlayerRole};
-use crate::structures::{Player, PlayerType, Room, RoomStatus, ServerState, SharedServerState};
+use crate::sharedenums::{GameMode, PlayerRole, RoomStatus};
+use crate::structures::{Player, PlayerType, Room, ServerState, SharedServerState};
 use crate::{send_to_client, send_to_player};
 
 pub fn to_player_role(color: Color) -> PlayerRole {
@@ -46,10 +47,11 @@ pub fn handle_create_room(
     let role = match mode {
         GameMode::PlayerVsPlayer => PlayerRole::White,
         GameMode::PlayerVsAI => {
+            let player_id = Uuid::new_v4();
             players.insert(
-                client_id,
+                player_id,
                 Player {
-                    id: Uuid::new_v4(),
+                    id: player_id,
                     role: PlayerRole::Black,
                     ready: true,
                     sender: None,
@@ -61,13 +63,15 @@ pub fn handle_create_room(
                     },
                 },
             );
+            println!("{:?}", players);
             PlayerRole::White
         }
         GameMode::AIvsAI => {
+            let player_id = Uuid::new_v4();
             players.insert(
-                client_id,
+                player_id,
                 Player {
-                    id: Uuid::new_v4(),
+                    id: player_id,
                     role: PlayerRole::Black,
                     ready: true,
                     sender: None,
@@ -79,11 +83,11 @@ pub fn handle_create_room(
                     },
                 },
             );
-
+            let player_id = Uuid::new_v4();
             players.insert(
-                client_id,
+                player_id,
                 Player {
-                    id: Uuid::new_v4(),
+                    id: player_id,
                     role: PlayerRole::White,
                     ready: true,
                     sender: None,
@@ -123,13 +127,17 @@ pub fn handle_create_room(
             created_at: Instant::now(),
         },
     );
-
     if let Some(c) = server_state.clients.get_mut(&client_id) {
         c.room_id = Some(room_id);
     }
-    println!("returning from craeting room");
+    println!("returning from creating room");
 
-    Some(ServerMessage::Joined { role, room_id })
+    Some(ServerMessage::Joined {
+        role,
+        room_id,
+        room_status: status,
+        host: true,
+    })
 }
 
 //Join a room using the room id
@@ -155,7 +163,7 @@ pub fn handle_join_room(
 
     let role = match room.mode {
         GameMode::PlayerVsPlayer if room.players.len() == 1 => PlayerRole::Black,
-        GameMode::AIvsAI => PlayerRole::Spectator,
+        GameMode::AIvsAI | GameMode::PlayerVsPlayer => PlayerRole::Spectator,
         _ => {
             return Some(ServerMessage::Error {
                 msg: "Unsupported or full room.".into(),
@@ -178,12 +186,21 @@ pub fn handle_join_room(
         c.room_id = Some(room_id);
     }
 
-    Some(ServerMessage::Joined { role, room_id })
+    Some(ServerMessage::Joined {
+        role,
+        room_id,
+        room_status: room.status,
+        host: false,
+    })
 }
 
 //Handle the client status to launch a game
 // Only For PvP and PvAi
-pub fn handle_set_ready(client_id: Uuid, server_state: &Arc<Mutex<ServerState>>) {
+pub fn handle_set_ready(
+    client_id: Uuid,
+    server_state: &Arc<Mutex<ServerState>>,
+    client_state: bool,
+) {
     let mut state = server_state.lock().unwrap();
     let client = match state.clients.get(&client_id) {
         Some(c) => c,
@@ -202,38 +219,128 @@ pub fn handle_set_ready(client_id: Uuid, server_state: &Arc<Mutex<ServerState>>)
         None => return,
     };
 
-    player.ready = true;
+    player.ready = !client_state;
+
     let _ = send_to_player(
         player,
-        &ServerMessage::Info {
-            msg: "You are ready.".into(),
+        &ServerMessage::Status {
+            ready: player.ready,
         },
     );
 
-    if matches!(room.mode, GameMode::PlayerVsPlayer | GameMode::PlayerVsAI)
-        && matches!(
-            room.status,
-            RoomStatus::WaitingReady | RoomStatus::WaitingPlayers
-        )
-    {
-        let all_ready = room
-            .players
-            .values()
-            .filter(|p| matches!(p.role, PlayerRole::White | PlayerRole::Black))
-            .all(|p| p.ready);
-        let player_count = room
-            .players
-            .values()
-            .filter(|p| matches!(p.role, PlayerRole::White | PlayerRole::Black))
-            .count();
+    let all_ready = room.players.values().all(|p| p.ready);
+    match room.mode {
+        GameMode::PlayerVsPlayer | GameMode::PlayerVsAI => {
+            if room.players.len() == 2 && all_ready {
+                room.status = RoomStatus::WaitingReady;
+            }
+        }
+        GameMode::Sandbox => {
+            if room.players.len() == 1 && all_ready {
+                room.status = RoomStatus::WaitingReady;
+            }
+        }
+        _ => {}
+    }
+    for (player) in room.players.values() {
+        let _ = send_to_player(
+            player,
+            &ServerMessage::RoomStatus {
+                status: room.status,
+            },
+        );
+    }
+}
 
-        if all_ready && player_count == 2 {
+//handle game starting request
+pub fn handle_start_game(client_id: Uuid, server_state: &Arc<Mutex<ServerState>>) {
+    let mut state = server_state.lock().unwrap();
+    let client = match state.clients.get(&client_id) {
+        Some(c) => c,
+        None => return,
+    };
+    let room_id = match client.room_id {
+        Some(id) => id,
+        None => return,
+    };
+    let room = match state.rooms.get_mut(&room_id) {
+        Some(r) => r,
+        None => return,
+    };
+
+    if matches!(
+        room.mode,
+        GameMode::PlayerVsPlayer | GameMode::PlayerVsAI | GameMode::Sandbox
+    ) && matches!(
+        room.status,
+        RoomStatus::WaitingReady | RoomStatus::WaitingPlayers
+    ) {
+        if room.status == RoomStatus::WaitingReady {
             room.status = RoomStatus::Running;
             for player in room.players.values() {
-                let _ = send_to_player(player, &ServerMessage::GameStarted);
+                let _ = send_to_player(
+                    player,
+                    &ServerMessage::GameStarted {
+                        room_status: room.status,
+                        board: room.game.board.export_display_board(),
+                        turn: room.game.board.turn,
+                    },
+                );
             }
             println!("Room {:?} game started (PvP)", room.id);
         }
+    } else if room.mode == GameMode::AIvsAI {
+        room.status = RoomStatus::Running;
+        // Release lock before async spawn
+        tokio::spawn(run_ai_vs_ai_game(room_id, Arc::clone(server_state)));
+    }
+}
+
+//Handle PossibleMove request
+pub fn handle_get_moves(client_id: Uuid, mv: String, server_state: &Arc<Mutex<ServerState>>) {
+    let room_id;
+    {
+        let state = server_state.lock().unwrap();
+        if let Some(client) = state.clients.get(&client_id) {
+            if let Some(id) = client.room_id {
+                room_id = id;
+            } else {
+                return;
+            }
+        } else {
+            return;
+        }
+    };
+
+    let mut state = server_state.lock().unwrap();
+    let room = state.rooms.get_mut(&room_id);
+    if let Some(room) = room {
+        if room.status != RoomStatus::Running {
+            println!("room status error: {:?} instead of Running", room.status);
+            return;
+        }
+        let player = room.players.get(&client_id);
+        if let Some(player) = player {
+            let mut t = mv.clone();
+
+            let mv = mv.trim().replace('"', "");
+            let movelist = room.game.get_list_moves(mv);
+            room.game.board.print_board();
+            match movelist {
+                Ok(moves) => {
+                    println!("Moves: {:?}", moves);
+                    send_to_player(player, &ServerMessage::LegalMoves { moves });
+                }
+                Err(s) => {
+                    println!("Error: {}", s);
+                    send_to_player(player, &ServerMessage::LegalMoves { moves: Vec::new() });
+                }
+            }
+        } else {
+            println!("error unwraping player");
+        }
+    } else {
+        println!("Room unwrap error");
     }
 }
 
@@ -250,6 +357,8 @@ pub fn handle_move(
     mv: String,
     server_state: &Arc<Mutex<ServerState>>,
 ) -> Option<ServerMessage> {
+    let mv = mv.trim().replace('"', "");
+
     let room_id;
     {
         let state = server_state.lock().unwrap();
@@ -302,8 +411,6 @@ pub fn handle_move(
 
     match room.game.make_move_algebraic(&mv) {
         Ok(_) => {
-            send_game_state_to_clients(room);
-
             if room.game.board.is_game_over() {
                 let result = if room.game.board.is_checkmate(expected_color) {
                     format!(
@@ -335,33 +442,34 @@ pub fn handle_move(
 // If the AI cannot make a move, send an error message to the player |----Should Not Happen----|
 fn handle_ai_turn(room: &mut Room) {
     let next_color = room.game.board.turn;
-    let ai_player = room.players.values().find(
-        |p| matches!((&p.kind, p.role.clone()), (PlayerType::Ai { ai }, _) if ai.color == next_color),
-    );
+    let ai_player = room.players.values().find(|p| match &p.kind {
+        PlayerType::Ai { ai } => ai.color == next_color,
+        _ => false,
+    });
 
-    if let Some(Player {
-        kind: PlayerType::Ai { ai },
-        ..
-    }) = ai_player
-    {
-        if let Some((from, to)) = ai.get_best_move(&room.game.board) {
-            let ai_mv = format!("{}->{}", from.to_algebraic(), to.to_algebraic());
-            if room.game.make_move_algebraic(&ai_mv).is_ok() {
-                send_game_state_to_clients(room);
+    if let Some(p) = ai_player {
+        if let PlayerType::Ai { ai } = &p.kind {
+            println!("AI: {:?}", ai);
+            if let Some((from, to)) = ai.get_best_move(&room.game.board) {
+                let ai_mv = format!("{}->{}", from.to_algebraic(), to.to_algebraic());
+                if room.game.make_move_algebraic(&ai_mv).is_ok() {
+                    println!("moved");
+                    send_game_state_to_clients(room);
 
-                if room.game.board.is_game_over() {
-                    let result = if room.game.board.is_checkmate(next_color) {
-                        format!(
-                            "Checkmate! {:?} wins.",
-                            match next_color {
-                                Color::White => Color::Black,
-                                Color::Black => Color::White,
-                            }
-                        )
-                    } else {
-                        "Draw!".to_string()
-                    };
-                    handle_game_over(room, &result);
+                    if room.game.board.is_game_over() {
+                        let result = if room.game.board.is_checkmate(next_color) {
+                            format!(
+                                "Checkmate! {:?} wins.",
+                                match next_color {
+                                    Color::White => Color::Black,
+                                    Color::Black => Color::White,
+                                }
+                            )
+                        } else {
+                            "Draw!".to_string()
+                        };
+                        handle_game_over(room, &result);
+                    }
                 }
             }
         }
@@ -472,6 +580,7 @@ fn handle_game_over(room: &mut Room, reason: &str) {
         if let Some(sender) = &player.sender {
             let _ = sender.send(Message::Text(
                 serde_json::to_string(&ServerMessage::GameOver {
+                    room_status: room.status,
                     result: reason.to_string(),
                 })
                 .unwrap()
@@ -500,14 +609,14 @@ pub fn toggle_pause_game(room_id: Uuid, server_state: &SharedServerState) -> Opt
     match room.status {
         RoomStatus::Running => {
             room.status = RoomStatus::Paused;
-            Some(ServerMessage::Info {
-                msg: "Game paused".to_string(),
+            Some(ServerMessage::PauseGame {
+                room_status: room.status,
             })
         }
         RoomStatus::Paused => {
             room.status = RoomStatus::Running;
-            Some(ServerMessage::Info {
-                msg: "Game resumed".to_string(),
+            Some(ServerMessage::PauseGame {
+                room_status: room.status,
             })
         }
         _ => None,
@@ -582,6 +691,7 @@ pub fn handle_quit(client_id: Uuid, server_state: &Arc<Mutex<ServerState>>) {
             {
                 room.status = RoomStatus::Finished;
                 let msg = ServerMessage::GameOver {
+                    room_status: room.status,
                     result: format!(
                         "A player quit the game!!\nVictory by forfeit for {:?} !!!",
                         winner.role

@@ -1,5 +1,7 @@
 use crate::sharedenums::GameMode;
 use crate::sharedenums::PlayerRole;
+use crate::sharedenums::RoomStatus;
+use game_lib::position::Position;
 use game_lib::{automation::ai::Difficulty, piece::Color};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -7,19 +9,23 @@ use uuid::Uuid;
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum ServerMessage {
-    RoomCreated {
-        room_id: Uuid,
-    },
     Joined {
         role: PlayerRole,
         room_id: Uuid, // Some("White") / Some("Black") or None for spectator
+        room_status: RoomStatus,
+        host: bool,
     },
-    GameStarted,
+    GameStarted {
+        room_status: RoomStatus,
+        board: Vec<Vec<Option<String>>>,
+        turn: Color,
+    },
     State {
         board: Vec<Vec<Option<String>>>,
         turn: Color,
     },
     GameOver {
+        room_status: RoomStatus,
         result: String,
     },
     Error {
@@ -27,6 +33,15 @@ pub enum ServerMessage {
     },
     Status {
         ready: bool,
+    },
+    LegalMoves {
+        moves: Vec<String>,
+    },
+    RoomStatus {
+        status: RoomStatus,
+    },
+    PauseGame {
+        room_status: RoomStatus,
     },
     Info {
         msg: String,
@@ -50,9 +65,14 @@ pub enum ClientMessage {
     JoinRoom {
         room_id: Uuid, // Uuid as string
     },
-    Ready,
+    Ready {
+        state: bool,
+    },
     StartGame,
     Move {
+        mv: String,
+    },
+    GetLegalMoves {
         mv: String,
     },
     Quit,

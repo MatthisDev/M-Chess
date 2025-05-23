@@ -67,9 +67,17 @@ pub fn ws_provider(props: &WsProviderProps) -> Html {
                             });
                             connected.set(true);
 
+                            let connect_msg = ClientMessage::Connect;
+                            let serialized = serde_json::to_string(&connect_msg).unwrap();
+                            {
+                                let mut sender = tx.lock().unwrap();
+                                sender.send(Message::Text(serialized)).await.unwrap();
+                            }
+
                             while let Some(Ok(Message::Text(txt))) = rx.next().await {
                                 log::info!("Received from server: {}", txt);
                                 if let Ok(msg) = serde_json::from_str::<ServerMessage>(&txt) {
+                                    log::info!("Parsed message: {:?}", msg);
                                     on_message.emit(msg);
                                 }
                             }

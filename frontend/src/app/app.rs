@@ -4,7 +4,7 @@ use crate::messages::{ClientMessage, ServerMessage};
 use crate::routes::Route;
 use crate::sharedenums::GameMode;
 use crate::sharedenums::PlayerRole;
-use crate::ws::WsContext;
+use crate::ws::{WsContext, WsProvider};
 use crate::ws_context;
 use game_lib::piece::Color;
 use std::rc::Rc;
@@ -19,6 +19,7 @@ use crate::app::pages::{create_game::CreateGame, game::Game, home::Home, info::I
 use crate::app::state::{ServerAction, ServerState};
 
 use super::pages::download::Download;
+use super::pages::game::_GameProps::on_quit;
 
 #[derive(Clone, PartialEq)]
 enum Page {
@@ -30,72 +31,76 @@ enum Page {
 
 #[function_component(App)]
 pub fn app() -> Html {
-    let page = use_state(|| Page::Home);
     let server_state = use_reducer_eq(ServerState::default);
+    let on_message_state = use_state::<Option<Callback<ServerMessage>>, _>(|| None);
 
-    let on_server_message = {
-        let dispatch = server_state.clone();
-        Callback::from(move |msg: ServerMessage| {
-            dispatch_server_message(msg, dispatch.clone());
-        })
-    };
-    let ctx_opt = use_context::<WsContext>();
-    let Some(ctx) = ctx_opt else {
-        return html! {
-            <div class="error">
-                <h2>{ "WebSocket not connected" }</h2>
-            </div>
-        };
-    };
-
-    let on_create_game = {
-        let ctx = ctx.clone();
-        let page = page.clone();
-        Callback::from(move |mode: GameMode| {
-            ctx.send(ClientMessage::CreateRoom {
-                mode,
-                difficulty: None,
-            });
-            page.set(Page::Game);
-        })
-    };
-
-    let on_quit = {
-        let ctx = ctx.clone();
-        Callback::from(move |_: ()| {
-            ctx.send(ClientMessage::Quit);
-        })
-    };
+    let set_on_message = on_message_state.setter().clone();
+    let on_message = (*on_message_state).clone();
 
     html! {
-        <BrowserRouter>
-            <AppInner/>
-        </BrowserRouter>
+        <ContextProvider<UseReducerHandle<ServerState>> context={server_state.clone()}>
+            <BrowserRouter>
+                {
+                    if let Some(on_message) = on_message {
+                        html! {
+                            <WsProvider {on_message}>
+                                <AppInner />
+                            </WsProvider>
+                        }
+                    } else {
+                        html! {
+                            <PrepareCallback set_on_message={set_on_message} server_state={server_state.clone()} />
+                        }
+                    }
+                }
+            </BrowserRouter>
+        </ContextProvider<UseReducerHandle<ServerState>>>
     }
 }
 
-fn dispatch_server_message(msg: ServerMessage, dispatch: UseReducerHandle<ServerState>) {
+fn dispatch_server_message(
+    msg: ServerMessage,
+    dispatch: UseReducerHandle<ServerState>,
+    navigator: Navigator,
+) {
+    web_sys::console::log_1(&format!(" Message en traitement...: {:?}", msg).into());
     match msg {
         ServerMessage::State { board, turn } => {
             dispatch.dispatch(ServerAction::SetBoard { board, turn });
         }
-        ServerMessage::GameOver { result } => {
-            dispatch.dispatch(ServerAction::SetGameOver(result));
+        ServerMessage::LegalMoves { moves } => {
+            dispatch.dispatch(ServerAction::SetLegalMoves(moves));
+        }
+        ServerMessage::GameOver {
+            room_status,
+            result,
+        } => {
+            dispatch.dispatch(ServerAction::SetGameOver(result, room_status));
         }
         ServerMessage::Info { msg } => {
             dispatch.dispatch(ServerAction::SetInfo(msg));
         }
-        ServerMessage::Joined { role, room_id } => {
-            dispatch.dispatch(ServerAction::SetRole(role, room_id));
-        }
-        ServerMessage::RoomCreated { room_id } => {
-            dispatch.dispatch(ServerAction::SetRoomCreated(room_id));
+        ServerMessage::Joined {
+            role,
+            room_id,
+            room_status,
+            host,
+        } => {
+            dispatch.dispatch(ServerAction::SetRole(role, room_id, room_status));
+            dispatch.dispatch(ServerAction::SetJoined(true, host, room_status));
+            navigator.push(&Route::Game);
         }
         ServerMessage::QuitGame => {
-            dispatch.dispatch(ServerAction::Clear);
+            dispatch.dispatch(ServerAction::SetQuit);
+            navigator.push(&Route::Home);
         }
         ServerMessage::Status { ready } => {
+            web_sys::console::log_1(&format!("🟢 Ready status received: {}", ready).into());
             dispatch.dispatch(ServerAction::SetReady(ready));
+        }
+        ServerMessage::RoomStatus { status } => {
+            web_sys::console::log_1(&format!("Room Status updated to {:?}", status).into());
+            dispatch.dispatch(ServerAction::SetRoomStatus(status));
         }
         ServerMessage::Error { msg } => {
             web_sys::window()
@@ -103,8 +108,19 @@ fn dispatch_server_message(msg: ServerMessage, dispatch: UseReducerHandle<Server
                 .alert_with_message(&format!("Server Error: {}", msg))
                 .ok();
         }
+        ServerMessage::GameStarted {
+            room_status,
+            board,
+            turn,
+        } => {
+            dispatch.dispatch(ServerAction::SetBoard { board, turn });
+            dispatch.dispatch(ServerAction::SetRoomStatus(room_status));
+        }
+        ServerMessage::Ping => {
+            web_sys::console::log_1(&"🏓 Ping received, sending pong...".into());
+        }
         _ => {
-            // Ignore Ping, SandboxPieceAdded for now
+            web_sys::console::log_1(&format!("❓ Message inattendu: {:?}", msg).into());
         }
     }
 }
@@ -112,13 +128,24 @@ fn dispatch_server_message(msg: ServerMessage, dispatch: UseReducerHandle<Server
 #[function_component(AppInner)]
 fn app_inner() -> Html {
     let current_route = use_route::<Route>().unwrap_or(Route::NotFound);
-    console::log_1(&format!("Current route: {:?}", current_route).into());
-
     let navigator = use_navigator().expect("navigator not available");
-    let join_error = use_state(|| None as Option<String>);
     let ctx = use_context::<WsContext>().expect("WsContext missing");
+    let server_state = use_context::<UseReducerHandle<ServerState>>().expect("ServerState missing");
 
-    // Callback pour créer une room : navigue vers CreateGame
+    // Redirect to game if joined
+    {
+        let navigator = navigator.clone();
+        use_effect_with_deps(
+            move |state| {
+                if state.joined {
+                    navigator.push(&Route::Game);
+                }
+                || ()
+            },
+            server_state.clone(),
+        );
+    }
+
     let on_navigate_create_game = {
         let navigator = navigator.clone();
         Callback::from(move |_| {
@@ -126,50 +153,24 @@ fn app_inner() -> Html {
         })
     };
 
-    // Callback pour rejoindre une room
     let on_join_room = {
-        let navigator = navigator.clone();
-        let join_error = join_error.clone();
         let ctx = ctx.clone();
-
         Callback::from(move |room_id: Uuid| {
-            join_error.set(None); // reset error
-
-            // Exemple: envoi message JoinRoom au serveur
-            ctx.send(ClientMessage::JoinRoom {
-                room_id: room_id.clone(),
-            });
-
-            // TODO: ici, on attend la réponse serveur pour savoir si join ok
-            // Dans l’intervalle, on peut garder un état "en attente" (non montré ici)
-
-            // Pour l’exemple, on imagine que la réponse est asynchrone,
-            // il faut gérer cela dans ton WebSocket handler (en dessous).
+            ctx.send(ClientMessage::JoinRoom { room_id });
         })
     };
-    {
-        let join_error = join_error.clone();
-        let navigator = navigator.clone();
-        use_effect_with_deps(
-            move |msg| {
-                // ici, tu devrais écouter les messages serveur en global ou dans un contexte
-                // Exemple fictif de gestion de message serveur (tu dois adapter)
-                // Si le serveur a envoyé un ServerMessage::Joined, on change de page
-                // Si erreur, on set join_error à Some("Erreur ...")
 
-                // NOTE : tu dois implémenter cette logique dans ton handler WebSocket central,
-                // par exemple en mettant le résultat dans un state global ou en envoyant des callbacks.
-
-                || ()
-            },
-            (),
-        );
-    }
+    let on_quit_game = {
+        let ctx = ctx.clone();
+        Callback::from(move |_: ()| {
+            ctx.send(ClientMessage::Quit);
+        })
+    };
 
     html! {
         <main>
             {
-                if matches!(current_route, Route::Home | Route::Info | Route::Download) {
+                if matches!(current_route, Route::Home | Route::Info | Route::Download|Route::NotFound) {
                     html! { <Navbar /> }
                 } else {
                     html! {}
@@ -178,7 +179,8 @@ fn app_inner() -> Html {
             <Switch<Route> render={switch_with_props(
                 on_navigate_create_game.clone(),
                 on_join_room.clone(),
-                (*join_error).clone(),
+                None,
+                on_quit_game.clone()
             )} />
         </main>
     }
@@ -188,6 +190,7 @@ fn switch_with_props(
     on_navigate_create_game: Callback<()>,
     on_join_room: Callback<Uuid>,
     join_error: Option<String>,
+    on_quit_game: Callback<()>,
 ) -> impl Fn(Route) -> Html {
     move |route| match route {
         Route::Home => html! {
@@ -207,13 +210,43 @@ fn switch_with_props(
             let game_over: Option<String> = None;
 
             html! {
-                <Game
-                    board={empty_board}
-                    game_over={game_over}
-                    on_quit={Callback::from(|_| {})}
-                />
+                <Game on_quit={on_quit_game.clone()} />
             }
         }
-        Route::NotFound => html! { <h1>{ "404 - Page not found" }</h1> },
+        Route::NotFound => html! { <NotFound /> },
+    }
+}
+
+#[derive(Properties, PartialEq)]
+struct PrepareCallbackProps {
+    set_on_message: UseStateSetter<Option<Callback<ServerMessage>>>,
+    server_state: UseReducerHandle<ServerState>,
+}
+
+#[function_component(PrepareCallback)]
+fn prepare_callback(props: &PrepareCallbackProps) -> Html {
+    let navigator = use_navigator().expect("navigator not available");
+
+    {
+        let dispatch = props.server_state.clone();
+        let navigator = navigator.clone();
+        let set_on_message = props.set_on_message.clone();
+
+        use_effect_with_deps(
+            move |_| {
+                let callback = Callback::from(move |msg: ServerMessage| {
+                    web_sys::console::log_1(&format!("📩 Message reçu: {:?}", msg).into());
+                    dispatch_server_message(msg.clone(), dispatch.clone(), navigator.clone());
+                });
+                set_on_message.set(Some(callback));
+                || ()
+            },
+            (),
+        );
+    }
+
+    html! {
+        // Affiche un écran de chargement simple le temps que le callback soit prêt
+        <div>{ "Initialisation..." }</div>
     }
 }

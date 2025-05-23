@@ -18,11 +18,11 @@ use uuid::Uuid;
 mod messages;
 use messages::{ClientMessage, ServerMessage};
 mod sharedenums;
-use sharedenums::{GameMode, PlayerRole};
+use sharedenums::{GameMode, PlayerRole, RoomStatus};
 mod handler;
 use handler::*;
 mod structures;
-use structures::{Client, Player, PlayerType, Room, RoomStatus, ServerState, SharedServerState};
+use structures::{Client, Player, PlayerType, Room, ServerState, SharedServerState};
 
 #[tokio::main]
 async fn main() {
@@ -103,21 +103,6 @@ async fn main() {
                         }
                         break;
                     }
-                    Ok(ClientMessage::JoinRoom { room_id }) => {
-                        println!("Client {} wants to join room {:?}", client_id, room_id);
-                        let msg = handle_join_room(client_id, room_id, &mut state.lock().unwrap());
-                        if let Some(msg) = msg {
-                            if let Err(e) =
-                                send_to_client(&state.lock().unwrap().clients[&client_id], &msg)
-                            {
-                                eprintln!("Failed to send message to client {}: {}", client_id, e);
-                            }
-                            println!("Successfully joined room");
-                            println!("Sent message to client {}: {:?}", client_id, msg);
-                        } else {
-                            println!("Failed to join room");
-                        }
-                    }
                     Ok(ClientMessage::CreateRoom { mode, difficulty }) => {
                         println!(
                             "Client {} wants to create room in {:?} mode",
@@ -141,11 +126,34 @@ async fn main() {
                         }
                         println!("Room created successfully");
                     }
-                    Ok(ClientMessage::Ready) => {
+                    Ok(ClientMessage::JoinRoom { room_id }) => {
+                        println!("Client {} wants to join room {:?}", client_id, room_id);
+                        let msg = handle_join_room(client_id, room_id, &mut state.lock().unwrap());
+                        if let Some(msg) = msg {
+                            if let Err(e) =
+                                send_to_client(&state.lock().unwrap().clients[&client_id], &msg)
+                            {
+                                eprintln!("Failed to send message to client {}: {}", client_id, e);
+                            }
+                            println!("Successfully joined room");
+                            println!("Sent message to client {}: {:?}", client_id, msg);
+                        } else {
+                            println!("Failed to join room");
+                        }
+                    }
+
+                    Ok(ClientMessage::Ready {
+                        state: client_state,
+                    }) => {
                         println!("Client {} is ready", client_id);
-                        handle_set_ready(client_id, &state);
+                        handle_set_ready(client_id, &state, client_state);
+                    }
+                    Ok(ClientMessage::GetLegalMoves { mv }) => {
+                        println!("Ask from client moves: {}", mv);
+                        handle_get_moves(client_id, mv, &state);
                     }
                     Ok(ClientMessage::Move { mv }) => {
+                        println!("Move from client: {}", mv);
                         if let Some(reply) = handle_move(client_id, mv, &state) {
                             let state_guard = state.lock().unwrap();
                             if let Some(client) = state_guard.clients.get(&client_id) {
@@ -154,18 +162,7 @@ async fn main() {
                         }
                     }
                     Ok(ClientMessage::StartGame) => {
-                        let mut state_guard = state.lock().unwrap();
-                        if let Some(room_id) =
-                            state_guard.clients.get(&client_id).and_then(|c| c.room_id)
-                        {
-                            if let Some(room) = state_guard.rooms.get_mut(&room_id) {
-                                if room.mode == GameMode::AIvsAI {
-                                    room.status = RoomStatus::Running;
-                                    drop(state_guard); // Release lock before async spawn
-                                    tokio::spawn(run_ai_vs_ai_game(room_id, Arc::clone(&state)));
-                                }
-                            }
-                        }
+                        handle_start_game(client_id, &state);
                     }
                     Ok(ClientMessage::StartSandboxGame) => {
                         println!("Client {} started sandbox game", client_id);
@@ -177,7 +174,14 @@ async fn main() {
                                     room.status = RoomStatus::Running;
                                     send_game_state_to_clients(room);
                                     for p in room.players.values() {
-                                        let _ = send_to_player(p, &ServerMessage::GameStarted);
+                                        let _ = send_to_player(
+                                            p,
+                                            &ServerMessage::GameStarted {
+                                                room_status: room.status,
+                                                board: room.game.board.export_display_board(),
+                                                turn: room.game.board.turn,
+                                            },
+                                        );
                                     }
                                 }
                             }
@@ -185,6 +189,7 @@ async fn main() {
                     }
                     Ok(ClientMessage::AddPiece { piece, pos }) => {
                         println!("Client {} adds piece {} to {}", client_id, piece, pos);
+
                         let mut state = state.lock().unwrap();
                         if let Some(room_id) = state.clients.get(&client_id).and_then(|c| c.room_id)
                         {

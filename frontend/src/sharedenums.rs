@@ -15,3 +15,13 @@ pub enum PlayerRole {
     Spectator,
     Solo,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RoomStatus {
+    WaitingPlayers,
+    WaitingReady,
+    ReadyToStart,
+    Running,
+    Finished,
+    Paused,
+}

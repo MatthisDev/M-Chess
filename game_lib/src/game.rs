@@ -206,13 +206,13 @@ impl Game {
         let mut result: Vec<String> = Vec::<String>::new();
 
         if cell.chars().count() != 2 {
-            return Err("Wrong string format");
+            return Err("Wrong string format: too long or to short");
         }
 
         // convert into Position
         let position: Position = match Position::from_algebraic(&cell) {
             Ok(val) => val,
-            Err(_) => return Err("Wrong string format"),
+            Err(_) => return Err("Wrong string format: conversion to Positon"),
         };
 
         // get the piece and if there is no piece just return an empty list
