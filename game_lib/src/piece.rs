@@ -48,6 +48,17 @@ impl PieceType {
             PieceType::Pawn => 1,
         }
     }
+
+    pub fn from_string(str_: String) -> Self{
+        match str_ {
+            "k" => PieceType::King,
+            "q" => PieceType::Queen,
+            "r" => PieceType::Rook,
+            "b" => PieceType::Bishop,
+            "n" => PieceType::Knight,
+            "p" => PieceType::Pawn,
+        }
+    }
 }
 
 //class Piece
@@ -496,7 +507,7 @@ impl Piece {
             (-1, 1),
             (-1, -1),
         ];
-
+        println!("FEUR");
         //Normal moves without
         for &(row_offset, col_offset) in &offsets {
             let target: Position = Position::new(
