@@ -1,0 +1,67 @@
+/* Conteneur principal de la page Home */
+.home-container {
+    margin-top: 0; /* Supprimez toute marge supplémentaire */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    margin: 2rem auto;
+    padding: 1rem;
+    max-width: 400px;
+    background-color: #666666;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Conteneur pour rejoindre une room */
+.home-join-container {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+/* Boutons de la page Home */
+.home-button {
+    background-color: #444;
+    color: rgb(255, 255, 255);
+    border: none;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    flex: 1;
+}
+
+.home-button:hover {
+    background-color: #ffcc00;
+    color: #333;
+    transform: scale(1.05);
+}
+
+.home-button:active {
+    transform: scale(0.95);
+}
+
+/* Champ de saisie pour l'ID de la room */
+.home-input {
+    flex: 2;
+    padding: 0.5rem;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+
+.home-input:focus {
+    border-color: #ffcc00;
+}
+
+/* Message d'erreur */
+.home-error {
+    color: red;
+    font-size: 0.9rem;
+    text-align: center;
+}

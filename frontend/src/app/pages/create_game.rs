@@ -42,24 +42,25 @@ pub fn create_game(props: &CreateGameProps) -> Html {
     };
 
     html! {
-        <div>
-            <button onclick={Callback::from(move |_| navigator.push(&Route::Home))}>{ "Retour" }</button>
-            <h2>{ "Create a new game" }</h2>
-            <button onclick={on_mode_click.reform(|_| GameMode::PlayerVsPlayer)}>{ "Player vs Player" }</button>
-            <button onclick={on_mode_click.reform(|_| GameMode::PlayerVsAI)}>{ "Player vs AI" }</button>
-            <button onclick={on_mode_click.reform(|_| GameMode::AIvsAI)}>{ "AI vs AI" }</button>
-            <button onclick={on_mode_click.reform(|_| GameMode::Sandbox)}>{ "Sandbox mode" }</button>
-
+        <div class="create-game-container">
+            <button class="create-game-button" onclick={Callback::from(move |_| navigator.push(&Route::Home))}>{ "Retour" }</button>
+            <h2 class="create-game-title">{ "Create a new game" }</h2>
+            <div class="create-game-buttons">
+                <button class="create-game-button" onclick={on_mode_click.reform(|_| GameMode::PlayerVsPlayer)}>{ "Player vs Player" }</button>
+                <button class="create-game-button" onclick={on_mode_click.reform(|_| GameMode::PlayerVsAI)}>{ "Player vs AI" }</button>
+                <button class="create-game-button" onclick={on_mode_click.reform(|_| GameMode::AIvsAI)}>{ "AI vs AI" }</button>
+                <button class="create-game-button" onclick={on_mode_click.reform(|_| GameMode::Sandbox)}>{ "Sandbox mode" }</button>
+            </div>
             {
                 if let Some(mode) = (*selected_mode).clone() {
                     if matches!(mode, GameMode::PlayerVsAI | GameMode::AIvsAI) {
                         html! {
-                            <>
+                            <div class="create-game-difficulty">
                                 <p>{ "Select difficulty:" }</p>
-                                <button onclick={on_difficulty_click.reform(|_| Difficulty::Easy)}>{ "Easy" }</button>
-                                <button onclick={on_difficulty_click.reform(|_| Difficulty::Medium)}>{ "Medium" }</button>
-                                <button onclick={on_difficulty_click.reform(|_| Difficulty::Hard)}>{ "Hard" }</button>
-                            </>
+                                <button class="create-game-button" onclick={on_difficulty_click.reform(|_| Difficulty::Easy)}>{ "Easy" }</button>
+                                <button class="create-game-button" onclick={on_difficulty_click.reform(|_| Difficulty::Medium)}>{ "Medium" }</button>
+                                <button class="create-game-button" onclick={on_difficulty_click.reform(|_| Difficulty::Hard)}>{ "Hard" }</button>
+                            </div>
                         }
                     } else {
                         html! {}

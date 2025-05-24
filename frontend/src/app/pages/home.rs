@@ -16,8 +16,6 @@ pub struct HomeProps {
 pub fn home(props: &HomeProps) -> Html {
     let room_id = use_state(|| "".to_string());
 
-    let room_id = use_state(|| "".to_string());
-
     let oninput = {
         let room_id = room_id.clone();
         Callback::from(move |e: InputEvent| {
@@ -46,20 +44,21 @@ pub fn home(props: &HomeProps) -> Html {
     };
 
     html! {
-        <div>
-            <button onclick={on_click_create}>{ "Créer une room" }</button>
-            <div>
+        <div class="home-container">
+            <button class="home-button" onclick={on_click_create}>{ "Créer une room" }</button>
+            <div class="home-join-container">
                 <input
+                    class="home-input"
                     type="text"
                     placeholder="Entrer l'ID de la room"
                     value={(*room_id).clone()}
                     oninput={oninput}
                 />
-                <button onclick={on_click_join}>{ "Rejoindre la partie" }</button>
+                <button class="home-button" onclick={on_click_join}>{ "Rejoindre la partie" }</button>
             </div>
             {
                 if let Some(err) = &props.join_error {
-                    html! { <p style="color: red;">{ err }</p> }
+                    html! { <p class="home-error">{ err }</p> }
                 } else {
                     html! {}
                 }
