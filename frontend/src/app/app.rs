@@ -85,8 +85,9 @@ fn dispatch_server_message(
             room_id,
             room_status,
             host,
+            gamemod,
         } => {
-            dispatch.dispatch(ServerAction::SetRole(role, room_id, room_status));
+            dispatch.dispatch(ServerAction::SetRole(role, room_id, room_status, gamemod));
             dispatch.dispatch(ServerAction::SetJoined(true, host, room_status));
             navigator.push(&Route::Game);
         }

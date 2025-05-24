@@ -6,6 +6,7 @@ use game_lib::piece::Color;
 use game_lib::sharedenums::{GameMode, PlayerRole, RoomStatus};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::sleep;
 use tokio::net::TcpListener;
@@ -20,7 +21,15 @@ use uuid::Uuid;
 mod handler;
 use handler::*;
 mod structures;
+use std::time::{SystemTime, UNIX_EPOCH};
 use structures::{Client, Player, PlayerType, Room, ServerState, SharedServerState};
+
+fn now_timestamp() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_secs()
+}
 
 #[tokio::main]
 async fn main() {
@@ -60,10 +69,11 @@ async fn main() {
                         id: client_id,
                         room_id: None,
                         sender: tx.clone(),
-                        last_active: Instant::now(),
-                        hb: Instant::now(),
+                        hb: Arc::new(AtomicU64::new(now_timestamp())),
                     },
                 );
+                println!("Client with id {} connected!!", client_id);
+                println!("Current clients: {:?}", state_lock.clients);
             }
 
             // WebSocket sender task
@@ -81,26 +91,6 @@ async fn main() {
                 println!("Received message from client {}: {}", client_id, text);
                 let parsed: Result<ClientMessage, _> = serde_json::from_str(&text);
                 match parsed {
-                    Ok(ClientMessage::Connect) => {
-                        println!("Client {} sent Connect", client_id);
-                    }
-                    Ok(ClientMessage::Disconnect) => {
-                        println!("Client {} is disconnecting", client_id);
-                        let mut state_guard = state.lock().unwrap();
-                        let client = state_guard.clients.remove(&client_id);
-                        if let Some(client) = client {
-                            if client.room_id.is_some() {
-                                handle_quit(client_id, &state);
-                            }
-                            let _ = send_to_client(
-                                &client,
-                                &ServerMessage::Info {
-                                    msg: "Disconnected".to_string(),
-                                },
-                            );
-                        }
-                        break;
-                    }
                     Ok(ClientMessage::CreateRoom { mode, difficulty }) => {
                         println!(
                             "Client {} wants to create room in {:?} mode",
@@ -134,7 +124,6 @@ async fn main() {
                                 eprintln!("Failed to send message to client {}: {}", client_id, e);
                             }
                             println!("Successfully joined room");
-                            println!("Sent message to client {}: {:?}", client_id, msg);
                         } else {
                             println!("Failed to join room");
                         }
@@ -227,7 +216,11 @@ async fn main() {
                         println!("Client {} sent Pong", client_id);
                         let mut state = state.lock().unwrap();
                         if let Some(client) = state.clients.get_mut(&client_id) {
-                            client.hb = Instant::now();
+                            client.hb.store(now_timestamp(), Ordering::SeqCst);
+                            println!(
+                                "\nClient {:?} hb reset to {:?}, struct;\n {:?}\n",
+                                client_id, client.hb, client
+                            )
                         }
                     }
                     Err(e) => {
@@ -237,12 +230,24 @@ async fn main() {
             }
 
             {
-                let mut state = state.lock().unwrap();
-                state.clients.remove(&client_id);
+                let mut state_guard = state.lock().unwrap();
+                let client = state_guard.clients.remove(&client_id);
+                if let Some(client) = client {
+                    if client.room_id.is_some() {
+                        handle_quit(client_id, &state);
+                    }
+                    let _ = send_to_client(
+                        &client,
+                        &ServerMessage::Info {
+                            msg: "Disconnected".to_string(),
+                        },
+                    );
+                }
+
                 println!("Client {} disconnected", client_id);
                 println!(
                     "Current clients: {:?}",
-                    state.clients.keys().collect::<Vec<_>>()
+                    state_guard.clients.keys().collect::<Vec<_>>()
                 );
             }
         });
@@ -300,13 +305,6 @@ pub async fn cleanup_inactive_rooms(state: SharedServerState) {
             let empty = room.players.is_empty();
 
             if empty || inactive_too_long {
-                println!(
-                    "Room {:?} will be removed. Status: {:?}, Players: {}, Inactive: {}s",
-                    room_id,
-                    room.status,
-                    room.players.len(),
-                    now.duration_since(room.created_at).as_secs()
-                );
                 to_remove.push(*room_id);
             }
         }
@@ -323,10 +321,6 @@ pub async fn cleanup_inactive_rooms(state: SharedServerState) {
                 }
             }
             println!("Room {:?} removed", room_id);
-            println!(
-                "Current rooms: {:?}",
-                state.rooms.keys().collect::<Vec<_>>()
-            );
         }
     }
 }
@@ -349,9 +343,9 @@ pub async fn inactivity_check(state: SharedServerState) {
         };
 
         let mut to_remove: Vec<Uuid> = Vec::new();
-        let now = Instant::now();
         for client in state_guard.clients.values_mut() {
-            if now.duration_since(client.hb) > Duration::from_secs(300) {
+            let last_hb = client.hb.load(Ordering::SeqCst);
+            if now_timestamp() - last_hb > 300 {
                 println!("Client {:?} is inactive for too long", client.id);
                 handle_quit(client.id, &state);
                 to_remove.push(client.id);

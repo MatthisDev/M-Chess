@@ -14,6 +14,7 @@ pub enum ServerMessage {
         room_id: Uuid, // Some("White") / Some("Black") or None for spectator
         room_status: RoomStatus,
         host: bool,
+        gamemod: GameMode,
     },
     GameStarted {
         room_status: RoomStatus,
@@ -76,9 +77,6 @@ pub enum ClientMessage {
         mv: String,
     },
     Quit,
-    // Server connection
-    Connect,
-    Disconnect,
     // Sandbox
     StartSandboxGame,
     AddPiece {

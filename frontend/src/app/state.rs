@@ -1,5 +1,5 @@
 use game_lib::piece::Color;
-use game_lib::sharedenums::{PlayerRole, RoomStatus};
+use game_lib::sharedenums::{GameMode, PlayerRole, RoomStatus};
 use std::rc::Rc;
 use uuid::Uuid;
 use yew::prelude::*;
@@ -10,6 +10,7 @@ pub struct ServerState {
     pub ping: bool,
     pub joined: bool,
     pub room_id: Option<Uuid>,
+    pub gamemod: Option<GameMode>,
     pub room_status: Option<RoomStatus>,
     pub ready: bool,
     pub role: Option<PlayerRole>,
@@ -30,6 +31,7 @@ impl Default for ServerState {
             ping: false,
             joined: false,
             room_id: None,
+            gamemod: None,
             room_status: None,
             ready: false,
             role: None,
@@ -62,10 +64,11 @@ impl Reducible for ServerState {
             ServerAction::SetInfo(msg) => {
                 new_state.info = Some(msg);
             }
-            ServerAction::SetRole(role, room_id, room_status) => {
+            ServerAction::SetRole(role, room_id, room_status, gamemod) => {
                 new_state.role = Some(role);
                 new_state.room_id = Some(room_id);
                 new_state.room_status = Some(room_status);
+                new_state.gamemod = Some(gamemod)
             }
             ServerAction::SetReady(ready) => {
                 new_state.ready = ready;
@@ -105,7 +108,7 @@ pub enum ServerAction {
     SetLegalMoves(Vec<String>),
     SetGameOver(String, RoomStatus),
     SetInfo(String),
-    SetRole(PlayerRole, uuid::Uuid, RoomStatus),
+    SetRole(PlayerRole, uuid::Uuid, RoomStatus, GameMode),
     SetReady(bool),
     SetRoomStatus(RoomStatus),
     SetError(String),

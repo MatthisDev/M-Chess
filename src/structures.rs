@@ -3,22 +3,22 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use game_lib::sharedenums::{GameMode, PlayerRole, RoomStatus};
 use game_lib::{
     automation::ai::{Difficulty, AI},
     game::Game,
 };
+use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::{sync::mpsc::UnboundedSender, time::Instant};
 use tokio_tungstenite::tungstenite::Message;
 use uuid::Uuid;
 
-use game_lib::sharedenums::{GameMode, PlayerRole, RoomStatus};
-
+#[derive(Debug)]
 pub struct Client {
     pub id: Uuid,
     pub room_id: Option<Uuid>,
     pub sender: UnboundedSender<Message>,
-    pub last_active: Instant,
-    pub hb: Instant,
+    pub hb: Arc<AtomicU64>,
 }
 
 #[derive(Debug, Clone)]

@@ -63,7 +63,6 @@ pub fn handle_create_room(
                     },
                 },
             );
-            println!("{:?}", players);
             PlayerRole::White
         }
         GameMode::AIvsAI => {
@@ -120,7 +119,7 @@ pub fn handle_create_room(
         room_id,
         Room {
             id: room_id,
-            mode,
+            mode: mode.clone(),
             status,
             players,
             game,
@@ -130,13 +129,13 @@ pub fn handle_create_room(
     if let Some(c) = server_state.clients.get_mut(&client_id) {
         c.room_id = Some(room_id);
     }
-    println!("returning from creating room");
 
     Some(ServerMessage::Joined {
         role,
         room_id,
         room_status: status,
         host: true,
+        gamemod: mode,
     })
 }
 
@@ -185,12 +184,13 @@ pub fn handle_join_room(
     if let Some(c) = server_state.clients.get_mut(&client_id) {
         c.room_id = Some(room_id);
     }
-
+    let mode = room.mode.clone();
     Some(ServerMessage::Joined {
         role,
         room_id,
         room_status: room.status,
         host: false,
+        gamemod: mode,
     })
 }
 
@@ -287,7 +287,7 @@ pub fn handle_start_game(client_id: Uuid, server_state: &Arc<Mutex<ServerState>>
                     },
                 );
             }
-            println!("Room {:?} game started (PvP)", room.id);
+            println!("Room {:?} game started", room.id);
         }
     } else if room.mode == GameMode::AIvsAI {
         room.status = RoomStatus::Running;
@@ -392,8 +392,6 @@ pub fn handle_move(
     }
 
     let player = room.players.get(&client_id)?;
-    println!("{:?}", player);
-    println!("{:?}", room.players);
     let expected_color = room.game.board.turn;
     let player_color = match player.role {
         PlayerRole::White => Color::White,
@@ -410,7 +408,7 @@ pub fn handle_move(
             msg: "It's not your turn.".into(),
         });
     }
-
+    print!("{:?} : ", mv);
     match room.game.make_move_algebraic(&mv) {
         Ok(_) => {
             println!("Moved");
@@ -442,9 +440,12 @@ pub fn handle_move(
 
             None
         }
-        Err(e) => Some(ServerMessage::Error {
-            msg: format!("Invalid move: {}", e),
-        }),
+        Err(e) => {
+            println!("Not moved");
+            Some(ServerMessage::Error {
+                msg: format!("Invalid move: {}", e),
+            })
+        }
     }
 }
 
@@ -481,11 +482,10 @@ pub fn handle_ai_turn(
 
     if let Some(p) = ai_player {
         if let PlayerType::Ai { ai } = &p.kind {
-            println!("AI: {:?}", ai);
             if let Some((from, to)) = ai.get_best_move(&room.game.board) {
                 let ai_mv = format!("{}->{}", from.to_algebraic(), to.to_algebraic());
                 if room.game.make_move_algebraic(&ai_mv).is_ok() {
-                    println!("moved");
+                    println!("AI make move");
                     send_game_state_to_clients(room);
 
                     if room.game.board.is_game_over() {

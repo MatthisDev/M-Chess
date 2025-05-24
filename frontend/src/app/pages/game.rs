@@ -1,6 +1,6 @@
-use std::rc::Rc;
 use crate::app::{state::ServerState, ServerAction};
 use game_lib::{messages::ClientMessage, position::Position, sharedenums::RoomStatus};
+use std::rc::Rc;
 use uuid::Uuid;
 use yew::prelude::*;
 
@@ -34,14 +34,12 @@ pub fn game(props: &GameProps) -> Html {
     };
 
     let on_ready = {
-            let ctx = ctx.clone();
-            let ready_state = server_state.ready;
-            Callback::from(move |_| {
-                ctx.send(ClientMessage::Ready {
-                    state: ready_state,
-                });
-            })
-        };
+        let ctx = ctx.clone();
+        let ready_state = server_state.ready;
+        Callback::from(move |_| {
+            ctx.send(ClientMessage::Ready { state: ready_state });
+        })
+    };
 
     let on_start_game = {
         let ctx = ctx.clone();
@@ -64,6 +62,10 @@ pub fn game(props: &GameProps) -> Html {
         .map_or("...".to_string(), |s| format!("{:?}", s));
     let role_display = server_state
         .role
+        .as_ref()
+        .map_or("...".to_string(), |r| format!("{:?}", r));
+    let gamemode_display = server_state
+        .gamemod
         .as_ref()
         .map_or("...".to_string(), |r| format!("{:?}", r));
     let ready_display = if server_state.ready { "Yes" } else { "No" };
@@ -213,7 +215,7 @@ pub fn game(props: &GameProps) -> Html {
 
                 // Colonne droite : Palette Sandbox
                 {
-                    //todo if server_state.role == Some(PlayerRole::Sandbox) 
+                    //todo if server_state.role == Some(PlayerRole::Sandbox)
                     {
                         html! {
                             <div class="sandbox-container">
@@ -238,7 +240,7 @@ pub fn game(props: &GameProps) -> Html {
                                 })}>{ "Place Empty Piece" }</button>
                             </div>
                         }
-                    } 
+                    }
                     //todo else {html! {}}
                 }
             </div>
