@@ -1,5 +1,6 @@
-use crate::{messages::ClientMessage, routes::Route, sharedenums::GameMode, ws::WsContext};
+use crate::{routes::Route, ws::WsContext};
 use game_lib::automation::ai::Difficulty;
+use game_lib::{messages::ClientMessage, sharedenums::GameMode};
 use yew::prelude::*;
 use yew_router::hooks::use_navigator;
 

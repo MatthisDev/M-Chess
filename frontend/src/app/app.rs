@@ -1,12 +1,12 @@
 use crate::app::pages::navbar::Navbar;
 use crate::app::pages::not_found::NotFound;
-use crate::messages::{ClientMessage, ServerMessage};
 use crate::routes::Route;
-use crate::sharedenums::GameMode;
-use crate::sharedenums::PlayerRole;
 use crate::ws::{WsContext, WsProvider};
 use crate::ws_context;
+use game_lib::messages::{ClientMessage, ServerMessage};
 use game_lib::piece::Color;
+use game_lib::sharedenums::GameMode;
+use game_lib::sharedenums::PlayerRole;
 use std::rc::Rc;
 use uuid::Uuid;
 use web_sys::console;
@@ -118,6 +118,7 @@ fn dispatch_server_message(
         }
         ServerMessage::Ping => {
             web_sys::console::log_1(&"🏓 Ping received, sending pong...".into());
+            dispatch.dispatch(ServerAction::Ping);
         }
         _ => {
             web_sys::console::log_1(&format!("❓ Message inattendu: {:?}", msg).into());
@@ -132,13 +133,19 @@ fn app_inner() -> Html {
     let ctx = use_context::<WsContext>().expect("WsContext missing");
     let server_state = use_context::<UseReducerHandle<ServerState>>().expect("ServerState missing");
 
-    // Redirect to game if joined
     {
         let navigator = navigator.clone();
+        let ctx = ctx.clone();
         use_effect_with_deps(
             move |state| {
+                // Redirect to game if joined
                 if state.joined {
                     navigator.push(&Route::Game);
+                }
+                //Pong
+                else if state.ping {
+                    ctx.send(ClientMessage::Pong);
+                    state.dispatch(ServerAction::ResetPing);
                 }
                 || ()
             },

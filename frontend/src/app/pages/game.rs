@@ -1,11 +1,7 @@
 use std::rc::Rc;
-
-use crate::{
-    app::{state::ServerState, ServerAction},
-    messages::ClientMessage,
-    sharedenums::{PlayerRole, RoomStatus},
-};
-use game_lib::position::Position;
+use crate::app::{state::ServerState, ServerAction};
+use game_lib::{messages::ClientMessage, position::Position, sharedenums::RoomStatus};
+use uuid::Uuid;
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]

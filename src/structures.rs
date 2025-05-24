@@ -11,7 +11,7 @@ use tokio::{sync::mpsc::UnboundedSender, time::Instant};
 use tokio_tungstenite::tungstenite::Message;
 use uuid::Uuid;
 
-use crate::sharedenums::{GameMode, PlayerRole, RoomStatus};
+use game_lib::sharedenums::{GameMode, PlayerRole, RoomStatus};
 
 pub struct Client {
     pub id: Uuid,

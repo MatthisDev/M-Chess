@@ -1,7 +1,7 @@
-use crate::messages::{ClientMessage, ServerMessage};
 use crate::routes::Route;
-use crate::sharedenums::GameMode;
 use crate::ws::WsContext;
+use game_lib::messages::{ClientMessage, ServerMessage};
+use game_lib::sharedenums::GameMode;
 use uuid::Uuid;
 use yew::prelude::*;
 
