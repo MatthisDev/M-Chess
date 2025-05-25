@@ -12,7 +12,6 @@ use crate::position::Position;
 pub struct Game {
     pub board: Board,
     pub nb_turn: usize,
-    pub uid: Uuid
 }
 
 impl Game {
