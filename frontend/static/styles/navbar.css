@@ -1,0 +1,104 @@
+/* Navbar styles */
+.navbar {
+    background-color: #333;
+    color: white;
+    padding: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: fixed; /* Fixe la navbar en haut de la page */
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000; /* Assure que la navbar reste au-dessus des autres éléments */
+    height: 4rem; /* Définissez une hauteur explicite pour la navbar */
+}
+
+/* Ajoutez un espace en haut pour compenser la hauteur de la navbar */
+body {
+    margin: 0; /* Supprimez toute marge par défaut */
+    padding-top: 5.5rem; /* Augmentez légèrement pour compenser la hauteur */
+}
+
+/* Conteneur global pour compenser la hauteur de la navbar */
+.page-container {
+    margin-top: 5.5rem; /* Ajustez pour compenser la hauteur de la navbar */
+    padding: 1rem; /* Optionnel : ajoute un padding pour le contenu */
+}
+
+.navbar-list {
+    list-style: none;
+    display: flex;
+    gap: 1.5rem;
+    margin: 0;
+    padding: 0;
+}
+
+.navbar-item a {
+    color: white;
+    text-decoration: none;
+    font-size: 1.2rem;
+    transition: color 0.3s ease;
+}
+
+.navbar-item a:hover {
+    color: #ffcc00;
+}
+
+/* Navbar container styles */
+.navbar-container {
+    display: flex;
+    gap: 1rem; /* Space between buttons */
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+}
+
+/* Button styles for navbar */
+.navbar-button {
+    background-color: #444;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.navbar-button:hover {
+    background-color: #ffcc00;
+    color: #333;
+    transform: scale(1.05);
+}
+
+.navbar-button:active {
+    transform: scale(0.95);
+}
+/* Chessboard styles */
+.board {
+    display: grid;
+    grid-template-columns: repeat(8, 50px);
+    grid-template-rows: repeat(8, 50px);
+    gap: 2px;
+    margin: 2rem auto;
+    border: 2px solid #333;
+}
+
+.board-cell {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+}
+
+.board-cell.light {
+    background-color: #f0d9b5;
+}
+
+.board-cell.dark {
+    background-color: #b58863;
+}
