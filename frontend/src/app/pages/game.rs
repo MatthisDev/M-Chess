@@ -189,18 +189,27 @@ pub fn game(props: &GameProps) -> Html {
                                 >
                                     { "Set Ready" }
                                 </button>
+                                if server_state.host{
 
-                                <button
-                                    class="game-button"
-                                    disabled={!server_state.ready || !server_state.host || server_state.room_status != Some(RoomStatus::WaitingReady)}
-                                    onclick={on_start_game}
-                                >
-                                    { "Start Game" }
-                                </button>
+                                        <button
+                                            class="game-button"
+                                            disabled={!server_state.ready ||
+                                                     !server_state.host ||
+                                                     server_state.room_status != Some(RoomStatus::WaitingReady)}
+                                            onclick={on_start_game}
+                                        >
+                                            { "Start Game" }
+                                        </button>
+
+                                }
+                                else{
+
+                                }
                             </>
                         )
                         }
-                        else{ web_sys::console::log_1(
+                        else{
+                            web_sys::console::log_1(
                             &format!(
                                 "Error: role: {:?}, gammemod: {:?}",
                                 server_state.role, server_state.gamemod
