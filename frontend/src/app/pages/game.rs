@@ -1,5 +1,9 @@
 use crate::app::{state::ServerState, ServerAction};
-use game_lib::{messages::ClientMessage, position::Position, sharedenums::RoomStatus};
+use game_lib::{
+    messages::ClientMessage,
+    position::Position,
+    sharedenums::{GameMode, PlayerRole, RoomStatus},
+};
 use std::rc::Rc;
 use uuid::Uuid;
 use yew::prelude::*;
@@ -17,6 +21,13 @@ pub fn game(props: &GameProps) -> Html {
     let selected_piece = use_state(|| None as Option<String>);
     let selected_square = use_state(|| None as Option<Position>);
     let board_theme = use_state(|| "blue-theme".to_string());
+
+    let on_click_pause = {
+        let ctx = ctx.clone();
+        Callback::from(move |_| {
+            ctx.send(ClientMessage::PauseRequest);
+        })
+    };
 
     let set_theme = {
         let board_theme = board_theme.clone();
@@ -69,10 +80,7 @@ pub fn game(props: &GameProps) -> Html {
         .as_ref()
         .map_or("...".to_string(), |r| format!("{:?}", r));
     let ready_display = if server_state.ready { "Yes" } else { "No" };
-    let turn_display = server_state
-        .turn
-        .as_ref()
-        .map_or("...".to_string(), |t| format!("{:?}", t));
+    let turn_display = format!("{:?}", server_state.counter);
     let game_over_display = server_state
         .game_over
         .as_ref()
@@ -137,6 +145,20 @@ pub fn game(props: &GameProps) -> Html {
         <div class="game-container">
             <h2 class="game-title">{ "Game Room" }</h2>
 
+            {
+                if let Some(game_over_message) = &server_state.game_over {
+                    html! {
+                        <div class="game-over-message">
+                            <h3>{ "Game Over" }</h3>
+                            <p>{ game_over_message }</p>
+                            <button class="game-button" onclick={on_click_quit.clone()}>{ "Quit Game" }</button>
+                        </div>
+                    }
+                } else {
+                    html! {}
+                }
+            }
+
             <div class="game-layout">
                 // Colonne gauche : Boutons et Informations
                 <div class="game-controls">
@@ -154,22 +176,52 @@ pub fn game(props: &GameProps) -> Html {
                             move |_| set_theme.emit("gray-theme".to_string())
                         })}>{ "Gray Theme" }</button>
                     </div>
-                    <button
-                        class="game-button"
-                        disabled={server_state.room_status == Some(RoomStatus::Running) || server_state.room_status == Some(RoomStatus::Finished)}
-                        onclick={on_ready}
-                    >
-                        { "Set Ready" }
-                    </button>
+                    {
 
-                    <button
-                        class="game-button"
-                        disabled={!server_state.ready || !server_state.host || server_state.room_status != Some(RoomStatus::WaitingReady)}
-                        onclick={on_start_game}
-                    >
-                        { "Start Game" }
-                    </button>
+                        if server_state.role != Some(PlayerRole::Spectator) || server_state.gamemod == Some(GameMode::AIvsAI)
+                        {
+                           html! (
+                            <>
+                                <button
+                                    class="game-button"
+                                    disabled={server_state.room_status == Some(RoomStatus::Running) || server_state.room_status == Some(RoomStatus::Finished)}
+                                    onclick={on_ready}
+                                >
+                                    { "Set Ready" }
+                                </button>
 
+                                <button
+                                    class="game-button"
+                                    disabled={!server_state.ready || !server_state.host || server_state.room_status != Some(RoomStatus::WaitingReady)}
+                                    onclick={on_start_game}
+                                >
+                                    { "Start Game" }
+                                </button>
+                            </>
+                        )
+                        }
+                        else{ web_sys::console::log_1(
+                            &format!(
+                                "Error: role: {:?}, gammemod: {:?}",
+                                server_state.role, server_state.gamemod
+                            )
+                            .into(),
+                        );
+                        html!()   }
+                    }
+                    { if server_state.gamemod == Some(GameMode::AIvsAI) && matches!(server_state.room_status, Some(RoomStatus::Running)|Some(RoomStatus::Paused)){
+
+                        if server_state.paused
+                        {
+                            html!(<button class="game-button" onclick={on_click_pause}>{ "Resume Game" }</button>)
+                        }
+                    else{
+                        html!(<button class="game-button" onclick={on_click_pause}>{ "Pause Game" }</button>)
+                    }}
+                        else{
+                            html!()
+                        }
+                    }
                     <button class="game-button" onclick={on_click_quit}>{ "Quit Game" }</button>
 
 
@@ -178,7 +230,10 @@ pub fn game(props: &GameProps) -> Html {
                         <p><strong>{ "Room ID: " }</strong>{ room_id_display.clone() }</p>
                         <p><strong>{ "Room Status: " }</strong>{ room_status_display.clone() }</p>
                         <p><strong>{ "Role: " }</strong>{ role_display.clone() }</p>
-                        <p><strong>{ "Ready: " }</strong>{ ready_display }</p>
+                        {
+                            if server_state.role != Some(PlayerRole::Spectator) && server_state.gamemod != Some(GameMode::AIvsAI){
+                            html!(<p><strong>{ "Ready: " }</strong>{ ready_display }</p>)
+                        }else{html!()}}
                         <p><strong>{ "Turn: " }</strong>{ turn_display }</p>
                     </div>
                 </div>
@@ -215,10 +270,10 @@ pub fn game(props: &GameProps) -> Html {
 
                 // Colonne droite : Palette Sandbox
                 {
-                    //todo if server_state.role == Some(PlayerRole::Sandbox)
+                     if server_state.gamemod == Some(GameMode::Sandbox)
                     {
                         html! {
-                            <div class="sandbox-container">
+                            <div  class="sandbox-container">
                                 <h4>{ "Sandbox Pieces" }</h4>
                                 <div class="sandbox-pieces">
                                     { for ["wp", "bp", "wr", "br", "wn", "bn", "wb", "bb", "wq", "bq", "wk", "bk"].iter().map(|&piece| {
@@ -241,7 +296,7 @@ pub fn game(props: &GameProps) -> Html {
                             </div>
                         }
                     }
-                    //todo else {html! {}}
+                     else {html! {}}
                 }
             </div>
         </div>
