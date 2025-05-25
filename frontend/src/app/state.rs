@@ -24,6 +24,7 @@ pub struct ServerState {
     pub counter: usize,
     pub game_over: Option<String>,
     pub paused: bool,
+    pub ingame: bool,
     //Other
     pub info: Option<String>,
     pub error: Option<String>,
@@ -50,6 +51,7 @@ impl Default for ServerState {
             error: None,
             last_page: None,
             paused: false,
+            ingame: false,
         }
     }
 }
@@ -97,6 +99,7 @@ impl Reducible for ServerState {
                 new_state.joined = joined;
                 new_state.room_status = Some(room_status);
                 new_state.host = host;
+                new_state.ingame = true;
                 web_sys::console::log_1(
                     &format!(
                         "role: {:?}, gammemod: {:?}",

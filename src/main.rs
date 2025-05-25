@@ -14,6 +14,7 @@ use tokio::net::TcpListener;
 use tokio::sync::oneshot;
 use tokio::sync::{mpsc, mpsc::UnboundedSender};
 use tokio::time::{interval, Duration, Instant};
+use tokio_tungstenite::tungstenite::http::response;
 use tokio_tungstenite::tungstenite::Bytes;
 use tokio_tungstenite::{
     accept_async,
@@ -219,11 +220,16 @@ async fn main() {
                                 if let Some(room) = room {
                                     let msg = quit_room(room, client_id).await;
 
-                                    if let Some(msg) = msg {
+                                    if let Some(mut msg) = msg {
                                         if let ServerMessage::CloseRoom { id } = &msg {
                                             let mut server_state = state.lock().unwrap();
                                             server_state.room_senders.remove(id);
                                             println!("Room {} deleted !!", id);
+                                        }
+                                        if let ServerMessage::Error { msg: message } = &msg {
+                                            if message == "Room is not available." {
+                                                msg = ServerMessage::QuitGame;
+                                            }
                                         }
                                         if let Err(e) = send_to_client(
                                             &state.lock().unwrap().clients[&client_id],

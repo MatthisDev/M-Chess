@@ -171,22 +171,42 @@ fn app_inner() -> Html {
         let navigator = navigator.clone();
         let ctx = ctx.clone();
         use_effect_with_deps(
-            move |state| {
+            move |&joined| {
                 // Redirect to game if joined
-                if state.joined {
+                if joined {
                     navigator.push(&Route::Game);
-                }
-                //Pong
-                else if state.ping {
-                    ctx.send(ClientMessage::Pong);
-                    state.dispatch(ServerAction::ResetPing);
-                } else if state.room_id.is_none() {
-                    ctx.send(ClientMessage::Quit);
                 }
 
                 || ()
             },
-            server_state.clone(),
+            server_state.joined,
+        );
+    }
+    {
+        let ctx = ctx.clone();
+        let server_guard = server_state.clone();
+        use_effect_with_deps(
+            move |&ping| {
+                if ping {
+                    ctx.send(ClientMessage::Pong);
+                    server_guard.dispatch(ServerAction::ResetPing);
+                }
+                || ()
+            },
+            server_state.ping,
+        );
+    }
+    {
+        let ctx = ctx.clone();
+        use_effect_with_deps(
+            move |&(room_id, ingame)| {
+                web_sys::console::log_1(&"Ingame mais pas de Room?".to_string().into());
+                if room_id.is_none() && ingame {
+                    ctx.send(ClientMessage::Quit);
+                }
+                || ()
+            },
+            (server_state.room_id, server_state.ingame),
         );
     }
 

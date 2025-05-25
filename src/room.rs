@@ -32,6 +32,7 @@ pub struct Room {
     pub players: HashMap<Uuid, Player>,
     pub game: Game,
     pub created_at: Instant,
+    paused: bool,
     rx: UnboundedReceiver<RoomCommand>,
     tx: UnboundedSender<RoomCommand>,
 }
@@ -54,6 +55,7 @@ impl Room {
             created_at: Instant::now(),
             rx,
             tx,
+            paused: false,
         }
     }
 
@@ -360,23 +362,27 @@ impl Room {
                         PlayerType::Ai { ai } => ai.color == self.game.board.turn,
                         _ => false,
                     });
+                    if !self.paused {
+                        if let Some(ai_player) = ai_player_opt {
+                            if let PlayerType::Ai { ai } = &ai_player.kind {
+                                let ai = ai.clone();
+                                let board = self.game.board.clone();
+                                let tx = self.tx.clone();
+                                // Calcul du coup de l'IA
+                                tokio::spawn(async move {
+                                    let mv = ai.get_best_move(&board); // Peut être long
 
-                    if let Some(ai_player) = ai_player_opt {
-                        if let PlayerType::Ai { ai } = &ai_player.kind {
-                            let ai = ai.clone();
-                            let board = self.game.board.clone();
-                            let tx = self.tx.clone();
-                            // Calcul du coup de l'IA
-                            tokio::spawn(async move {
-                                let mv = ai.get_best_move(&board); // Peut être long
-
-                                if let Some(mv) = mv {
-                                    // Reviens dans la loop de la room avec le résultat
-                                    let mv =
-                                        format!("{}->{}", mv.0.to_algebraic(), mv.1.to_algebraic());
-                                    tx.send(RoomCommand::AIApplyMove { mv });
-                                }
-                            });
+                                    if let Some(mv) = mv {
+                                        // Reviens dans la loop de la room avec le résultat
+                                        let mv = format!(
+                                            "{}->{}",
+                                            mv.0.to_algebraic(),
+                                            mv.1.to_algebraic()
+                                        );
+                                        tx.send(RoomCommand::AIApplyMove { mv });
+                                    }
+                                });
+                            }
                         }
                     }
                 }
@@ -446,7 +452,7 @@ impl Room {
                     client_id,
                     response_tx,
                 } => {
-                    println!("A player Wqant to quit");
+                    println!("A player Want to quit");
                     let mut role = None;
                     // On enlève le joueur
                     if let Some(player) = self.players.remove(&client_id) {
@@ -620,6 +626,7 @@ impl Room {
                     match self.status {
                         RoomStatus::Running => {
                             self.status = RoomStatus::Paused;
+                            self.paused = true;
                             send_to_player(
                                 player,
                                 &ServerMessage::PauseGame {
@@ -629,12 +636,14 @@ impl Room {
                         }
                         RoomStatus::Paused => {
                             self.status = RoomStatus::Running;
+                            self.paused = false;
                             send_to_player(
                                 player,
                                 &ServerMessage::PauseGame {
                                     room_status: self.status,
                                 },
                             );
+                            self.tx.send(RoomCommand::AiMove);
                         }
                         _ => return,
                     }

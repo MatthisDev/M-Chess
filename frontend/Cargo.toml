@@ -7,8 +7,8 @@ edition = "2021"
 # Core Yew + Wasm
 yew = { version = "0.20.0", features = ["csr"] }
 yew-router = "0.17.0"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 gloo = "0.11"   
 gloo-net = "0.6.0"
 futures-util = "0.3"
