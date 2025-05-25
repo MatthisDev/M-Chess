@@ -15,7 +15,8 @@ use tokio_tungstenite::{
 };
 use uuid::Uuid;
 
-use crate::structures::{Player, PlayerType, Room, ServerState, SharedServerState};
+use crate::room::Room;
+use crate::serverstate::{ServerState, SharedServerState};
 use crate::{send_to_client, send_to_player};
 use game_lib::messages::{ClientMessage, ServerMessage};
 use game_lib::sharedenums::{GameMode, PlayerRole, RoomStatus};
@@ -26,9 +27,26 @@ pub fn to_player_role(color: Color) -> PlayerRole {
         Color::Black => PlayerRole::Black,
     }
 }
+pub fn send_game_state_to_clients(room: &Room) {
+    let board = room.game.board.export_display_board();
+    let turn = room.game.board.turn;
 
+    for player in room.players.values() {
+        if let Some(sender) = &player.sender {
+            let _ = sender.send(Message::Text(
+                serde_json::to_string(&ServerMessage::State {
+                    board: board.clone(),
+                    turn,
+                    counter: room.game.board.counter,
+                })
+                .unwrap()
+                .into(),
+            ));
+        }
+    }
+}
 // Create a Room and add the client who request it
-pub fn handle_create_room(
+/*pub fn handle_create_room(
     client_id: Uuid,
     mode: GameMode,
     difficulty: Option<game_lib::automation::ai::Difficulty>,
@@ -124,6 +142,7 @@ pub fn handle_create_room(
             players,
             game,
             created_at: Instant::now(),
+
         },
     );
     if let Some(c) = server_state.clients.get_mut(&client_id) {
@@ -138,9 +157,9 @@ pub fn handle_create_room(
         gamemod: mode,
     })
 }
-
+*/
 //Join a room using the room id
-pub fn handle_join_room(
+/*pub fn handle_join_room(
     client_id: Uuid,
     room_id: Uuid,
     server_state: &mut ServerState,
@@ -193,10 +212,10 @@ pub fn handle_join_room(
         gamemod: mode,
     })
 }
-
+*/
 //Handle the client status to launch a game
 // Only For PvP and PvAi
-pub fn handle_set_ready(
+/*pub fn handle_set_ready(
     client_id: Uuid,
     server_state: &Arc<Mutex<ServerState>>,
     client_state: bool,
@@ -228,16 +247,23 @@ pub fn handle_set_ready(
         },
     );
 
-    let all_ready = room.players.values().all(|p| p.ready);
+    let all_ready = room
+        .players
+        .values()
+        .all(|p| p.ready || p.role == PlayerRole::Spectator);
     match room.mode {
         GameMode::PlayerVsPlayer | GameMode::PlayerVsAI => {
             if room.players.len() == 2 && all_ready {
                 room.status = RoomStatus::WaitingReady;
+            } else {
+                room.status = RoomStatus::WaitingPlayers;
             }
         }
         GameMode::Sandbox => {
             if room.players.len() == 1 && all_ready {
                 room.status = RoomStatus::WaitingReady;
+            } else {
+                room.status = RoomStatus::WaitingPlayers;
             }
         }
         _ => {}
@@ -251,9 +277,9 @@ pub fn handle_set_ready(
         );
     }
 }
-
+*/
 //handle game starting request
-pub fn handle_start_game(client_id: Uuid, server_state: &Arc<Mutex<ServerState>>) {
+/*pub fn handle_start_game(client_id: Uuid, server_state: &Arc<Mutex<ServerState>>) {
     let mut state = server_state.lock().unwrap();
     let client = match state.clients.get(&client_id) {
         Some(c) => c,
@@ -291,13 +317,23 @@ pub fn handle_start_game(client_id: Uuid, server_state: &Arc<Mutex<ServerState>>
         }
     } else if room.mode == GameMode::AIvsAI {
         room.status = RoomStatus::Running;
+        for player in room.players.values() {
+            let _ = send_to_player(
+                player,
+                &ServerMessage::GameStarted {
+                    room_status: room.status,
+                    board: room.game.board.export_display_board(),
+                    turn: room.game.board.turn,
+                },
+            );
+        }
         // Release lock before async spawn
         tokio::spawn(run_ai_vs_ai_game(room_id, Arc::clone(server_state)));
     }
 }
-
+*/
 //Handle PossibleMove request
-pub fn handle_get_moves(client_id: Uuid, mv: String, server_state: &Arc<Mutex<ServerState>>) {
+/*pub fn handle_get_moves(client_id: Uuid, mv: String, server_state: &Arc<Mutex<ServerState>>) {
     let room_id;
     {
         let state = server_state.lock().unwrap();
@@ -343,7 +379,7 @@ pub fn handle_get_moves(client_id: Uuid, mv: String, server_state: &Arc<Mutex<Se
         println!("Room unwrap error");
     }
 }
-
+*/
 //Handle player move check if player is a player and if the move is valid
 // If the move is valid, send the new game state to all players (Spectators included)
 // If the game is over, send the game over message to all players
@@ -352,7 +388,7 @@ pub fn handle_get_moves(client_id: Uuid, mv: String, server_state: &Arc<Mutex<Se
 //--------------------
 //NOT FOR AIvAI MODE
 //--------------------
-pub fn handle_move(
+/*pub fn handle_move(
     client_id: Uuid,
     mv: String,
     server_state: &Arc<Mutex<ServerState>>,
@@ -418,6 +454,7 @@ pub fn handle_move(
                     &ServerMessage::State {
                         board: room.game.board.export_display_board(),
                         turn: room.game.board.turn,
+                        counter: room.game.board.counter,
                     },
                 );
             }
@@ -448,12 +485,12 @@ pub fn handle_move(
         }
     }
 }
-
+*/
 //Make an AI move if it's the AI's turn
 // If the AI makes a move, send the new game state to all players (Spectators included)
 // If the game is over, send the game over message to all players
 // If the AI cannot make a move, send an error message to the player |----Should Not Happen----|
-pub fn handle_ai_turn(
+/*pub fn handle_ai_turn(
     client_id: Uuid,
     server_state: &Arc<Mutex<ServerState>>,
 ) -> Option<ServerMessage> {
@@ -508,7 +545,7 @@ pub fn handle_ai_turn(
     }
     None
 }
-
+*/
 //---------------------
 //  ONLY AIvAI MODE
 //---------------------
@@ -516,7 +553,7 @@ pub fn handle_ai_turn(
 // This function runs in a loop, making moves for both AI players until the game is over
 // It checks the game state and sends updates to all players in the room
 // If the game is over, it breaks the loop
-pub async fn run_ai_vs_ai_game(room_id: Uuid, server_state: SharedServerState) {
+/*pub async fn run_ai_vs_ai_game(room_id: Uuid, server_state: SharedServerState) {
     loop {
         {
             let state = server_state.lock().unwrap();
@@ -529,7 +566,7 @@ pub async fn run_ai_vs_ai_game(room_id: Uuid, server_state: SharedServerState) {
             }
         }
 
-        let (ai_move, board_snapshot, turn, player_ids) = {
+        let (ai_move, board_snapshot, turn, player_ids, counter) = {
             let mut state = server_state.lock().unwrap();
             let room = match state.rooms.get_mut(&room_id) {
                 Some(r) => r,
@@ -564,6 +601,7 @@ pub async fn run_ai_vs_ai_game(room_id: Uuid, server_state: SharedServerState) {
                     .values()
                     .filter_map(|p| p.sender.as_ref().map(|_| p.id))
                     .collect::<Vec<Uuid>>(),
+                room.game.board.counter,
             )
         };
 
@@ -574,6 +612,7 @@ pub async fn run_ai_vs_ai_game(room_id: Uuid, server_state: SharedServerState) {
                     &ServerMessage::State {
                         board: board_snapshot.clone(),
                         turn,
+                        counter,
                     },
                 );
             }
@@ -582,32 +621,15 @@ pub async fn run_ai_vs_ai_game(room_id: Uuid, server_state: SharedServerState) {
         tokio::time::sleep(Duration::from_millis(500)).await;
     }
 }
-
+*/
 //Send the board and the turn to all players in the room
 // This function is called after every move to update the game state
-pub fn send_game_state_to_clients(room: &Room) {
-    let board = room.game.board.export_display_board();
-    let turn = room.game.board.turn;
-
-    for player in room.players.values() {
-        if let Some(sender) = &player.sender {
-            let _ = sender.send(Message::Text(
-                serde_json::to_string(&ServerMessage::State {
-                    board: board.clone(),
-                    turn,
-                })
-                .unwrap()
-                .into(),
-            ));
-        }
-    }
-}
 
 //Handle the game over state
 // This function is called when the game is over to update the game state
 // It sends the game over message to all players in the room
 // It also updates the room status to Finished
-fn handle_game_over(room: &mut Room, reason: &str) {
+/*fn handle_game_over(room: &mut Room, reason: &str) {
     room.status = RoomStatus::Finished;
     for player in room.players.values() {
         if let Some(sender) = &player.sender {
@@ -622,7 +644,7 @@ fn handle_game_over(room: &mut Room, reason: &str) {
         }
     }
 }
-
+*/
 //-----------------
 //  SANDBOX MODE
 //  AIvAI MODE
@@ -630,7 +652,7 @@ fn handle_game_over(room: &mut Room, reason: &str) {
 // This function is called when the game is paused or resumed
 // It updates the room status to Paused or Running
 // It sends a message to the player in the room
-pub fn toggle_pause_game(room_id: Uuid, server_state: &SharedServerState) -> Option<ServerMessage> {
+/*pub fn toggle_pause_game(room_id: Uuid, server_state: &SharedServerState) -> Option<ServerMessage> {
     let mut state = server_state.lock().unwrap();
     let room = state.rooms.get_mut(&room_id)?;
     if room.mode != GameMode::AIvsAI {
@@ -655,7 +677,7 @@ pub fn toggle_pause_game(room_id: Uuid, server_state: &SharedServerState) -> Opt
         _ => None,
     }
 }
-
+*/
 //-----------------
 //  QUIT
 //-----------------
@@ -664,7 +686,7 @@ pub fn toggle_pause_game(room_id: Uuid, server_state: &SharedServerState) -> Opt
 // It also deletes the room if there are no players left
 // It sends a message to all players remainging in the room
 //Confirmation message to the player quitting
-pub fn handle_quit(client_id: Uuid, server_state: &Arc<Mutex<ServerState>>) {
+/*pub fn handle_quit(client_id: Uuid, server_state: &Arc<Mutex<ServerState>>) {
     let (room_id_opt, was_last_human);
 
     // --- Étape 1 : retirer le joueur de la room et obtenir son room_id ---
@@ -697,9 +719,11 @@ pub fn handle_quit(client_id: Uuid, server_state: &Arc<Mutex<ServerState>>) {
             return;
         };
 
+        let mut role = None;
         // On enlève le joueur
         if let Some(player) = room.players.remove(&client_id) {
             send_to_player(&player, &ServerMessage::QuitGame);
+            role = Some(player.role);
         }
         println!("Client {} removed from room {}", client_id, room_id);
 
@@ -708,42 +732,48 @@ pub fn handle_quit(client_id: Uuid, server_state: &Arc<Mutex<ServerState>>) {
             .players
             .values()
             .any(|p| matches!(p.kind, PlayerType::Human));
-
         if was_last_human {
             state.rooms.remove(&room_id);
             println!("Room {} deleted: no human players remaining.", room_id);
             return;
         }
 
+        if let Some(role) = role
         // Si PvP et en cours => victoire par forfait
-        if room.mode == GameMode::PlayerVsPlayer && room.status == RoomStatus::Running {
-            if let Some(winner) = room
-                .players
-                .values()
-                .find(|p| matches!(p.role, PlayerRole::White | PlayerRole::Black))
+        {
+            if room.mode == GameMode::PlayerVsPlayer
+                && room.status == RoomStatus::Running
+                && role != PlayerRole::Spectator
             {
-                room.status = RoomStatus::Finished;
-                let msg = ServerMessage::GameOver {
-                    room_status: room.status,
-                    result: format!(
-                        "A player quit the game!!\nVictory by forfeit for {:?} !!!",
-                        winner.role
-                    ),
-                };
-                for p in room.players.values() {
-                    let _ = send_to_player(p, &msg);
+                if let Some(winner) = room
+                    .players
+                    .values()
+                    .find(|p| matches!(p.role, PlayerRole::White | PlayerRole::Black))
+                {
+                    room.status = RoomStatus::Finished;
+                    let msg = ServerMessage::GameOver {
+                        room_status: room.status,
+                        result: format!(
+                            "A player quit the game!!\nVictory by forfeit for {:?} !!!",
+                            winner.role
+                        ),
+                    };
+                    for p in room.players.values() {
+                        let _ = send_to_player(p, &msg);
+                    }
+                    println!(
+                        "Player {} quit the game. Victory by forfeit for {:?}.",
+                        client_id, winner.role
+                    );
                 }
-                println!(
-                    "Player {} quit the game. Victory by forfeit for {:?}.",
-                    client_id, winner.role
-                );
             }
-        }
 
-        // Si la room est vide
-        if room.players.is_empty() {
-            state.rooms.remove(&room_id);
-            println!("Room {} deleted: no players remaining.", room_id);
+            // Si la room est vide
+            if room.players.is_empty() {
+                state.rooms.remove(&room_id);
+                println!("Room {} deleted: no players remaining.", room_id);
+            }
         }
     }
 }
+*/

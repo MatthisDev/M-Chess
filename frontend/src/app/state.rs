@@ -1,10 +1,13 @@
 use game_lib::piece::Color;
 use game_lib::sharedenums::{GameMode, PlayerRole, RoomStatus};
+use serde::{Deserialize, Serialize};
 use std::rc::Rc;
 use uuid::Uuid;
 use yew::prelude::*;
 
-#[derive(Clone, PartialEq)]
+use crate::routes::Route;
+
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct ServerState {
     pub host: bool,
     pub ping: bool,
@@ -18,10 +21,14 @@ pub struct ServerState {
     pub legals_moves: Vec<String>,
     pub board: Vec<Vec<Option<String>>>,
     pub turn: Option<Color>,
+    pub counter: usize,
     pub game_over: Option<String>,
+    pub paused: bool,
+    pub ingame: bool,
     //Other
     pub info: Option<String>,
     pub error: Option<String>,
+    pub last_page: Option<Route>,
 }
 
 impl Default for ServerState {
@@ -38,9 +45,13 @@ impl Default for ServerState {
             legals_moves: Vec::new(),
             board: vec![vec![None; 8]; 8],
             turn: None,
+            counter: 0,
             game_over: None,
             info: None,
             error: None,
+            last_page: None,
+            paused: false,
+            ingame: false,
         }
     }
 }
@@ -52,10 +63,15 @@ impl Reducible for ServerState {
         let mut new_state = (*self).clone();
 
         match action {
-            ServerAction::SetBoard { board, turn } => {
+            ServerAction::SetBoard {
+                board,
+                turn,
+                counter,
+            } => {
                 new_state.board = board;
                 new_state.turn = Some(turn);
-                new_state.legals_moves = Vec::new()
+                new_state.legals_moves = Vec::new();
+                new_state.counter = counter;
             }
             ServerAction::SetGameOver(result, room_status) => {
                 new_state.game_over = Some(result);
@@ -83,6 +99,14 @@ impl Reducible for ServerState {
                 new_state.joined = joined;
                 new_state.room_status = Some(room_status);
                 new_state.host = host;
+                new_state.ingame = true;
+                web_sys::console::log_1(
+                    &format!(
+                        "role: {:?}, gammemod: {:?}",
+                        new_state.role, new_state.gamemod
+                    )
+                    .into(),
+                );
             }
             ServerAction::SetLegalMoves(mv) => {
                 new_state.legals_moves = mv;
@@ -94,6 +118,12 @@ impl Reducible for ServerState {
                 new_state.ping = true;
             }
             ServerAction::ResetPing => new_state.ping = false,
+            ServerAction::SetLastPage(route) => {
+                new_state.last_page = Some(route);
+            }
+            ServerAction::Pausing => {
+                new_state.paused = !new_state.paused;
+            }
         }
 
         Rc::new(new_state)
@@ -104,6 +134,7 @@ pub enum ServerAction {
     SetBoard {
         board: Vec<Vec<Option<String>>>,
         turn: Color,
+        counter: usize,
     },
     SetLegalMoves(Vec<String>),
     SetGameOver(String, RoomStatus),
@@ -116,4 +147,6 @@ pub enum ServerAction {
     SetQuit,
     Ping,
     ResetPing,
+    SetLastPage(Route),
+    Pausing,
 }

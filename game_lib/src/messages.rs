@@ -24,6 +24,7 @@ pub enum ServerMessage {
     State {
         board: Vec<Vec<Option<String>>>,
         turn: Color,
+        counter: usize,
     },
     GameOver {
         room_status: RoomStatus,
@@ -50,6 +51,16 @@ pub enum ServerMessage {
     SandboxPieceAdded {
         piece: String,
         pos: String,
+    },
+    CloseRoom {
+        id: Uuid,
+    },
+    InternalClose {
+        id: Uuid,
+        clients_id: Vec<Uuid>,
+    },
+    RoomClean {
+        room_id: Uuid,
     },
     QuitGame,
     Ping,

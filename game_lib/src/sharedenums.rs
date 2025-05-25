@@ -21,7 +21,6 @@ pub enum PlayerRole {
 pub enum RoomStatus {
     WaitingPlayers,
     WaitingReady,
-    ReadyToStart,
     Running,
     Finished,
     Paused,

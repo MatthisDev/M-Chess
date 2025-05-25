@@ -7,7 +7,9 @@ use game_lib::messages::{ClientMessage, ServerMessage};
 use game_lib::piece::Color;
 use game_lib::sharedenums::GameMode;
 use game_lib::sharedenums::PlayerRole;
+use gloo_storage::{LocalStorage, Storage};
 use std::rc::Rc;
+use std::str::FromStr;
 use uuid::Uuid;
 use web_sys::console;
 use yew::prelude::*;
@@ -63,10 +65,17 @@ fn dispatch_server_message(
     dispatch: UseReducerHandle<ServerState>,
     navigator: Navigator,
 ) {
-    web_sys::console::log_1(&format!(" Message en traitement...: {:?}", msg).into());
     match msg {
-        ServerMessage::State { board, turn } => {
-            dispatch.dispatch(ServerAction::SetBoard { board, turn });
+        ServerMessage::State {
+            board,
+            turn,
+            counter,
+        } => {
+            dispatch.dispatch(ServerAction::SetBoard {
+                board,
+                turn,
+                counter,
+            });
         }
         ServerMessage::LegalMoves { moves } => {
             dispatch.dispatch(ServerAction::SetLegalMoves(moves));
@@ -114,12 +123,23 @@ fn dispatch_server_message(
             board,
             turn,
         } => {
-            dispatch.dispatch(ServerAction::SetBoard { board, turn });
+            dispatch.dispatch(ServerAction::SetBoard {
+                board,
+                turn,
+                counter: 0,
+            });
             dispatch.dispatch(ServerAction::SetRoomStatus(room_status));
         }
         ServerMessage::Ping => {
             web_sys::console::log_1(&"🏓 Ping received, sending pong...".into());
             dispatch.dispatch(ServerAction::Ping);
+        }
+        ServerMessage::PauseGame { room_status } => {
+            dispatch.dispatch(ServerAction::Pausing);
+            dispatch.dispatch(ServerAction::SetRoomStatus(room_status));
+        }
+        ServerMessage::CloseRoom { id } => {
+            dispatch.dispatch(ServerAction::SetQuit);
         }
         _ => {
             web_sys::console::log_1(&format!("❓ Message inattendu: {:?}", msg).into());
@@ -135,22 +155,58 @@ fn app_inner() -> Html {
     let server_state = use_context::<UseReducerHandle<ServerState>>().expect("ServerState missing");
 
     {
+        let server_state = server_state.clone();
+        use_effect_with_deps(
+            move |route| {
+                // Sauvegarde le last_page dans le ServerState ET dans localStorage
+                LocalStorage::set("last_page", route.to_string())
+                    .expect("failed to store last_page");
+                || ()
+            },
+            current_route.clone(),
+        );
+    }
+
+    {
         let navigator = navigator.clone();
         let ctx = ctx.clone();
         use_effect_with_deps(
-            move |state| {
+            move |&joined| {
                 // Redirect to game if joined
-                if state.joined {
+                if joined {
                     navigator.push(&Route::Game);
                 }
-                //Pong
-                else if state.ping {
+
+                || ()
+            },
+            server_state.joined,
+        );
+    }
+    {
+        let ctx = ctx.clone();
+        let server_guard = server_state.clone();
+        use_effect_with_deps(
+            move |&ping| {
+                if ping {
                     ctx.send(ClientMessage::Pong);
-                    state.dispatch(ServerAction::ResetPing);
+                    server_guard.dispatch(ServerAction::ResetPing);
                 }
                 || ()
             },
-            server_state.clone(),
+            server_state.ping,
+        );
+    }
+    {
+        let ctx = ctx.clone();
+        use_effect_with_deps(
+            move |&(room_id, ingame)| {
+                web_sys::console::log_1(&"Ingame mais pas de Room?".to_string().into());
+                if room_id.is_none() && ingame {
+                    ctx.send(ClientMessage::Quit);
+                }
+                || ()
+            },
+            (server_state.room_id, server_state.ingame),
         );
     }
 
@@ -242,11 +298,30 @@ fn prepare_callback(props: &PrepareCallbackProps) -> Html {
 
         use_effect_with_deps(
             move |_| {
+                let dispatch_clone = dispatch.clone();
+                let navigator_clone = navigator.clone();
+                let set_on_message_clone = set_on_message.clone();
+                let navigator_for_redirect = navigator.clone();
+                // Prépare le callback WebSocket
                 let callback = Callback::from(move |msg: ServerMessage| {
                     web_sys::console::log_1(&format!("📩 Message reçu: {:?}", msg).into());
-                    dispatch_server_message(msg.clone(), dispatch.clone(), navigator.clone());
+                    dispatch_server_message(
+                        msg.clone(),
+                        dispatch_clone.clone(),
+                        navigator_clone.clone(),
+                    );
                 });
-                set_on_message.set(Some(callback));
+                set_on_message_clone.set(Some(callback));
+
+                // Redirection automatique dans le prochain "tick"
+
+                let stored_page = LocalStorage::get::<String>("last_page").ok();
+                if let Some(page_str) = stored_page {
+                    if let Ok(route) = Route::from_str(&page_str) {
+                        navigator_for_redirect.push(&route);
+                    }
+                }
+
                 || ()
             },
             (),
