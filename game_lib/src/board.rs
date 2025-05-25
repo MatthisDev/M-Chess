@@ -435,7 +435,7 @@ impl Board {
     }
 
     fn is_upgrade_situation(&mut self, piece_pos: &Position) {
-         
+        
         match Piece::get_piece(piece_pos, self) {
             Some(piece) if (piece.position.row == 0 || piece.position.row == 7) &&
                             piece.piece_type == PieceType::Pawn
@@ -507,6 +507,8 @@ impl Board {
         self.squares[piece_pos.row][piece_pos.col] = EMPTY_CELL;
 
         self.counter += if self.turn == Color::White { 0 } else { 1 };
+
+        self.is_upgrade_situation(to);
 
         true
     }

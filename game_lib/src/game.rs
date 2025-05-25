@@ -132,9 +132,13 @@ impl Game {
         if piece.color != self.board.turn {
             return Err("Invalid movement.");
         }
-
+        
+        // upgrade pawn
         if !self.board.waiting_upgrade.is_none(){
             return Err("Waiting upgrade.");
+        }
+        else if self.perform_upgrade("q".to_string()) {
+            return Ok(true); 
         }
 
         // castle situtation
@@ -145,6 +149,9 @@ impl Game {
 
         // if the piece can move + is moved
         if self.board.move_piece(&from_pos, &to_pos) {
+            
+            self.perform_upgrade("q".to_string());
+            
             self.board.turn = self.board.turn.opposite();
 
             println!("Success!");

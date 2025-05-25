@@ -1,5 +1,6 @@
 use crate::automation::ai::{Difficulty, AI};
 use crate::game::Game;
+use crate::piece::PieceType;
 use crate::piece::Color;
 use crate::position::Position;
 use std::io;
@@ -105,6 +106,21 @@ mod movements_tests {
         game.board.add_piece("bpd3");
 
         assert_eq!(game.make_move_algebraic("c4->d3"), Ok(true));
+    }
+
+    #[test]
+    fn pawn_upgrade() {
+        let mut game = Game::init(true);
+        
+        game.board.add_piece("wke7");
+        game.board.add_piece("bke0");
+        game.board.add_piece("wpc1");
+
+        assert_eq!(game.make_move_algebraic("c1->c0"), Ok(true));
+
+        game.board.print_board();
+        
+        assert_eq!(game.board.pieces[1][0].piece_type, PieceType::Queen);
     }
 
     #[test]
