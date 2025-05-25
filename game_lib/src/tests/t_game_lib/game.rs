@@ -188,9 +188,21 @@ mod movements_tests {
         game.board.add_piece("bkf0");
         game.board.add_piece("bpc5");
 
-        game.board.print_board();
+        // game.board.print_board();
 
         assert_eq!(game.make_move_algebraic("d7->c6"), Ok(true));
+    }
+
+    #[test]
+    fn king2() {
+        let mut game = Game::init(true);
+
+        game.board.add_piece("wkd7");
+        game.board.add_piece("bkd5");
+    
+        game.board.print_board();
+        
+        assert_eq!(game.make_move_algebraic("d7->d6"), Err("Invalid movement."));
     }
 }
 // >=============== get_list_moves ===============<
@@ -220,6 +232,8 @@ mod list_moves_tests {
         game.board.add_piece("brf2");
         game.board.add_piece("bkd1");
         game.board.add_piece("wke5");
+
+        game.board.print_board();
 
         assert_eq!(
             game.get_list_moves("d1".to_string()),

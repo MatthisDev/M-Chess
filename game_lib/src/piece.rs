@@ -50,13 +50,14 @@ impl PieceType {
     }
 
     pub fn from_string(str_: String) -> Self{
-        match str_ {
-            "k" => PieceType::King,
+        match str_.as_str() {
+            "k" => PieceType::King(1),
             "q" => PieceType::Queen,
-            "r" => PieceType::Rook,
+            "r" => PieceType::Rook(1),
             "b" => PieceType::Bishop,
             "n" => PieceType::Knight,
             "p" => PieceType::Pawn,
+            _ => panic!("pls give a right type")
         }
     }
 }
@@ -183,6 +184,8 @@ impl Piece {
             //If the move +1 or -1 is not possible then the move + 2
             if (self.color == Color::White && self.position.row == 6)
                 || (self.color == Color::Black && self.position.row == 1)
+
+
             {
                 let double_forward: Position = Position::new(
                     (self.position.row as i32 + 2 * direction) as usize,
@@ -491,9 +494,14 @@ impl Piece {
         if !matches!(self.piece_type, PieceType::King(_)) {
             return false;
         }
-        self.position == *cell_pos
-            || ((self.position.row + 1 == cell_pos.row || self.position.row == cell_pos.row + 1)
-                && (self.position.col + 1 == cell_pos.col || self.position.col == cell_pos.col + 1))
+
+        (self.position.row + 1 == cell_pos.row 
+          || self.position.row == cell_pos.row + 1 
+          || self.position.row == cell_pos.row)
+            && 
+         (self.position.col + 1 == cell_pos.col 
+          || self.position.col == cell_pos.col + 1
+          || self.position.col == cell_pos.col)
     }
 
     fn is_valid_move_king(&self, board: &Board, to_pos: &Position) -> bool {
@@ -507,7 +515,7 @@ impl Piece {
             (-1, 1),
             (-1, -1),
         ];
-        println!("FEUR");
+        
         //Normal moves without
         for &(row_offset, col_offset) in &offsets {
             let target: Position = Position::new(

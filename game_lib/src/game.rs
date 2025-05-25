@@ -133,7 +133,7 @@ impl Game {
             return Err("Invalid movement.");
         }
 
-        if self.board.waiting_upgrade != None {
+        if !self.board.waiting_upgrade.is_none(){
             return Err("Waiting upgrade.");
         }
 
@@ -235,7 +235,7 @@ impl Game {
     /// 
     /// # Example
     /// ```no_run
-    /// use game_lib::game:Game;
+    /// use game_lib::game::Game;
     ///
     /// let mut game = Game::init(false);
     ///
@@ -243,10 +243,10 @@ impl Game {
     /// // do moves until upgrade situation
     /// game.has_to_upgrade(); // => Some(a0)
     /// ```
-    fn has_to_upgrade(&self) -> Option<String> {
-        match board.waiting_upgrade {
-            Some(piece) -> Some(piece.position.to_algebraic()),
-            None -> None
+    pub fn has_to_upgrade(&self) -> Option<String> {
+        match self.board.waiting_upgrade {
+            Some(position) => Some(position.to_algebraic()),
+            None => None
         }
     }
     
@@ -261,36 +261,36 @@ impl Game {
     ///
     /// # Example
     /// ```no_run
-    /// use game_lib::game:Game;
+    /// use game_lib::game::Game;
     ///
     /// let mut game = Game::init(false);
     ///
-    /// game.perform_upgrade("b"); // => false 
+    /// game.perform_upgrade("b".to_string()); // => false 
     /// 
     /// // do moves until upgrade situation
     ///
-    /// match self.has_to_upgrade() {
-    ///     Some(str_pos) => game.perform_upgrade("b"), // => true
-    ///     None => ()
-    /// }
+    /// match game.has_to_upgrade() {
+    ///     Some(str_pos) => game.perform_upgrade("b".to_string()), // => true
+    ///     None => false
+    /// };
     /// ```
-    fn perform_upgrade(&mut self, piece_type: String) -> bool {
+    pub fn perform_upgrade(&mut self, piece_type: String) -> bool {
         let position = match self.board.waiting_upgrade {
-            Some(piece) if piece.piece_type == PieceType::Pawn => piece.position,
+            Some(position) => position,
             _  => return false
-        }
+        };
 
         let piece_type: PieceType = match PieceType::from_string(piece_type) {
             p @ (PieceType::Queen 
                 | PieceType::Knight 
                 | PieceType::Bishop 
-                | PieceType::Rook) => p,
+                | PieceType::Rook(_)) => p,
             _ => return false
         };
         
         match Piece::get_piece_mut(&position, &mut self.board) {
-            Some(piece) => piece.piece_type = piece_type,
-            None => return false
+            Some(piece) if piece.piece_type == PieceType::Pawn => piece.piece_type = piece_type,
+            _ => return false
         }
         
         // reset waiting state

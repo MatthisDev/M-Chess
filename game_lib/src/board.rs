@@ -22,7 +22,7 @@ pub struct Board {
     pub turn: Color,
     pub history: Vec<(Position, Position, PieceType, (usize, usize), bool)>,
     pub counter: usize,
-    pub waiting_upgrade: Option<Piece>
+    pub waiting_upgrade: Option<Position>
 }
 
 impl Board {
@@ -439,7 +439,7 @@ impl Board {
         match Piece::get_piece(piece_pos, self) {
             Some(piece) if (piece.position.row == 0 || piece.position.row == 7) &&
                             piece.piece_type == PieceType::Pawn
-                            => self.waiting_upgrade = Some(piece_pos),
+                            => self.waiting_upgrade = Some(*piece_pos),
             _ => ()
         }
     }
@@ -561,6 +561,7 @@ impl Board {
     //Check if the piece is attacked by the ennemy
     //stop when a move in the ennemy piece is valid and match the position of the piece
     pub fn is_attacked(&self, position: &Position, color: Color) -> bool {
+
         let ennemy_color = color.opposite();
 
         // Pawns are exceptions: attacked cells != all valid moves
@@ -600,7 +601,7 @@ impl Board {
         if !piece.is_valid_move(self, to) {
             return false;
         }
-
+        
         // Si le move est simulable == n'implique pas un echec de notre propre roi.
         !self.put_in_check_simulation(piece_pos, to)
     }
@@ -734,10 +735,9 @@ impl Board {
 
     // Check if the king of the color is in check
     // get the king of the color and check if it is attacked
-
     pub fn is_king_in_check(&self, color: Color) -> bool {
         let king: &Piece = &self.pieces[color as usize][15];
-
+        
         self.is_attacked(&king.position, color)
     }
 
