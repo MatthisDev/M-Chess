@@ -22,6 +22,10 @@ impl AI {
     pub fn new(difficulty: Difficulty, color: Color) -> Self {
         AI { difficulty, color }
     }
+    
+    pub fn get_color(&self) -> Color {
+        self.color
+    }
 
     pub fn get_best_move(&self, board: &Board) -> Option<(Position, Position)> {
         let mut best_move = None;
@@ -37,6 +41,8 @@ impl AI {
             if piece.position.row == NONE || piece.position.col == NONE {
                 continue; // Skip unused pieces
             }
+
+            println!("---- {:?} ----", piece.position);
             for mv in Piece::valid_moves(piece.position, &mut board.clone()) {
                 let mut new_board = board.clone();
                 new_board.move_piece(&piece.position, &mv);
@@ -44,7 +50,7 @@ impl AI {
 
                 let move_value =
                     self.recursive_minimax(&mut new_board, max_depth, false, i32::MIN, i32::MAX);
-
+                println!("mv: {:?} valued to {:?}", mv, move_value);
                 if move_value > best_value {
                     best_value = move_value;
                     best_move = Some((piece.position, mv));
@@ -112,7 +118,7 @@ impl AI {
 
             // Prioritize castling
             if board.is_castling_move(from, to) {
-                priority -= 90;
+                priority -= 100_000;
             }
 
             // Prioritize moves involving strong pieces
@@ -190,6 +196,7 @@ impl AI {
                 return 0; // Draw
             }
         }
+
         let mut score = 0;
 
         // Material value
@@ -203,6 +210,15 @@ impl AI {
                 score -= piece.piece_type.get_value();
             }
         }
+
+        score += self.evaluate_board_one_color(board, self.color);
+        score -= self.evaluate_board_one_color(board, self.color.opposite());
+        
+        score
+    }
+
+    fn evaluate_board_one_color(&self, board: &Board, color: Color) -> i32 {
+        let mut score: i32 = 0;
 
         // Positional bonuses
         for piece in board.pieces[self.color as usize].iter() {
@@ -239,42 +255,7 @@ impl AI {
                 }
             }
         }
-
-        // Opponent's positional penalties
-        for piece in board.pieces[self.color.opposite() as usize].iter() {
-            if piece.position.row != NONE && piece.position.col != NONE {
-                match piece.piece_type {
-                    PieceType::Pawn => {
-                        if piece.position.is_center() {
-                            score -= 1; // Penalty for opponent's pawns in the center
-                        }
-                        if board.is_pawn_isolated(&piece.position) {
-                            score += 1; // Bonus for opponent's isolated pawns
-                        }
-                        if board.is_pawn_doubled(&piece.position) {
-                            score += 1; // Bonus for opponent's doubled pawns
-                        }
-                    }
-                    PieceType::Rook(_) => {
-                        if board.is_open_file(piece.position.col) {
-                            score -= 3; // Penalty for opponent's rooks on open files
-                        }
-                    }
-                    PieceType::Knight => {
-                        if piece.position.is_center() {
-                            score -= 3; // Penalty for opponent's knights in the center
-                        }
-                    }
-                    PieceType::King(_) => {
-                        if board.is_king_exposed(&piece.position) {
-                            score += 10; // Bonus for opponent's exposed king
-                        }
-                    }
-                    _ => {}
-                }
-            }
-        }
-
+    
         score
     }
 }

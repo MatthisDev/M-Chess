@@ -27,7 +27,7 @@ impl Position {
             return Err("parse_move_str: invalid send string: <{move_piece}>");
         }
         let col: usize = algebraic.chars().next().unwrap() as usize - 'a' as usize;
-        let row: usize = (algebraic.chars().nth(1).unwrap() as usize - '0' as usize);
+        let row: usize = algebraic.chars().nth(1).unwrap() as usize - '0' as usize;
 
         if col >= BOARD_SIZE || row >= BOARD_SIZE {
             return Err("parse_move_str: invalid send string: <{move_piece}>");
