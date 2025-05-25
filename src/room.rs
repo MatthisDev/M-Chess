@@ -273,6 +273,7 @@ impl Room {
                     let player_color = match player {
                         PlayerRole::White => Color::White,
                         PlayerRole::Black => Color::Black,
+                        PlayerRole::Solo => expected_color,
                         _ => {
                             if let Some(player) = self.players.get(&client_id) {
                                 send_to_player(
