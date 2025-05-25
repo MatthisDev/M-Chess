@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::board::{self, Board, BOARD_SIZE, EMPTY_CELL, EMPTY_POS, NONE};
+use uuid::Uuid;
 use crate::piece::Piece;
 use crate::piece::{Color, PieceType};
 use crate::position::Position;
@@ -11,6 +12,7 @@ use crate::position::Position;
 pub struct Game {
     pub board: Board,
     pub nb_turn: usize,
+    pub uid: Uuid
 }
 
 impl Game {
@@ -77,7 +79,7 @@ impl Game {
 
     fn castle_situation(&mut self, king: &Piece, to_pos: &Position) -> bool {
         // Vérifier si le mouvement est un roque
-        if king.piece_type == PieceType::King(0) {
+        if king.piece_type != PieceType::King(0){
             return false;
         }
 
@@ -103,7 +105,6 @@ impl Game {
 
         false
     }
-
     /// Try to move a [`Piece`] on the [`Board`] instance.\
     /// Take a `String` with the format `"from_cell->to_cell"`. And cell's regex is [a-h][0-8]
     ///
@@ -142,18 +143,26 @@ impl Game {
         if piece.color != self.board.turn {
             return Err("Invalid movement.");
         }
+        
+        // upgrade pawn
+        if !self.board.waiting_upgrade.is_none(){
+            return Err("Waiting upgrade.");
+        }
+        else if self.perform_upgrade("q".to_string()) {
+            return Ok(true); 
+        }
 
-        //TODO
-        // if self.board.is_king_in_check(turn) => if pion != roi || move protège le roi => false
-
-        // rock situtation
-        if matches!(piece.piece_type, PieceType::King(_)) && self.castle_situation(piece, &to_pos) {
+        // castle situtation
+        if self.castle_situation(piece, &to_pos) {
             self.board.turn = self.board.turn.opposite();
             return Ok(true);
         }
 
         // if the piece can move + is moved
         if self.board.move_piece(&from_pos, &to_pos) {
+            
+            self.perform_upgrade("q".to_string());
+            
             self.board.turn = self.board.turn.opposite();
 
             println!("Success!");
@@ -247,5 +256,73 @@ impl Game {
         } else {
             0
         };
+    } 
+    
+    /// Check the state of the board if a pawn has to be upgrade it's return coo
+    /// 
+    /// # Example
+    /// ```no_run
+    /// use game_lib::game::Game;
+    ///
+    /// let mut game = Game::init(false);
+    ///
+    /// game.has_to_upgrade(); // => None
+    /// // do moves until upgrade situation
+    /// game.has_to_upgrade(); // => Some(a0)
+    /// ```
+    pub fn has_to_upgrade(&self) -> Option<String> {
+        match self.board.waiting_upgrade {
+            Some(position) => Some(position.to_algebraic()),
+            None => None
+        }
+    }
+    
+    /// Upgrade the current pawn to upgrade on the board.
+    /// 
+    /// Return true if the upgrade type is right
+    /// Return false otherwise 
+    /// 
+    /// piece_type format:
+    /// "q": Queen | "n": Knight | "r": Rook | "b": Bishop
+    /// (return false for other piece's type)
+    ///
+    /// # Example
+    /// ```no_run
+    /// use game_lib::game::Game;
+    ///
+    /// let mut game = Game::init(false);
+    ///
+    /// game.perform_upgrade("b".to_string()); // => false 
+    /// 
+    /// // do moves until upgrade situation
+    ///
+    /// match game.has_to_upgrade() {
+    ///     Some(str_pos) => game.perform_upgrade("b".to_string()), // => true
+    ///     None => false
+    /// };
+    /// ```
+    pub fn perform_upgrade(&mut self, piece_type: String) -> bool {
+        let position = match self.board.waiting_upgrade {
+            Some(position) => position,
+            _  => return false
+        };
+
+        let piece_type: PieceType = match PieceType::from_string(piece_type) {
+            p @ (PieceType::Queen 
+                | PieceType::Knight 
+                | PieceType::Bishop 
+                | PieceType::Rook(_)) => p,
+            _ => return false
+        };
+        
+        match Piece::get_piece_mut(&position, &mut self.board) {
+            Some(piece) if piece.piece_type == PieceType::Pawn => piece.piece_type = piece_type,
+            _ => return false
+        }
+        
+        // reset waiting state
+        self.board.waiting_upgrade = None;
+
+        return true;
     }
 }

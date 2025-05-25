@@ -376,6 +376,7 @@ pub async fn server_ping_loop(state: SharedServerState) {
 
         for client in state_guard.clients.values() {
             let _ = send_to_client(client, &ServerMessage::Ping);
+
         }
     }
 }

@@ -22,6 +22,7 @@ pub struct Board {
     pub turn: Color,
     pub history: Vec<(Position, Position, PieceType, (usize, usize), bool)>,
     pub counter: usize,
+    pub waiting_upgrade: Option<Position>
 }
 
 impl Board {
@@ -77,6 +78,7 @@ impl Board {
             turn: Color::White,
             history: Vec::new(),
             counter: 0,
+            waiting_upgrade: None,
         }
     }
 
@@ -167,11 +169,16 @@ impl Board {
             turn: Color::White,
             history: Vec::new(),
             counter: 0,
+            waiting_upgrade: None,
         }
     }
 
     /// display the board in the terminal
     /// take a reference to the board
+    ///
+    /// White: uppercase
+    ///
+    /// Black: lowercase
     pub fn print_board(&self) {
         println!("  a b c d e f g h");
         for row in 0..BOARD_SIZE {
@@ -329,6 +336,11 @@ impl Board {
         // add the piece on the board and link squares and pieces togather
         self.squares[board_pos.row][board_pos.col] = (icolor as isize, i as isize);
         self.pieces[icolor][i].position = board_pos;
+        
+        // if it's the king
+        if i == 15 && board_pos != Position::new(7,4) && board_pos != Position::new(0,4) {
+            self.pieces[icolor][i].piece_type = PieceType::King(1);
+        }
 
         Ok(true)
     }
@@ -382,6 +394,55 @@ impl Board {
         // and try to update to its new position
         self.is_valid_move(from, to) && self.update_position(from, to)
     }
+    
+    // WARNING: Just remove the captured piece
+    fn update_en_passant(&mut self, piece_pos: &Position, to: &Position) {
+        
+        match Piece::get_piece(piece_pos, self) {
+            Some(piece) if piece.piece_type == PieceType::Pawn => (),
+            _ => return
+        }
+        
+        // if diagonal move with no piece to eat => en passant
+        if to.col != piece_pos.col && self.squares[to.row][to.col] == EMPTY_CELL {
+            let capture_pos = 
+                if to.row == 2 { Position::new(3,to.col) }
+                else { Position::new(5,to.col) };
+            
+            // we suppose that the color is valid
+            let (icolor, ipiece): (usize, usize) = match self.squares[capture_pos.row][capture_pos.col] {
+                EMPTY_CELL => return,
+                (x, y) => (x as usize, y as usize)
+            };
+            
+            // udpate history
+            self.history.push((
+                    capture_pos,
+                    EMPTY_POS,
+                    PieceType::Pawn,
+                    (icolor, ipiece),
+                    true,
+            ));
+
+            // unlink the piece to the cell
+            match Piece::get_piece_mut(&capture_pos, self) {
+                Some(piece) => piece.position = EMPTY_POS,
+                None => (),
+            }
+            // unlink the cell to the piece
+            self.squares[capture_pos.row][capture_pos.col] = EMPTY_CELL;
+        }
+    }
+
+    fn is_upgrade_situation(&mut self, piece_pos: &Position) {
+        
+        match Piece::get_piece(piece_pos, self) {
+            Some(piece) if (piece.position.row == 0 || piece.position.row == 7) &&
+                            piece.piece_type == PieceType::Pawn
+                            => self.waiting_upgrade = Some(*piece_pos),
+            _ => ()
+        }
+    }
 
     // update without checking chess rules and replacing pieces
     //also update the history
@@ -400,22 +461,24 @@ impl Board {
         if (NONE, NONE) != (x_piece_to, y_piece_to) {
             // push the info in the history
             self.history.push((
-                *to,
-                EMPTY_POS,
-                self.pieces[x_piece_to][y_piece_to].piece_type,
-                (x_piece_to, y_piece_to),
-                true,
+                    *to,
+                    EMPTY_POS,
+                    self.pieces[x_piece_to][y_piece_to].piece_type,
+                    (x_piece_to, y_piece_to),
+                    true,
             ));
             self.pieces[x_piece_to][y_piece_to].position = EMPTY_POS;
+        } else if self.pieces[x_piece][y_piece].piece_type == PieceType::Pawn {
+            self.update_en_passant(piece_pos, to);
         }
 
         // update history
         self.history.push((
-            *piece_pos,
-            *to,
-            self.pieces[x_piece][y_piece].piece_type,
-            (x_piece, y_piece), // EXCEPTIONNELLE SITUATION
-            false,              //Option<Piece> de la case
+                *piece_pos,
+                *to,
+                self.pieces[x_piece][y_piece].piece_type,
+                (x_piece, y_piece), // EXCEPTIONNELLE SITUATION
+                false,              //Option<Piece> de la case
         ));
 
         // link the piece to its new coo
@@ -444,6 +507,8 @@ impl Board {
         self.squares[piece_pos.row][piece_pos.col] = EMPTY_CELL;
 
         self.counter += if self.turn == Color::White { 0 } else { 1 };
+
+        self.is_upgrade_situation(to);
 
         true
     }
@@ -498,9 +563,22 @@ impl Board {
     //Check if the piece is attacked by the ennemy
     //stop when a move in the ennemy piece is valid and match the position of the piece
     pub fn is_attacked(&self, position: &Position, color: Color) -> bool {
+
         let ennemy_color = color.opposite();
 
-        for i in 0..15 {
+        // Pawns are exceptions: attacked cells != all valid moves
+        for i in 0..7 {
+            if self.pieces[ennemy_color as usize][i].position == EMPTY_POS {
+                continue;
+            }
+            else if (position.col != self.pieces[ennemy_color as usize][i].position.col ||
+                self.pieces[ennemy_color as usize][i].piece_type != PieceType::Pawn) &&
+                self.pieces[ennemy_color as usize][i].is_valid_move(self, position) {
+                    return true;
+            }
+        }
+
+        for i in 8..15 {
             // ignore eaten pieces
             if self.pieces[ennemy_color as usize][i].position == EMPTY_POS {
                 continue;
@@ -525,7 +603,7 @@ impl Board {
         if !piece.is_valid_move(self, to) {
             return false;
         }
-
+        
         // Si le move est simulable == n'implique pas un echec de notre propre roi.
         !self.put_in_check_simulation(piece_pos, to)
     }
@@ -659,10 +737,9 @@ impl Board {
 
     // Check if the king of the color is in check
     // get the king of the color and check if it is attacked
-
     pub fn is_king_in_check(&self, color: Color) -> bool {
         let king: &Piece = &self.pieces[color as usize][15];
-
+        
         self.is_attacked(&king.position, color)
     }
 
@@ -801,7 +878,7 @@ impl Board {
         for piece in self.pieces[self.turn as usize].iter() {
             if piece.piece_type == PieceType::Pawn
                 && piece.position.col == col
-                && piece.position != *position
+                    && piece.position != *position
             {
                 return true; // Found another friendly pawn on the same file
             }
@@ -841,8 +918,8 @@ impl Board {
                 // Ensure the indices are within bounds
                 if adj_row >= 0
                     && adj_row < BOARD_SIZE as isize
-                    && adj_col >= 0
-                    && adj_col < BOARD_SIZE as isize
+                        && adj_col >= 0
+                        && adj_col < BOARD_SIZE as isize
                 {
                     let adj_row = adj_row as usize;
                     let adj_col = adj_col as usize;
@@ -851,7 +928,7 @@ impl Board {
                     let (x, y) = self.squares[adj_row][adj_col];
                     if x != NONE as isize
                         && self.pieces[x as usize][y as usize].piece_type == PieceType::Pawn
-                        && self.pieces[x as usize][y as usize].color == self.turn
+                            && self.pieces[x as usize][y as usize].color == self.turn
                     {
                         return false; // Found a friendly pawn protecting the king
                     }
