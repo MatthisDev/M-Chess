@@ -3,7 +3,9 @@ use std::sync::{Arc, Mutex};
 
 use futures_util::{stream::SplitSink, SinkExt, StreamExt};
 use gloo_net::websocket::{futures::WebSocket, Message};
+use gloo_storage::{LocalStorage, Storage};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 use yew::{platform::spawn_local, prelude::*};
 
 use game_lib::messages::{ClientMessage, ServerMessage};
@@ -113,5 +115,15 @@ pub fn ws_provider(props: &WsProviderProps) -> Html {
 impl WsContext {
     pub fn send(&self, msg: ClientMessage) {
         self.sender.emit(msg)
+    }
+}
+
+fn get_or_create_client_id() -> String {
+    if let Ok(client_id) = LocalStorage::get::<String>("client_id") {
+        client_id
+    } else {
+        let new_id = Uuid::new_v4().to_string();
+        LocalStorage::set("client_id", &new_id).expect("failed to set client_id");
+        new_id
     }
 }
