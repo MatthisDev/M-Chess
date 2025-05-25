@@ -1,0 +1,25 @@
+[build]
+target = "index.html"       # The index HTML file to drive the bundling process.
+#html_output = "index.html"  # The name of the output HTML file.
+#release = false             # Build in release mode.
+dist = "dist"               # The output dir for all final assets.
+#public_url = "/"            # The public URL from which assets are to be served.
+#filehash = true             # Whether to include hash values in the output file names.
+#inject_scripts = true       # Whether to inject scripts (and module preloads) into the finalized output.
+#offline = false             # Run without network access
+#frozen = false              # Require Cargo.lock and cache are up to date
+#locked = false              # Require Cargo.lock is up to date
+#minify = "never"            # Control minification: can be one of: never, on_release, always
+#no_sri = false              # Allow disabling sub-resource integrity (SRI)
+
+#[[proxy]]
+#backend = "https://localhost:9000/api/v1" # Address to proxy requests to
+#ws = false                                # Use WebSocket for this proxy
+#insecure = false                          # Disable certificate validation
+#no_system_proxy = false                   # Disable system proxy
+#rewrite = ""                              # Strip the given prefix off paths
+#no_redirect = false                       # Disable following redirects of proxy responses
+
+[[copy]]
+from = "static"  # relative to Trunk.toml location
+to = "static"

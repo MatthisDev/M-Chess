@@ -1,112 +1,382 @@
-use axum::{
-    extract::{Path, State},
-    routing::{get, get_service},
-    Json, Router,
-};
+use futures::{SinkExt, StreamExt};
+use game_lib::automation::ai::{Difficulty, AI};
 use game_lib::game::Game;
-use serde_json::json;
-use std::process::Command;
+use game_lib::messages::{ClientMessage, ServerMessage};
+use game_lib::piece::Color;
+use game_lib::sharedenums::{GameMode, PlayerRole, RoomStatus};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
-use tower_http::services::fs::ServeDir;
+use std::thread::sleep;
+use tokio::net::TcpListener;
+use tokio::sync::{mpsc, mpsc::UnboundedSender};
+use tokio::time::{interval, Duration, Instant};
+use tokio_tungstenite::tungstenite::Bytes;
+use tokio_tungstenite::{
+    accept_async,
+    tungstenite::{Message, Utf8Bytes},
+};
+use uuid::Uuid;
+mod handler;
+use handler::*;
+mod structures;
+use std::time::{SystemTime, UNIX_EPOCH};
+use structures::{Client, Player, PlayerType, Room, ServerState, SharedServerState};
+
+fn now_timestamp() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_secs()
+}
 
 #[tokio::main]
 async fn main() {
-    // Wrap games in Arc<Mutex<_>> for thread-safe sharing
-    let games = Arc::new(Mutex::new(Vec::<Game>::new()));
+    let state = Arc::new(Mutex::new(ServerState {
+        clients: HashMap::new(),
+        rooms: HashMap::new(),
+    }));
 
-    let app = Router::new()
-        .route("/create", get(create_game_handler))
-        .route("/join/{uid}", get(join_game_handler))
-        .route("/ws/{uid}", get(ws_handler))
-        .fallback_service(get_service(ServeDir::new("web/dist")))
-        .with_state(games);
+    let listener = TcpListener::bind("127.0.0.1:9001").await.unwrap();
+    println!("Server started on ws://127.0.0.1:9001");
 
-    // run our app with hyper, listening globally on port 3000
-    println!("Listening 3000");
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
-}
+    tokio::spawn(cleanup_inactive_rooms(state.clone()));
+    tokio::spawn(inactivity_check(state.clone()));
+    tokio::spawn(server_ping_loop(state.clone()));
 
-// Handler for creating a new game
-async fn create_game_handler(
-    State(games): State<Arc<Mutex<Vec<Game>>>>,
-) -> Json<serde_json::Value> {
-    // Create a new game instance
-    let game = Game::init(false);
-    let game_id = game.uid.clone();
+    while let Ok((stream, _)) = listener.accept().await {
+        let state = Arc::clone(&state);
 
-    // Add the game to our vector
-    games.lock().unwrap().push(game);
+        tokio::spawn(async move {
+            let ws_stream = match accept_async(stream).await {
+                Ok(ws) => ws,
+                Err(e) => {
+                    eprintln!("WebSocket handshake failed: {}", e);
+                    return;
+                }
+            };
+            let (mut ws_tx, mut ws_rx) = ws_stream.split();
+            let (tx, mut rx) = mpsc::unbounded_channel::<Message>();
 
-    // Return the game state as JSON
-    Json(json!({
-        "game_id": game_id.to_string(),
-        "status": "created"
-    }))
-}
+            let client_id = Uuid::new_v4();
 
-// Handler for joining a game
-async fn join_game_handler(
-    Path(game_id): Path<String>,
-    State(games): State<Arc<Mutex<Vec<Game>>>>,
-) -> Json<serde_json::Value> {
-    let games_lock = games.lock().unwrap();
+            {
+                let mut state_lock = state.lock().unwrap();
+                state_lock.clients.insert(
+                    client_id,
+                    Client {
+                        id: client_id,
+                        room_id: None,
+                        sender: tx.clone(),
+                        hb: Arc::new(AtomicU64::new(now_timestamp())),
+                    },
+                );
+                println!("Client with id {} connected!!", client_id);
+                println!("Current clients: {:?}", state_lock.clients);
+            }
 
-    // Find the game with the given ID
-    if let Some(game) = games_lock.iter().find(|g| g.uid.to_string() == game_id) {
-        Json(json!({
-            "status": "ok",
-            "game_id": game_id.to_string(),
-        }))
-    } else {
-        Json(json!({
-            "status": "error",
-            "message": "Game not found"
-        }))
+            // WebSocket sender task
+            tokio::spawn(async move {
+                while let Some(msg) = rx.recv().await {
+                    if let Err(e) = ws_tx.send(msg).await {
+                        eprintln!("WebSocket send error: {}", e);
+                        break;
+                    }
+                }
+            });
+
+            // Message handler loop
+            while let Some(Ok(Message::Text(text))) = ws_rx.next().await {
+                println!("Received message from client {}: {}", client_id, text);
+                let parsed: Result<ClientMessage, _> = serde_json::from_str(&text);
+                match parsed {
+                    Ok(ClientMessage::CreateRoom { mode, difficulty }) => {
+                        println!(
+                            "Client {} wants to create room in {:?} mode",
+                            client_id, mode
+                        );
+
+                        let msg = handle_create_room(
+                            client_id,
+                            mode,
+                            difficulty,
+                            &mut state.lock().unwrap(),
+                        );
+                        // Handle room creation logic here.
+                        if let Some(msg) = msg {
+                            if let Err(e) =
+                                send_to_client(&state.lock().unwrap().clients[&client_id], &msg)
+                            {
+                                eprintln!("Failed to send message to client {}: {}", client_id, e);
+                            }
+                            println!("Sent message to client {}: {:?}", client_id, msg);
+                        }
+                        println!("Room created successfully");
+                    }
+                    Ok(ClientMessage::JoinRoom { room_id }) => {
+                        println!("Client {} wants to join room {:?}", client_id, room_id);
+                        let msg = handle_join_room(client_id, room_id, &mut state.lock().unwrap());
+                        if let Some(msg) = msg {
+                            if let Err(e) =
+                                send_to_client(&state.lock().unwrap().clients[&client_id], &msg)
+                            {
+                                eprintln!("Failed to send message to client {}: {}", client_id, e);
+                            }
+                            println!("Successfully joined room");
+                        } else {
+                            println!("Failed to join room");
+                        }
+                    }
+
+                    Ok(ClientMessage::Ready {
+                        state: client_state,
+                    }) => {
+                        println!("Client {} is ready", client_id);
+                        handle_set_ready(client_id, &state, client_state);
+                    }
+                    Ok(ClientMessage::GetLegalMoves { mv }) => {
+                        println!("Ask from client moves: {}", mv);
+                        handle_get_moves(client_id, mv, &state);
+                    }
+                    Ok(ClientMessage::Move { mv }) => {
+                        println!("Move from client: {}", mv);
+                        if let Some(reply) = handle_move(client_id, mv, &state) {
+                            let state_guard = state.lock().unwrap();
+                            if let Some(client) = state_guard.clients.get(&client_id) {
+                                let _ = send_to_client(client, &reply);
+                            }
+                        } else {
+                            tokio::time::sleep(Duration::from_millis(50)).await;
+                            let _ = handle_ai_turn(client_id, &state);
+                        }
+                    }
+                    Ok(ClientMessage::StartGame) => {
+                        handle_start_game(client_id, &state);
+                    }
+                    Ok(ClientMessage::StartSandboxGame) => {
+                        println!("Client {} started sandbox game", client_id);
+                        let mut state = state.lock().unwrap();
+                        if let Some(room_id) = state.clients.get(&client_id).and_then(|c| c.room_id)
+                        {
+                            if let Some(room) = state.rooms.get_mut(&room_id) {
+                                if room.mode == GameMode::Sandbox {
+                                    room.status = RoomStatus::Running;
+                                    send_game_state_to_clients(room);
+                                    for p in room.players.values() {
+                                        let _ = send_to_player(
+                                            p,
+                                            &ServerMessage::GameStarted {
+                                                room_status: room.status,
+                                                board: room.game.board.export_display_board(),
+                                                turn: room.game.board.turn,
+                                            },
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Ok(ClientMessage::AddPiece { piece, pos }) => {
+                        println!("Client {} adds piece {} to {}", client_id, piece, pos);
+
+                        let mut state = state.lock().unwrap();
+                        if let Some(room_id) = state.clients.get(&client_id).and_then(|c| c.room_id)
+                        {
+                            if let Some(room) = state.rooms.get_mut(&room_id) {
+                                if room.mode == GameMode::Sandbox
+                                    && room.status == RoomStatus::WaitingReady
+                                {
+                                    room.game.board.add_piece(&format!("{}{}", piece, pos));
+                                    send_game_state_to_clients(room);
+                                    if let Some(player) = room.players.get(&client_id) {
+                                        let _ = send_to_player(
+                                            player,
+                                            &ServerMessage::SandboxPieceAdded { piece, pos },
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Ok(ClientMessage::Quit) => {
+                        println!("Client {} sent Quit", client_id);
+                        handle_quit(client_id, &state);
+                    }
+                    Ok(ClientMessage::PauseRequest) => {
+                        println!("Client {} sent PauseRequest", client_id);
+                        let mut state_guard = state.lock().unwrap();
+                        if let Some(room_id) =
+                            state_guard.clients.get(&client_id).and_then(|c| c.room_id)
+                        {
+                            toggle_pause_game(room_id, &state);
+                        }
+                    }
+                    Ok(ClientMessage::Pong) => {
+                        println!("Client {} sent Pong", client_id);
+                        let mut state = state.lock().unwrap();
+                        if let Some(client) = state.clients.get_mut(&client_id) {
+                            client.hb.store(now_timestamp(), Ordering::SeqCst);
+                            println!(
+                                "\nClient {:?} hb reset to {:?}, struct;\n {:?}\n",
+                                client_id, client.hb, client
+                            )
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Invalid message from client {}: {}", client_id, e);
+                    }
+                }
+            }
+
+            {
+                let mut state_guard = state.lock().unwrap();
+                let client = state_guard.clients.remove(&client_id);
+                if let Some(client) = client {
+                    if client.room_id.is_some() {
+                        handle_quit(client_id, &state);
+                    }
+                    let _ = send_to_client(
+                        &client,
+                        &ServerMessage::Info {
+                            msg: "Disconnected".to_string(),
+                        },
+                    );
+                }
+
+                println!("Client {} disconnected", client_id);
+                println!(
+                    "Current clients: {:?}",
+                    state_guard.clients.keys().collect::<Vec<_>>()
+                );
+            }
+        });
     }
 }
 
-// WebSocket connection handler
-async fn ws_handler(
-    ws: axum::extract::ws::WebSocketUpgrade,
-    Path(uid): Path<String>, // Extraire l'uid depuis le chemin
-    State(games): State<Arc<Mutex<Vec<Game>>>>,
-) -> impl axum::response::IntoResponse {
-    ws.on_upgrade(move |socket| handle_socket(socket, uid, games))
+pub fn send_to_client(client: &Client, msg: &ServerMessage) -> Result<(), String> {
+    let serialized = serde_json::to_string(msg)
+        .map_err(|e| format!("Failed to serialize ServerMessage: {}", e))?;
+    client
+        .sender
+        .send(Message::Text(serialized.into()))
+        .map_err(|e| format!("Failed to send to client: {}", e))
 }
 
-async fn handle_socket(
-    mut socket: axum::extract::ws::WebSocket,
-    uid: String,
-    games: Arc<Mutex<Vec<Game>>>,
-) {
-    // Handle the WebSocket connection here
-    // For example, you can send a message to the client
-    let message = json!({
-        "type": "welcome",
-        "message": "Welcome to the game!"
-    });
-    socket
-        .send(axum::extract::ws::Message::Text(message.to_string().into()))
-        .await
-        .unwrap();
+pub fn send_to_player(player: &Player, msg: &ServerMessage) -> Result<(), String> {
+    let serialized = serde_json::to_string(msg)
+        .map_err(|e| format!("Failed to serialize ServerMessage: {}", e))?;
+    if let Some(sender) = &player.sender {
+        sender
+            .send(Message::Text(serialized.into()))
+            .map_err(|e| format!("Failed to send to player: {}", e))
+    } else {
+        Err("Player is an Ai".to_string())
+    }
+}
 
-    // You can also receive messages from the client
-    while let Some(Ok(msg)) = socket.recv().await {
-        match msg {
-            axum::extract::ws::Message::Text(text) => {
-                // Afficher l'ID de la game et le contenu du message dans le terminal
-                println!("id de la game : {}", uid);
-                println!("contenu du msg : {}", text);
+pub async fn cleanup_inactive_rooms(state: SharedServerState) {
+    let mut interval = interval(Duration::from_secs(60)); // Vérifie toutes les 60s
+    loop {
+        interval.tick().await;
 
-                socket
-                    .send(axum::extract::ws::Message::Text(
-                        format!("You said: {}", text).as_str().into(),
-                    ))
-                    .await
-                    .unwrap();
+        println!("Cleaning up inactive rooms...");
+
+        let mut state = match state.lock() {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Failed to acquire state lock during cleanup: {}", e);
+                continue;
             }
-            _ => {}
+        };
+
+        let now = Instant::now();
+        let timeout = Duration::from_secs(300); // 5 min
+
+        let mut to_remove = vec![];
+
+        // 1. Identifier les rooms à supprimer
+        for (room_id, room) in state.rooms.iter() {
+            if room.status == RoomStatus::Running {
+                continue;
+            }
+
+            let inactive_too_long = now.duration_since(room.created_at) > timeout;
+            let empty = room.players.is_empty();
+
+            if empty || inactive_too_long {
+                to_remove.push(*room_id);
+            }
+        }
+
+        // 2. Supprimer les rooms et réinitialiser les clients associés
+        for room_id in to_remove {
+            if let Some(room) = state.rooms.remove(&room_id) {
+                for player in room.players.values() {
+                    if let Some(client) = state.clients.get_mut(&player.id) {
+                        if client.room_id == Some(room_id) {
+                            client.room_id = None;
+                        }
+                    }
+                }
+            }
+            println!("Room {:?} removed", room_id);
+        }
+    }
+}
+
+pub async fn inactivity_check(state: SharedServerState) {
+    let mut interval = interval(Duration::from_secs(60)); // Vérifie toutes les 60s
+    loop {
+        interval.tick().await;
+        println!("Inactivity check...");
+
+        let mut state_guard = match state.lock() {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!(
+                    "Failed to acquire state lock during inactivity check: {}",
+                    e
+                );
+                continue;
+            }
+        };
+
+        let mut to_remove: Vec<Uuid> = Vec::new();
+        for client in state_guard.clients.values_mut() {
+            let last_hb = client.hb.load(Ordering::SeqCst);
+            if now_timestamp() - last_hb > 300 {
+                println!("Client {:?} is inactive for too long", client.id);
+                handle_quit(client.id, &state);
+                to_remove.push(client.id);
+            }
+        }
+
+        for id in to_remove {
+            state_guard.clients.remove(&id);
+            println!("Removed inactive client {:?}", id);
+        }
+        println!(
+            "Current clients: {:?}",
+            state_guard.clients.keys().collect::<Vec<_>>()
+        );
+    }
+}
+
+pub async fn server_ping_loop(state: SharedServerState) {
+    let mut interval = interval(Duration::from_secs(30));
+    loop {
+        interval.tick().await;
+        println!("Sending ping to clients...");
+
+        let state_guard = match state.lock() {
+            Ok(s) => s,
+            Err(_) => continue,
+        };
+
+        for client in state_guard.clients.values() {
+            let _ = send_to_client(client, &ServerMessage::Ping);
+
         }
     }
 }

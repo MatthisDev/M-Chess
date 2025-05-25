@@ -1,0 +1,54 @@
+/* Container for the CreateGame page */
+.create-game-container {
+    margin-top: 0; /* Supprimez toute marge supplémentaire */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    margin: 2rem auto;
+    padding: 1rem;
+    max-width: 400px;
+    background-color: #666666;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Title for the CreateGame page */
+.create-game-title {
+    font-size: 1.5rem;
+    color: white;
+    text-align: center;
+}
+
+/* Buttons container */
+.create-game-buttons,
+.create-game-difficulty {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem; /* Réduit l'espacement entre les boutons */
+    width: 100%;
+}
+
+/* Buttons for the CreateGame page */
+.create-game-button {
+    background-color: #444;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    text-align: center;
+}
+
+.create-game-button:hover {
+    background-color: #ffcc00;
+    color: #333;
+    transform: scale(1.05);
+}
+
+.create-game-button:active {
+    transform: scale(0.95);
+}

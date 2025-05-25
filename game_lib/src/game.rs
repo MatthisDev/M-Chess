@@ -1,9 +1,14 @@
+use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
+
 use crate::board::{self, Board, BOARD_SIZE, EMPTY_CELL, EMPTY_POS, NONE};
 use uuid::Uuid;
 use crate::piece::Piece;
 use crate::piece::{Color, PieceType};
 use crate::position::Position;
-#[derive(Clone, Debug)]
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Game {
     pub board: Board,
     pub nb_turn: usize,
@@ -31,15 +36,18 @@ impl Game {
     /// # See more
     /// [`Board::add_piece`] and [`Board::remove_piece`]
     pub fn init(custom: bool) -> Self {
-        Game {
+        use Color::*;
+
+        let mut game = Game {
             board: if custom {
                 Board::empty_init()
             } else {
                 Board::full_init()
             },
             nb_turn: 0,
-            uid: uuid::Uuid::new_v4()
-        }
+        };
+
+        game
     }
     /*
      * Waited string format:
@@ -207,13 +215,13 @@ impl Game {
         let mut result: Vec<String> = Vec::<String>::new();
 
         if cell.chars().count() != 2 {
-            return Err("Wrong string format");
+            return Err("Wrong string format: too long or to short");
         }
 
         // convert into Position
         let position: Position = match Position::from_algebraic(&cell) {
             Ok(val) => val,
-            Err(_) => return Err("Wrong string format"),
+            Err(_) => return Err("Wrong string format: conversion to Positon"),
         };
 
         // get the piece and if there is no piece just return an empty list
@@ -237,9 +245,18 @@ impl Game {
     /// It will remove the last piece moved and restore the previous state of the board.
     /// The function will also update the turn of the player.
     /// no update of the has_moved for rook and king is implemented for the moment.
-    fn undo_move(&mut self) {
+    pub fn undo_move(&mut self) {
         self.board.undo_move();
     }
+
+    pub fn skip_turn(&mut self) {
+        self.board.turn = self.board.turn.opposite();
+        self.board.counter += if self.board.turn == Color::White {
+            1
+        } else {
+            0
+        };
+    } 
     
     /// Check the state of the board if a pawn has to be upgrade it's return coo
     /// 

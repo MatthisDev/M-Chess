@@ -9,8 +9,12 @@ use std::thread::sleep;
 use std::time::Duration;
 
 // #[test]
-fn t_game() { let mut game = Game::init(false);
-    let ia = AI::new(Difficulty::Medium, Color::White);
+fn t_game() {
+    let mut game = Game::init(false);
+    let ia = AI {
+        difficulty: Difficulty::Easy,
+        color: Color::White,
+    };
 
     let mut finish_game: Result<bool, &'static str> = Ok(true);
 

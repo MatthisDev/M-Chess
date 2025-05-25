@@ -1,10 +1,10 @@
+use super::position;
 use crate::board::{Board, BOARD_SIZE, EMPTY_CELL, NONE};
 use crate::position::Position;
-
-use super::position;
+use serde::{Deserialize, Serialize};
 
 // Color enum for teams
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Color {
     Black,
     White,
@@ -63,7 +63,7 @@ impl PieceType {
 }
 
 //class Piece
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Piece {
     pub color: Color,
     pub piece_type: PieceType,
