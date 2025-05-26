@@ -21,7 +21,7 @@ use tokio::{
     },
     time::Instant,
 };
-use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::tungstenite::{http::response, Message};
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -135,51 +135,52 @@ impl Room {
                         };
                         let json = serde_json::to_string(&err).unwrap();
                         let _ = response_tx.send(Message::Text(json.into()));
-                        return;
-                    }
-
-                    if self.players.contains_key(&client_id) {
+                    } else if self.players.contains_key(&client_id) {
                         let err = ServerMessage::Error {
                             msg: "You already joined this room.".into(),
                         };
                         let json = serde_json::to_string(&err).unwrap();
                         let _ = response_tx.send(Message::Text(json.into()));
-                        return;
-                    }
+                    } else {
+                        let role = match self.mode {
+                            GameMode::PlayerVsPlayer if self.players.len() == 1 => {
+                                Some(PlayerRole::Black)
+                            }
+                            GameMode::AIvsAI | GameMode::PlayerVsPlayer => {
+                                Some(PlayerRole::Spectator)
+                            }
+                            _ => None,
+                        };
+                        if let Some(role) = role {
+                            self.players.insert(
+                                client_id,
+                                Player {
+                                    id: client_id,
+                                    role: role.clone(),
+                                    ready: false,
+                                    sender: Some(sender.clone()),
+                                    kind: PlayerType::Human,
+                                },
+                            );
 
-                    let role = match self.mode {
-                        GameMode::PlayerVsPlayer if self.players.len() == 1 => PlayerRole::Black,
-                        GameMode::AIvsAI | GameMode::PlayerVsPlayer => PlayerRole::Spectator,
-                        _ => {
+                            let resp = ServerMessage::Joined {
+                                role,
+                                room_id: self.id,
+                                room_status: self.status,
+                                host: false,
+                                gamemod: self.mode.clone(),
+                            };
+                            let json = serde_json::to_string(&resp).unwrap();
+                            let _ = response_tx.send(Message::Text(json.into()));
+                        } else {
                             let err = ServerMessage::Error {
                                 msg: "Unsupported or full room.".into(),
                             };
                             let json = serde_json::to_string(&err).unwrap();
+
                             let _ = response_tx.send(Message::Text(json.into()));
-                            return;
                         }
-                    };
-
-                    self.players.insert(
-                        client_id,
-                        Player {
-                            id: client_id,
-                            role: role.clone(),
-                            ready: false,
-                            sender: Some(sender.clone()),
-                            kind: PlayerType::Human,
-                        },
-                    );
-
-                    let resp = ServerMessage::Joined {
-                        role,
-                        room_id: self.id,
-                        room_status: self.status,
-                        host: false,
-                        gamemod: self.mode.clone(),
-                    };
-                    let json = serde_json::to_string(&resp).unwrap();
-                    let _ = response_tx.send(Message::Text(json.into()));
+                    }
                 }
                 RoomCommand::StartGame { client_id } => {
                     // Changer status, envoyer message à joueurs, démarrer IA si besoin
@@ -219,10 +220,9 @@ impl Room {
                     println!("Asking Moves in Room");
                     if self.status != RoomStatus::Running {
                         println!("room status error: {:?} instead of Running", self.status);
-                        return;
+                        continue;
                     }
                     let player = self.players.get(&client_id);
-                    println!("Here");
                     if let Some(player) = player {
                         let mut t = mv.clone();
 
@@ -266,7 +266,8 @@ impl Room {
                                 },
                             );
                         }
-                        return;
+                        println!("Room status error: {:?} instead of Running", self.status);
+                        continue;
                     }
 
                     let expected_color = self.game.board.turn;
@@ -283,6 +284,7 @@ impl Room {
                                     },
                                 );
                             }
+                            println!("Player is not allowed to make a move");
                             return;
                         }
                     };
@@ -295,7 +297,7 @@ impl Room {
                                 },
                             );
                         }
-                        return;
+                        continue;
                     }
                     let move_result = self.game.make_move_algebraic(&mv);
                     match move_result {
@@ -419,13 +421,14 @@ impl Room {
                                 self.status = RoomStatus::Finished;
                                 let game_over_msg = ServerMessage::GameOver {
                                     room_status: self.status,
-                                    result,
+                                    result: result.clone(),
                                 };
 
                                 for player in self.players.values() {
                                     send_to_player(player, &game_over_msg);
                                 }
-                                return;
+                                println!("Game Over: {}", result);
+                                continue;
                             }
 
                             if self.mode == GameMode::PlayerVsAI {
@@ -449,10 +452,7 @@ impl Room {
                         let _ = self.tx.send(RoomCommand::AiMove);
                     }
                 }
-                RoomCommand::PlayerQuit {
-                    client_id,
-                    response_tx,
-                } => {
+                RoomCommand::PlayerQuit { client_id } => {
                     println!("A player Want to quit");
                     let mut role = None;
                     // On enlève le joueur
@@ -462,20 +462,6 @@ impl Room {
                     }
                     println!("Client {} removed from room {}", client_id, self.id);
 
-                    // S'il reste des humains ?
-                    let was_last_human = !self
-                        .players
-                        .values()
-                        .any(|p| matches!(p.kind, PlayerType::Human));
-                    if was_last_human {
-                        let response = Message::Text(
-                            serde_json::to_string(&ServerMessage::CloseRoom { id: self.id })
-                                .unwrap()
-                                .into(),
-                        );
-                        response_tx.send(response);
-                        return;
-                    }
                     if let Some(role) = role
                     // Si PvP et en cours => victoire par forfait
                     {
@@ -505,24 +491,10 @@ impl Room {
                                 );
                             }
                         }
-
-                        // Si la room est vide
-                        if self.players.is_empty() {
-                            let response = Message::Text(
-                                serde_json::to_string(&&ServerMessage::CloseRoom { id: self.id })
-                                    .unwrap()
-                                    .into(),
-                            );
-                            response_tx.send(response);
-                            return;
-                        } else {
-                            let response = Message::Text(
-                                serde_json::to_string(&ServerMessage::Error { msg: "".into() })
-                                    .unwrap()
-                                    .into(),
-                            );
-                            response_tx.send(response);
-                            return;
+                        if self.mode == GameMode::AIvsAI {
+                            // On arrête la partie
+                            self.status = RoomStatus::Finished;
+                            self.paused = true;
                         }
                     }
                 }
@@ -531,10 +503,28 @@ impl Room {
                     let now = Instant::now();
                     let timeout = Duration::from_secs(300); // 5 min
 
+                    let mut close = false;
+                    // S'il reste des humains ?
+                    let was_last_human = !self
+                        .players
+                        .values()
+                        .any(|p| matches!(p.kind, PlayerType::Human));
+
                     let response = if self.status == RoomStatus::Running {
                         Message::Text(
                             serde_json::to_string(&ServerMessage::Error {
                                 msg: "Running".into(),
+                            })
+                            .unwrap()
+                            .into(),
+                        )
+                    } else if was_last_human || self.players.is_empty() {
+                        println!("Room is empty, closing it.");
+                        close = true;
+                        Message::Text(
+                            serde_json::to_string(&&ServerMessage::InternalClose {
+                                id: self.id,
+                                clients_id: Vec::new(),
                             })
                             .unwrap()
                             .into(),
@@ -550,6 +540,7 @@ impl Room {
                                 clients_id.push(player.id);
                                 send_to_player(player, &ServerMessage::QuitGame);
                             }
+                            close = true;
                             Message::Text(
                                 serde_json::to_string(&ServerMessage::InternalClose {
                                     id: self.id,
@@ -571,6 +562,13 @@ impl Room {
                     };
 
                     response_tx.send(response);
+                    tokio::time::sleep(Duration::from_millis(10)).await;
+                    if close {
+                        break;
+                    } else {
+                        println!("Room {} is still active", self.id);
+                        continue;
+                    }
                 }
                 RoomCommand::StartSandboxGame => {
                     if self.mode == GameMode::Sandbox {
@@ -646,11 +644,12 @@ impl Room {
                             );
                             self.tx.send(RoomCommand::AiMove);
                         }
-                        _ => return,
+                        _ => continue, // Ignore pause in other statuses
                     }
                 }
             }
         }
+        println!("Room {} stopped", self.id);
     }
 }
 
@@ -682,7 +681,6 @@ pub enum RoomCommand {
     },
     PlayerQuit {
         client_id: Uuid,
-        response_tx: Sender<Message>,
     },
     Shutdown {
         response_tx: Sender<Message>,
@@ -695,5 +693,5 @@ pub enum RoomCommand {
     },
     Pause {
         client_id: Uuid,
-    }, // ... d'autres commandes possibles
+    },
 }

@@ -198,48 +198,38 @@ async fn main() {
                             Ok(ClientMessage::Quit) => {
                                 println!("Client {} wants to quit", client_id);
 
-                                let (room, client) = {
+                                let mut should_send_quit = false;
+
+                                let room = {
                                     let mut server_state = state.lock().unwrap();
-                                    let client_sender = server_state
-                                        .clients
-                                        .get(&client_id)
-                                        .map(|c| c.sender.clone());
                                     let room_id = server_state
                                         .clients
                                         .get(&client_id)
                                         .and_then(|c| c.room_id);
-                                    let room = room_id
-                                        .and_then(|id| server_state.room_senders.get(&id).cloned());
-                                    // On enlève la room_id du client ici pour éviter conflit
-                                    if let Some(client) = server_state.clients.get_mut(&client_id) {
-                                        client.room_id = None;
+
+                                    if let Some(room_id) = room_id {
+                                        if let Some(room) = server_state.room_senders.get(&room_id)
+                                        {
+                                            should_send_quit = true;
+                                            Some(room.clone())
+                                        } else {
+                                            println!(
+                                                "Room {} not found for client {}",
+                                                room_id, client_id
+                                            );
+                                            None
+                                        }
+                                    } else {
+                                        println!("Client {} has no associated room", client_id);
+                                        None
                                     }
-                                    (room, client_sender)
                                 };
 
                                 if let Some(room) = room {
-                                    let msg = quit_room(room, client_id).await;
-
-                                    if let Some(mut msg) = msg {
-                                        if let ServerMessage::CloseRoom { id } = &msg {
-                                            let mut server_state = state.lock().unwrap();
-                                            server_state.room_senders.remove(id);
-                                            println!("Room {} deleted !!", id);
-                                        }
-                                        if let ServerMessage::Error { msg: message } = &msg {
-                                            if message == "Room is not available." {
-                                                msg = ServerMessage::QuitGame;
-                                            }
-                                        }
-                                        if let Err(e) = send_to_client(
-                                            &state.lock().unwrap().clients[&client_id],
-                                            &msg,
-                                        ) {
-                                            eprintln!(
-                                                "Failed to send message to client {}: {}",
-                                                client_id, e
-                                            );
-                                        }
+                                    if should_send_quit {
+                                        quit_room(room, client_id);
+                                    } else {
+                                        println!("Skipping PlayerQuit for client {}: room already cleaned up", client_id);
                                     }
                                 }
                             }
@@ -285,23 +275,7 @@ async fn main() {
                         };
 
                         if let Some(room) = room {
-                            let msg = quit_room(room, client_id).await;
-
-                            if let Some(msg) = msg {
-                                if let ServerMessage::CloseRoom { id } = &msg {
-                                    let mut server_state = state.lock().unwrap();
-                                    server_state.room_senders.remove(id);
-                                    println!("Room {} deleted !!", id);
-                                }
-                                if let Err(e) =
-                                    send_to_client(&state.lock().unwrap().clients[&client_id], &msg)
-                                {
-                                    eprintln!(
-                                        "Failed to send message to client {}: {}",
-                                        client_id, e
-                                    );
-                                }
-                            }
+                            quit_room(room, client_id);
                         }
                         break;
                     }
@@ -334,21 +308,7 @@ async fn main() {
                 if let Some(client) = maybe_client {
                     if let Some(room_sender) = maybe_room_sender {
                         // Appeler async quit_room
-                        let quit_msg = quit_room(room_sender, client_id).await;
-
-                        if let Some(ServerMessage::CloseRoom { id }) = &quit_msg {
-                            // Nettoyer la room_senders si la room est fermée
-                            let mut state_guard = state.lock().unwrap();
-                            state_guard.room_senders.remove(id);
-                            println!("Room {} deleted !!", id);
-                        }
-
-                        if let Some(msg) = quit_msg {
-                            // Envoyer message au client (ou log erreur)
-                            if let Err(e) = send_to_client(&client, &msg) {
-                                eprintln!("Failed to send message to client {}: {}", client_id, e);
-                            }
-                        }
+                        quit_room(room_sender, client_id);
                     }
 
                     // Toujours envoyer l'info de déconnexion au client
@@ -485,24 +445,6 @@ pub async fn inactivity_check(state: SharedServerState) {
 
             state_guard.remove_client(&client_id);
         }
-        /*let mut to_remove: Vec<Uuid> = Vec::new();
-        for client in state_guard.clients.values_mut() {
-            let last_hb = client.hb.load(Ordering::SeqCst);
-            if now_timestamp() - last_hb > 300 {
-                println!("Client {:?} is inactive for too long", client.id);
-                handle_quit(client.id, &state);
-                to_remove.push(client.id);
-            }
-        }
-
-        for id in to_remove {
-            state_guard.clients.remove(&id);
-            println!("Removed inactive client {:?}", id);
-        }
-        println!(
-            "Current clients: {:?}",
-            state_guard.clients.keys().collect::<Vec<_>>()
-        );*/
     }
 }
 
@@ -519,7 +461,6 @@ pub async fn server_ping_loop(state: SharedServerState) {
 
         for client in state_guard.clients.values() {
             let _ = send_to_client(client, &ServerMessage::Ping);
-
         }
     }
 }
@@ -579,40 +520,10 @@ pub async fn join_room(
     }
 }
 
-pub async fn quit_room(
-    room: mpsc::UnboundedSender<RoomCommand>,
-    client_id: Uuid,
-) -> Option<ServerMessage> {
-    let (response_tx, response_rx) = oneshot::channel();
-    let cmd = RoomCommand::PlayerQuit {
-        client_id,
-        response_tx,
-    };
+pub fn quit_room(room: mpsc::UnboundedSender<RoomCommand>, client_id: Uuid) {
+    let cmd = RoomCommand::PlayerQuit { client_id };
 
-    if room.send(cmd).is_err() {
-        return Some(ServerMessage::Error {
-            msg: "Room is not available.".into(),
-        });
-    }
+    room.send(cmd);
 
     println!("Quit request Sended to Room");
-    match response_rx.await {
-        Ok(message) => {
-            if let Message::Text(text) = message {
-                match serde_json::from_str(&text) {
-                    Ok(ServerMessage::CloseRoom { id }) => Some(ServerMessage::CloseRoom { id }),
-                    _ => Some(ServerMessage::Error {
-                        msg: "Invalid quit response".into(),
-                    }),
-                }
-            } else {
-                Some(ServerMessage::Error {
-                    msg: "Expected text message".into(),
-                })
-            }
-        }
-        Err(_) => Some(ServerMessage::Error {
-            msg: "No response from room".into(),
-        }),
-    }
 }
