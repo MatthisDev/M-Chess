@@ -13,3 +13,9 @@ script = [
     'echo "No build task in frontend, please run from root"'
 ]
 
+[tasks.stop]
+description = "Stop backend and frontend"
+script = [
+
+    'echo "No stop task in frontend, please run from root"'
+]

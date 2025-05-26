@@ -7,6 +7,17 @@ script = [
 
 [tasks.build-all]
 script = [
+    
     "cargo build --manifest-path Cargo.toml &",
     "trunk build  --config frontend/Trunk.toml"
+]
+
+[tasks.stop]
+description = "Stop backend and frontend"
+script = [
+
+    "pid=$(netstat -tulpn 2>/dev/null | grep ':9001 ' | awk '{print $7}' | cut -d'/' -f1) || true",
+    "if [ ! -z \"$pid\" ]; then kill -9 $pid; fi || true",
+
+    "pkill -f 'trunk serve' || true"
 ]
