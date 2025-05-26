@@ -302,12 +302,20 @@ impl Room {
                     let move_result = self.game.make_move_algebraic(&mv);
                     match move_result {
                         Ok(_) => {
+                            let turn = self.game.board.turn;
+                            let king_pos = self.game.board.pieces[turn as usize][15].position;
+
                             println!("Moved: {}", mv);
                             // Préparer le message à diffuser
                             let state_msg = ServerMessage::State {
                                 board: self.game.board.export_display_board(),
                                 turn: self.game.board.turn,
                                 counter: self.game.board.counter,
+                                incheck: if self.game.board.is_attacked(&king_pos, turn) {
+                                    Some(turn)
+                                } else {
+                                    None
+                                },
                             };
 
                             // Diffuser à tous les joueurs (accès immuable)
@@ -393,6 +401,8 @@ impl Room {
                     tokio::time::sleep(Duration::from_millis(500)).await;
                     match self.game.make_move_algebraic(&mv) {
                         Ok(_) => {
+                            let turn = self.game.board.turn;
+                            let king_pos = self.game.board.pieces[turn as usize][15].position;
                             println!("Moved");
                             for player in self.players.values() {
                                 send_to_player(
@@ -401,6 +411,11 @@ impl Room {
                                         board: self.game.board.export_display_board(),
                                         turn: self.game.board.turn,
                                         counter: self.game.board.counter,
+                                        incheck: if self.game.board.is_attacked(&king_pos, turn) {
+                                            Some(turn)
+                                        } else {
+                                            None
+                                        },
                                     },
                                 );
                             }

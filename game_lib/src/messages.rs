@@ -25,6 +25,7 @@ pub enum ServerMessage {
         board: Vec<Vec<Option<String>>>,
         turn: Color,
         counter: usize,
+        incheck: Option<Color>,
     },
     GameOver {
         room_status: RoomStatus,

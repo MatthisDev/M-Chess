@@ -70,11 +70,13 @@ fn dispatch_server_message(
             board,
             turn,
             counter,
+            incheck,
         } => {
             dispatch.dispatch(ServerAction::SetBoard {
                 board,
                 turn,
                 counter,
+                incheck,
             });
         }
         ServerMessage::LegalMoves { moves } => {
@@ -127,6 +129,7 @@ fn dispatch_server_message(
                 board,
                 turn,
                 counter: 0,
+                incheck: None,
             });
             dispatch.dispatch(ServerAction::SetRoomStatus(room_status));
         }

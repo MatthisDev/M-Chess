@@ -22,6 +22,7 @@ pub struct ServerState {
     pub board: Vec<Vec<Option<String>>>,
     pub turn: Option<Color>,
     pub counter: usize,
+    pub incheck: Option<Color>,
     pub game_over: Option<String>,
     pub paused: bool,
     pub ingame: bool,
@@ -46,6 +47,7 @@ impl Default for ServerState {
             board: vec![vec![None; 8]; 8],
             turn: None,
             counter: 0,
+            incheck: None,
             game_over: None,
             info: None,
             error: None,
@@ -67,11 +69,13 @@ impl Reducible for ServerState {
                 board,
                 turn,
                 counter,
+                incheck,
             } => {
                 new_state.board = board;
                 new_state.turn = Some(turn);
                 new_state.legals_moves = Vec::new();
                 new_state.counter = counter;
+                new_state.incheck = incheck;
             }
             ServerAction::SetGameOver(result, room_status) => {
                 new_state.game_over = Some(result);
@@ -135,6 +139,7 @@ pub enum ServerAction {
         board: Vec<Vec<Option<String>>>,
         turn: Color,
         counter: usize,
+        incheck: Option<Color>,
     },
     SetLegalMoves(Vec<String>),
     SetGameOver(String, RoomStatus),

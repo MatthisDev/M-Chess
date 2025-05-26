@@ -81,7 +81,7 @@
 }
 
 .chess-cell.legal {
-    border: 2px dashed green;
+    border: 3px dashed rgb(5, 176, 5);
 }
 
 .chess-cell.selected {
@@ -91,8 +91,8 @@
 /* Roi en échec */
 .chess-cell.in-check {
     background-color: red; /* Fond rouge pour indiquer l'échec */
-    color: white; /* Texte blanc pour le contraste */
-    border: 2px solid darkred; /* Bordure rouge foncé pour plus de visibilité */
+    color: black; /* Texte blanc pour le contraste */
+    border: 3px solid red; /* Bordure rouge foncé pour plus de visibilité */
 }
 
 /* Thèmes du plateau d'échecs */

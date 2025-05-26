@@ -1,6 +1,7 @@
 use crate::app::{state::ServerState, ServerAction};
 use game_lib::{
     messages::ClientMessage,
+    piece::Color,
     position::Position,
     sharedenums::{GameMode, PlayerRole, RoomStatus},
 };
@@ -182,7 +183,8 @@ pub fn game(props: &GameProps) -> Html {
                         {
                            html! (
                             <>
-                                <button
+                                if server_state.room_status == Some(RoomStatus::WaitingReady) || server_state.room_status == Some(RoomStatus::WaitingPlayers) || server_state.gamemod == Some(GameMode::Sandbox) {
+                                     <button
                                     class="game-button"
                                     disabled={server_state.room_status == Some(RoomStatus::Running) || server_state.room_status == Some(RoomStatus::Finished)}
                                     onclick={on_ready}
@@ -191,17 +193,20 @@ pub fn game(props: &GameProps) -> Html {
                                 </button>
                                 if server_state.host{
 
-                                        <button
-                                            class="game-button"
-                                            disabled={!server_state.ready ||
-                                                     !server_state.host ||
-                                                     server_state.room_status != Some(RoomStatus::WaitingReady)}
-                                            onclick={on_start_game}
-                                        >
-                                            { "Start Game" }
-                                        </button>
+                                    <button
+                                        class="game-button"
+                                        disabled={!server_state.ready ||
+                                                 !server_state.host ||
+                                                 server_state.room_status != Some(RoomStatus::WaitingReady)}
+                                        onclick={on_start_game}
+                                    >
+                                        { "Start Game" }
+                                    </button>
 
+                            }
                                 }
+
+
                                 else{
 
                                 }
@@ -254,14 +259,20 @@ pub fn game(props: &GameProps) -> Html {
                             let pos = Position { row: r, col: c };
                             let is_legal = legal_moves.contains(&pos.to_algebraic());
                             let is_selected = *selected_square == Some(pos);
+                            let piece = cell.as_ref().map_or("", |s| s.as_str());
 
                             let mut class = if (r + c) % 2 == 0 { "chess-cell light" } else { "chess-cell dark" }.to_string();
+                            if (piece == "wk" && server_state.incheck == Some(Color::White) )|| (piece == "bk" && server_state.incheck == Some(Color::Black) ) { //&& incheck
+                                web_sys::console::log_1(&format!("incheck: {:?} {:?}", server_state.incheck, piece).into());
+                                class += " in-check";
+                            }
                             if is_legal {
                                 class += " legal";
                             }
                             if is_selected {
                                 class += " selected";
                             }
+
 
                             html! {
                                 <div class={class}
@@ -270,7 +281,7 @@ pub fn game(props: &GameProps) -> Html {
                                         Callback::from(move |_: MouseEvent| onclick.emit((r as u8, c as u8)))
                                     }
                                 >
-                                    { cell.as_ref().map_or("".to_string(), |piece| get_piece_emoji(piece).to_string()) }
+                                    {  get_piece_emoji(piece).to_string() }
                                 </div>
                             }
                         }) }

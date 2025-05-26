@@ -26,7 +26,7 @@ impl AI {
     pub fn new(difficulty: Difficulty, color: Color) -> Self {
         AI { difficulty, color }
     }
-    
+
     pub fn get_color(&self) -> Color {
         self.color
     }
@@ -54,7 +54,6 @@ impl AI {
 
                 let move_value =
                     self.recursive_minimax(&mut new_board, max_depth, false, i32::MIN, i32::MAX);
-                println!("mv: {:?} valued to {:?}", mv, move_value);
                 if move_value > best_value {
                     best_value = move_value;
                     best_move = Some((piece.position, mv));
@@ -217,7 +216,7 @@ impl AI {
 
         score += self.evaluate_board_one_color(board, self.color);
         score -= self.evaluate_board_one_color(board, self.color.opposite());
-        
+
         score
     }
 
@@ -259,7 +258,7 @@ impl AI {
                 }
             }
         }
-    
+
         score
     }
 }

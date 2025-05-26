@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::board::{self, Board, BOARD_SIZE, EMPTY_CELL, EMPTY_POS, NONE};
-use uuid::Uuid;
 use crate::piece::Piece;
 use crate::piece::{Color, PieceType};
 use crate::position::Position;
+use uuid::Uuid;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Game {
@@ -78,7 +78,7 @@ impl Game {
 
     fn castle_situation(&mut self, king: &Piece, to_pos: &Position) -> bool {
         // Vérifier si le mouvement est un roque
-        if king.piece_type != PieceType::King(0){
+        if king.piece_type != PieceType::King(0) {
             return false;
         }
 
@@ -142,13 +142,12 @@ impl Game {
         if piece.color != self.board.turn {
             return Err("Invalid movement.");
         }
-        
+
         // upgrade pawn
-        if !self.board.waiting_upgrade.is_none(){
+        if !self.board.waiting_upgrade.is_none() {
             return Err("Waiting upgrade.");
-        }
-        else if self.perform_upgrade("q".to_string()) {
-            return Ok(true); 
+        } else if self.perform_upgrade("q".to_string()) {
+            return Ok(true);
         }
 
         // castle situtation
@@ -159,9 +158,8 @@ impl Game {
 
         // if the piece can move + is moved
         if self.board.move_piece(&from_pos, &to_pos) {
-            
             self.perform_upgrade("q".to_string());
-            
+
             self.board.turn = self.board.turn.opposite();
 
             println!("Success!");
@@ -255,10 +253,10 @@ impl Game {
         } else {
             0
         };
-    } 
-    
+    }
+
     /// Check the state of the board if a pawn has to be upgrade it's return coo
-    /// 
+    ///
     /// # Example
     /// ```no_run
     /// use game_lib::game::Game;
@@ -272,15 +270,15 @@ impl Game {
     pub fn has_to_upgrade(&self) -> Option<String> {
         match self.board.waiting_upgrade {
             Some(position) => Some(position.to_algebraic()),
-            None => None
+            None => None,
         }
     }
-    
+
     /// Upgrade the current pawn to upgrade on the board.
-    /// 
+    ///
     /// Return true if the upgrade type is right
-    /// Return false otherwise 
-    /// 
+    /// Return false otherwise
+    ///
     /// piece_type format:
     /// "q": Queen | "n": Knight | "r": Rook | "b": Bishop
     /// (return false for other piece's type)
@@ -291,8 +289,8 @@ impl Game {
     ///
     /// let mut game = Game::init(false);
     ///
-    /// game.perform_upgrade("b".to_string()); // => false 
-    /// 
+    /// game.perform_upgrade("b".to_string()); // => false
+    ///
     /// // do moves until upgrade situation
     ///
     /// match game.has_to_upgrade() {
@@ -303,25 +301,24 @@ impl Game {
     pub fn perform_upgrade(&mut self, piece_type: String) -> bool {
         let position = match self.board.waiting_upgrade {
             Some(position) => position,
-            _  => return false
+            _ => return false,
         };
 
         let piece_type: PieceType = match PieceType::from_string(piece_type) {
-            p @ (PieceType::Queen 
-                | PieceType::Knight 
-                | PieceType::Bishop 
-                | PieceType::Rook(_)) => p,
-            _ => return false
+            p @ (PieceType::Queen | PieceType::Knight | PieceType::Bishop | PieceType::Rook(_)) => {
+                p
+            }
+            _ => return false,
         };
-        
+
         match Piece::get_piece_mut(&position, &mut self.board) {
             Some(piece) if piece.piece_type == PieceType::Pawn => piece.piece_type = piece_type,
-            _ => return false
+            _ => return false,
         }
-        
+
         // reset waiting state
         self.board.waiting_upgrade = None;
 
-        return true;
+        true
     }
 }
