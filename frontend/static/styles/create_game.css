@@ -44,7 +44,7 @@
 }
 
 .create-game-button:hover {
-    background-color: #ffcc00;
+    background-color: #a5a5a5;
     color: #333;
     transform: scale(1.05);
 }

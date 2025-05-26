@@ -300,7 +300,7 @@ pub fn game(props: &GameProps) -> Html {
                                 </div>
                                 <button class="game-button" onclick={Callback::from({
                                     let sp = selected_piece.clone();
-                                    move |_| sp.set(Some("".to_string())) // Définit une pièce vide
+                                    move |_| sp.set(Some("".to_string()))
                                 })}>{ "Place Empty Piece" }</button>
                             </div>
                         }

@@ -35,7 +35,7 @@
 }
 
 .home-button:hover {
-    background-color: #ffcc00;
+    background-color: #a5a5a5;
     color: #333;
     transform: scale(1.05);
 }
@@ -56,12 +56,12 @@
 }
 
 .home-input:focus {
-    border-color: #ffcc00;
+    border-color: #a5a5a5;
 }
 
 /* Message d'erreur */
 .home-error {
-    color: red;
+    color: darkred;
     font-size: 0.9rem;
     text-align: center;
 }

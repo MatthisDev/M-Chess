@@ -18,7 +18,7 @@
 /* Titre de la page */
 .install-page h2 {
     font-size: 2rem;
-    color: #ffcc00;
+    color: darkred;
     margin-bottom: 1rem;
 }
 
@@ -35,7 +35,7 @@
 }
 
 .install-page a:hover {
-    background-color: #ffcc00;
+    background-color: #a5a5a5;
     color: #333;
     transform: scale(1.05);
 }

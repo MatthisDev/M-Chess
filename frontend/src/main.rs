@@ -65,5 +65,16 @@ fn main() {
         .unwrap();
     gloo_utils::document().head().unwrap().append_child(&download_css).unwrap();
 
+    let presentation_css = gloo_utils::document()
+        .create_element("link")
+        .unwrap();
+    presentation_css
+        .set_attribute("rel", "stylesheet")
+        .unwrap();
+    presentation_css
+        .set_attribute("href", "/static/styles/presentation.css")
+        .unwrap();
+    gloo_utils::document().head().unwrap().append_child(&presentation_css).unwrap();
+
     yew::Renderer::<Root>::new().render();
 }

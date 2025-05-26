@@ -43,7 +43,7 @@ body {
 }
 
 .navbar-item a:hover {
-    color: #ffcc00;
+    color: #a5a5a5;
 }
 
 /* Navbar container styles */
@@ -68,7 +68,7 @@ body {
 }
 
 .navbar-button:hover {
-    background-color: #ffcc00;
+    background-color: #a5a5a5;
     color: #333;
     transform: scale(1.05);
 }

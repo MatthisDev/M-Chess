@@ -17,7 +17,7 @@
 /* Titre de la page */
 .game-title {
     font-size: 2rem;
-    color: #ffcc00;
+    color: darkred;
     text-align: center;
 }
 
@@ -136,7 +136,7 @@
 /* Titre de la palette */
 .sandbox-container h4 {
     font-size: 1rem;
-    color: #ffcc00;
+    color: sl;
     text-align: center;
 }
 
@@ -165,14 +165,14 @@
 }
 
 .sandbox-piece:hover {
-    background-color: #ffcc00; /* Fond jaune au survol */
+    background-color: #a5a5a5; /* Fond jaune au survol */
     border-color: #333; /* Bordure plus visible au survol */
     transform: scale(1.1); /* Agrandissement au survol */
 }
 
 .sandbox-piece.selected {
-    background-color: #ffcc00; /* Fond jaune pour la pièce sélectionnée */
-    border: 2px solid red; /* Bordure rouge pour la pièce sélectionnée */
+    background-color: #008cff; /* Fond jaune pour la pièce sélectionnée */
+    border: 2px solid rgb(0, 217, 255); /* Bordure rouge pour la pièce sélectionnée */
     transform: scale(1.1); /* Légèrement agrandie */
 }
 
@@ -190,7 +190,7 @@
 }
 
 .game-button:hover {
-    background-color: #ffcc00;
+    background-color: #a5a5a5;
     color: #333;
     transform: scale(1.05);
 }
@@ -225,7 +225,7 @@
 }
 
 .theme-button:hover {
-    background-color: #ffcc00;
+    background-color: #a5a5a5;
     color: #333;
     transform: scale(1.05);
 }
