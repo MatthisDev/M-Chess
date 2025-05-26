@@ -59,7 +59,11 @@ pub fn ws_provider(props: &WsProviderProps) -> Html {
                 let cleanup_connected = connected.clone();
 
                 spawn_local(async move {
-                    match WebSocket::open("ws://127.0.0.1:9001") {
+                    let location = web_sys::window().unwrap().location();
+                    let host = location.host().unwrap(); // ex: "mchess.fr" ou "mchess.fr:8080"
+                    let ws_url = format!("ws://{}/ws", host);
+
+                    match WebSocket::open(&ws_url) {
                         Ok(ws) => {
                             let (tx, mut rx) = ws.split();
                             let tx = Arc::new(Mutex::new(tx));

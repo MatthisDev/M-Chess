@@ -44,8 +44,8 @@ async fn main() {
         room_senders: HashMap::new(),
     }));
 
-    let listener = TcpListener::bind("127.0.0.1:9001").await.unwrap();
-    println!("Server started on ws://127.0.0.1:9001");
+    let listener = TcpListener::bind("0.0.0.0:9001").await.unwrap();
+    println!("Server started on ws://0.0.0.0:9001");
 
     tokio::spawn(cleanup_inactive_rooms(state.clone()));
     tokio::spawn(inactivity_check(state.clone()));

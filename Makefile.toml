@@ -1,0 +1,12 @@
+
+[tasks.run]
+script = [
+    "cargo run --manifest-path Cargo.toml &",
+    "trunk serve --open --config frontend/Trunk.toml"
+]
+
+[tasks.build-all]
+script = [
+    "cargo build --manifest-path Cargo.toml &",
+    "trunk build  --config frontend/Trunk.toml"
+]

@@ -1,0 +1,15 @@
+[config]
+skip_core_tasks = true
+
+[tasks.run]
+description = "No run task here."
+script = [
+    'echo "No run task in frontend, please run from root"'
+]
+
+[tasks.build-all]
+description = "No build task here."
+script = [
+    'echo "No build task in frontend, please run from root"'
+]
+
