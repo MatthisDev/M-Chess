@@ -82,6 +82,10 @@ pub fn game(props: &GameProps) -> Html {
         .map_or("...".to_string(), |r| format!("{:?}", r));
     let ready_display = if server_state.ready { "Yes" } else { "No" };
     let turn_display = format!("{:?}", server_state.counter);
+    let turn_color = server_state
+        .turn
+        .as_ref()
+        .map_or("...".to_string(), |c| format!("{:?}", c));
     let game_over_display = server_state
         .game_over
         .as_ref()
@@ -223,15 +227,16 @@ pub fn game(props: &GameProps) -> Html {
                         );
                         html!()   }
                     }
-                    { if server_state.gamemod == Some(GameMode::AIvsAI) && matches!(server_state.room_status, Some(RoomStatus::Running)|Some(RoomStatus::Paused)){
+                    { if server_state.gamemod == Some(GameMode::AIvsAI) && matches!(server_state.room_status, Some(RoomStatus::Running)|Some(RoomStatus::Paused)) && server_state.host{
 
-                        if server_state.paused
-                        {
-                            html!(<button class="game-button" onclick={on_click_pause}>{ "Resume Game" }</button>)
+                            if server_state.paused
+                            {
+                                html!(<button class="game-button" onclick={on_click_pause}>{ "Resume Game" }</button>)
+                            }
+                            else{
+                            html!(<button class="game-button" onclick={on_click_pause}>{ "Pause Game" }</button>)
+                            }
                         }
-                    else{
-                        html!(<button class="game-button" onclick={on_click_pause}>{ "Pause Game" }</button>)
-                    }}
                         else{
                             html!()
                         }
@@ -249,6 +254,8 @@ pub fn game(props: &GameProps) -> Html {
                             html!(<p><strong>{ "Ready: " }</strong>{ ready_display }</p>)
                         }else{html!()}}
                         <p><strong>{ "Turn: " }</strong>{ turn_display }</p>
+                        <p><strong>{ "Turn: " }</strong>{ turn_color }</p>
+
                     </div>
                 </div>
 
