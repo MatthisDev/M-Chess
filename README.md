@@ -11,7 +11,7 @@ Chess Game in Rust - S4 Project EPITA.
 | Martin Madier   | martin.madier@epita.fr   | [marmads](https://github.com/marmads)         |
 | Matteo Wermert  | matteo.wermert@epita.fr  | [FireBlade60](https://github.com/FireBlade60) |
 
-## Feature
+## Features
 - ChessLib (API format)
 - AI: Classic AlphaBeta Pruning (could be more optimised)
 - Web: Server and Client.
@@ -25,6 +25,6 @@ Chess Game in Rust. Based on V1.
 |-----------------|--------------------------|-----------------------------------------------|
 | Matthis Guillet | matthis.guillet@epita.fr | [MatthisDev](https://github.com/MatthisDev)   |
 
-## Feature/Upgrade
-- Optimised ChessLib with a better structural approach.
+## Features/Upgrades
+- Optimized ChessLib with a better structural approach.
 - Renforcement Learning. Without any lib.
