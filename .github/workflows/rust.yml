@@ -1,0 +1,59 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Mode d’exécution'
+        required: false
+        default: 'debug'
+
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    name: Build, Format, Clippy, Test
+    runs-on: ubuntu-latest
+
+    steps:
+    # Download repo in the CI environment
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    # Install a rust stable version
+    - name: Set up Rust
+      uses: actions/setup-rust@v1
+      with:
+        rust-version: stable
+
+    # For optimized execution
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    # Build
+    - name: Build
+      run: cargo build --verbose
+
+    # Check format
+    - name: Check format
+      run: cargo fmt --all -- --check
+
+    # Clippy verification (for potential bugs and bad practices)
+    - name: Clippy (linter)
+      run: cargo clippy --all-targets --all-features -- -D warnings
+
+    # Run tests
+    - name: Run tests
+      run: cargo test --verbose
