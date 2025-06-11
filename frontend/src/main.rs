@@ -6,75 +6,75 @@ fn main() {
     log::info!("Starting app...");
 
     // Import navbar.css
-    let navbar_css = gloo_utils::document()
-        .create_element("link")
-        .unwrap();
-    navbar_css
-        .set_attribute("rel", "stylesheet")
-        .unwrap();
+    let navbar_css = gloo_utils::document().create_element("link").unwrap();
+    navbar_css.set_attribute("rel", "stylesheet").unwrap();
     navbar_css
         .set_attribute("href", "/static/styles/navbar.css")
         .unwrap();
-    gloo_utils::document().head().unwrap().append_child(&navbar_css).unwrap();
+    gloo_utils::document()
+        .head()
+        .unwrap()
+        .append_child(&navbar_css)
+        .unwrap();
 
     // Import home.css
-    let home_css = gloo_utils::document()
-        .create_element("link")
-        .unwrap();
-    home_css
-        .set_attribute("rel", "stylesheet")
-        .unwrap();
+    let home_css = gloo_utils::document().create_element("link").unwrap();
+    home_css.set_attribute("rel", "stylesheet").unwrap();
     home_css
         .set_attribute("href", "/static/styles/home.css")
         .unwrap();
-    gloo_utils::document().head().unwrap().append_child(&home_css).unwrap();
+    gloo_utils::document()
+        .head()
+        .unwrap()
+        .append_child(&home_css)
+        .unwrap();
 
     // Import create_game.css
-    let create_game_css = gloo_utils::document()
-        .create_element("link")
-        .unwrap();
-    create_game_css
-        .set_attribute("rel", "stylesheet")
-        .unwrap();
+    let create_game_css = gloo_utils::document().create_element("link").unwrap();
+    create_game_css.set_attribute("rel", "stylesheet").unwrap();
     create_game_css
         .set_attribute("href", "/static/styles/create_game.css")
         .unwrap();
-    gloo_utils::document().head().unwrap().append_child(&create_game_css).unwrap();
+    gloo_utils::document()
+        .head()
+        .unwrap()
+        .append_child(&create_game_css)
+        .unwrap();
 
     // Import game.css
-    let game_css = gloo_utils::document()
-        .create_element("link")
-        .unwrap();
-    game_css
-        .set_attribute("rel", "stylesheet")
-        .unwrap();
+    let game_css = gloo_utils::document().create_element("link").unwrap();
+    game_css.set_attribute("rel", "stylesheet").unwrap();
     game_css
         .set_attribute("href", "/static/styles/game.css")
         .unwrap();
-    gloo_utils::document().head().unwrap().append_child(&game_css).unwrap();
+    gloo_utils::document()
+        .head()
+        .unwrap()
+        .append_child(&game_css)
+        .unwrap();
 
     // Import download.css
-    let download_css = gloo_utils::document()
-        .create_element("link")
-        .unwrap();
-    download_css
-        .set_attribute("rel", "stylesheet")
-        .unwrap();
+    let download_css = gloo_utils::document().create_element("link").unwrap();
+    download_css.set_attribute("rel", "stylesheet").unwrap();
     download_css
         .set_attribute("href", "/static/styles/download.css")
         .unwrap();
-    gloo_utils::document().head().unwrap().append_child(&download_css).unwrap();
+    gloo_utils::document()
+        .head()
+        .unwrap()
+        .append_child(&download_css)
+        .unwrap();
 
-    let presentation_css = gloo_utils::document()
-        .create_element("link")
-        .unwrap();
-    presentation_css
-        .set_attribute("rel", "stylesheet")
-        .unwrap();
+    let presentation_css = gloo_utils::document().create_element("link").unwrap();
+    presentation_css.set_attribute("rel", "stylesheet").unwrap();
     presentation_css
         .set_attribute("href", "/static/styles/presentation.css")
         .unwrap();
-    gloo_utils::document().head().unwrap().append_child(&presentation_css).unwrap();
+    gloo_utils::document()
+        .head()
+        .unwrap()
+        .append_child(&presentation_css)
+        .unwrap();
 
     yew::Renderer::<Root>::new().render();
 }
