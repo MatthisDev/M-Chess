@@ -12,7 +12,6 @@ on:
         required: false
         default: 'debug'
 
-
 env:
   CARGO_TERM_COLOR: always
 
@@ -26,11 +25,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    # Install a rust stable version
+    # Install a rust stable version + rustfmt + clippy
     - name: Set up Rust
-      uses: actions/setup-rust@v1
+      uses: actions-rs/toolchain@v1
       with:
-        rust-version: stable
+        toolchain: stable
+        override: true
+        components: rustfmt, clippy
 
     # For optimized execution
     - name: Cache cargo registry
@@ -42,18 +43,28 @@ jobs:
           target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-    # Build
+    # Build (debug or release depending on input)
     - name: Build
-      run: cargo build --verbose
+      run: |
+        if [ "${{ github.event.inputs.mode }}" = "release" ]; then
+          cargo build --release --verbose
+        else
+          cargo build --verbose
+        fi
 
     # Check format
     - name: Check format
       run: cargo fmt --all -- --check
 
-    # Clippy verification (for potential bugs and bad practices)
+    # Clippy verification
     - name: Clippy (linter)
       run: cargo clippy --all-targets --all-features -- -D warnings
 
     # Run tests
     - name: Run tests
-      run: cargo test --verbose
+      run: |
+        if [ "${{ github.event.inputs.mode }}" = "release" ]; then
+          cargo test --release --verbose
+        else
+          cargo test --verbose
+        fi
