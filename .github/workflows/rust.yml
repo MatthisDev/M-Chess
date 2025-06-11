@@ -27,10 +27,8 @@ jobs:
       
     # Install a rust stable version + rustfmt + clippy
     - name: Set up Rust
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@stable
       with:
-        toolchain: stable
-        override: true
         components: rustfmt, clippy
 
     # For optimized execution
