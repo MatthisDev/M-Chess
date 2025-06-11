@@ -28,4 +28,3 @@ Chess Game in Rust. Based on V1.
 ## Features/Upgrades
 - Optimized ChessLib with a better structural approach.
 - Renforcement Learning. Without any lib.
-
