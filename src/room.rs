@@ -3,6 +3,7 @@ use crate::{
     now_timestamp, send_to_player,
     utils::{Player, PlayerType},
 };
+
 use game_lib::{
     automation::ai::{Difficulty, AI},
     board,
@@ -69,8 +70,10 @@ impl Room {
                     response_tx,
                 } => {
                     // Met à jour le joueur et envoie le message de statut au client
+                    /*
                     let ready_state;
                     {
+
                         let player = match self.players.get_mut(&client_id) {
                             Some(p) => p,
                             None => {
@@ -84,6 +87,8 @@ impl Room {
 
                         let _ =
                             send_to_player(player, &ServerMessage::Status { ready: ready_state });
+
+
                     }
 
                     // Maintenant on peut emprunter `self` à nouveau
@@ -122,8 +127,8 @@ impl Room {
                             },
                         );
                     }
+                    */
                 }
-
                 RoomCommand::JoinRoom {
                     client_id,
                     sender,
@@ -183,6 +188,7 @@ impl Room {
                     }
                 }
                 RoomCommand::StartGame { client_id } => {
+                    /*
                     // Changer status, envoyer message à joueurs, démarrer IA si besoin
                     if matches!(
                         self.mode,
@@ -204,6 +210,7 @@ impl Room {
                     } else if self.mode == GameMode::AIvsAI {
                         self.status = RoomStatus::Running;
                         for player in self.players.values() {
+                            /*
                             let _ = send_to_player(
                                 player,
                                 &ServerMessage::GameStarted {
@@ -212,9 +219,11 @@ impl Room {
                                     turn: self.game.board.turn,
                                 },
                             );
+                            */
                         }
                         let _ = self.tx.send(RoomCommand::AiMove);
                     }
+                    */
                 }
                 RoomCommand::GetMoves { client_id, mv } => {
                     println!("Asking Moves in Room");
@@ -227,6 +236,8 @@ impl Room {
                         let mut t = mv.clone();
 
                         let mv = mv.trim().replace('"', "");
+
+                        /*
                         let movelist = self.game.get_list_moves(mv);
                         match movelist {
                             Ok(moves) => {
@@ -241,11 +252,13 @@ impl Room {
                                 );
                             }
                         }
+                        */
                     } else {
                         println!("error unwraping player");
                     }
                 }
                 RoomCommand::ClientMove { client_id, mv } => {
+                    /*
                     let mv = mv.trim().replace('"', "");
 
                     let player = match self.players.get(&client_id) {
@@ -299,6 +312,7 @@ impl Room {
                         }
                         continue;
                     }
+
                     let move_result = self.game.make_move_algebraic(&mv);
                     match move_result {
                         Ok(_) => {
@@ -367,8 +381,10 @@ impl Room {
                             }
                         }
                     }
+                    */
                 }
                 RoomCommand::AiMove => {
+                    /*
                     let ai_player_opt = self.players.values().find(|p| match &p.kind {
                         PlayerType::Ai { ai } => ai.color == self.game.board.turn,
                         _ => false,
@@ -396,8 +412,10 @@ impl Room {
                             }
                         }
                     }
+                    */
                 }
                 RoomCommand::AIApplyMove { mv } => {
+                    /*
                     tokio::time::sleep(Duration::from_millis(500)).await;
                     match self.game.make_move_algebraic(&mv) {
                         Ok(_) => {
@@ -455,7 +473,8 @@ impl Room {
                             panic!()
                         }
                     }
-
+                    */
+                    /*
                     // Vérifier si c'est encore à une IA de jouer
                     let next_ai_turn = self.players.values().any(|p| match &p.kind {
                         PlayerType::Ai { ai } => ai.color == self.game.board.turn,
@@ -466,8 +485,10 @@ impl Room {
                         // Planifie le prochain coup IA
                         let _ = self.tx.send(RoomCommand::AiMove);
                     }
+                    */
                 }
                 RoomCommand::PlayerQuit { client_id } => {
+                    /*
                     println!("A player Want to quit");
                     let mut role = None;
                     // On enlève le joueur
@@ -512,8 +533,10 @@ impl Room {
                             self.paused = true;
                         }
                     }
+                    */
                 }
                 RoomCommand::Shutdown { response_tx } => {
+                    /*
                     println!("Room internal inactivity check");
                     let now = Instant::now();
                     let timeout = Duration::from_secs(300); // 5 min
@@ -576,6 +599,7 @@ impl Room {
                         }
                     };
 
+
                     response_tx.send(response);
                     tokio::time::sleep(Duration::from_millis(10)).await;
                     if close {
@@ -584,8 +608,10 @@ impl Room {
                         println!("Room {} is still active", self.id);
                         continue;
                     }
+                    */
                 }
                 RoomCommand::StartSandboxGame => {
+                    /*
                     if self.mode == GameMode::Sandbox {
                         self.status = RoomStatus::Running;
                         //TODO Check pour la config minimale (2 rois, ...)
@@ -601,12 +627,14 @@ impl Room {
                             );
                         }
                     }
+                    */
                 }
                 RoomCommand::AddPiece {
                     pos,
                     piece,
                     client_id,
                 } => {
+                    /*
                     if self.mode == GameMode::Sandbox
                         && matches!(
                             self.status,
@@ -622,8 +650,11 @@ impl Room {
                             );
                         }
                     }
+                    */
                 }
                 RoomCommand::Pause { client_id } => {
+
+                    /*
                     let player = match self.players.get(&client_id) {
                         Some(p) => p,
                         None => return,
@@ -661,6 +692,7 @@ impl Room {
                         }
                         _ => continue, // Ignore pause in other statuses
                     }
+                    */
                 }
             }
         }

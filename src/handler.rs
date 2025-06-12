@@ -28,6 +28,7 @@ pub fn to_player_role(color: Color) -> PlayerRole {
     }
 }
 pub fn send_game_state_to_clients(room: &Room) {
+    /*
     let board = room.game.board.export_display_board();
     let turn = room.game.board.turn;
 
@@ -45,4 +46,5 @@ pub fn send_game_state_to_clients(room: &Room) {
             ));
         }
     }
+    */
 }

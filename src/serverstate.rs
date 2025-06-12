@@ -38,6 +38,7 @@ impl ServerState {
         mode: GameMode,
         difficulty: Option<Difficulty>,
     ) -> Option<ServerMessage> {
+        /*
         let room_id = Uuid::new_v4();
         let (tx, rx) = mpsc::unbounded_channel();
         let game = Game::init(matches!(mode, GameMode::Sandbox));
@@ -136,6 +137,8 @@ impl ServerState {
             host: true,
             gamemod: mode,
         })
+        */
+        None
     }
 
     pub fn set_player_ready(&mut self, client_id: Uuid, client_state: bool) {

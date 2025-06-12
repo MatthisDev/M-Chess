@@ -1,0 +1,68 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "V2" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Mode d’exécution'
+        required: false
+        default: 'debug'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    name: Build, Format, Clippy, Test
+    runs-on: ubuntu-latest
+
+    steps:
+    # Download repo in the CI environment
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    # Install a rust stable version + rustfmt + clippy
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+
+    # For optimized execution
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    # Build (debug or release depending on input)
+    - name: Build
+      run: |
+        if [ "${{ github.event.inputs.mode }}" = "release" ]; then
+          cargo build --release --verbose
+        else
+          cargo build --verbose
+        fi
+
+    # Check format
+    - name: Check format
+      run: cargo fmt --all -- --check
+
+    # Clippy verification
+    - name: Clippy (linter)
+      run: cargo clippy --all-targets --all-features -- -D warnings
+
+    # Run tests
+    - name: Run tests
+      run: |
+        if [ "${{ github.event.inputs.mode }}" = "release" ]; then
+          cargo test --release --verbose
+        else
+          cargo test --verbose
+        fi
