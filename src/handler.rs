@@ -1,7 +1,7 @@
+use engine::automation::ai::{Difficulty, AI};
+use engine::game::Game;
+use engine::piece::Color;
 use futures::{SinkExt, StreamExt};
-use game_lib::automation::ai::{Difficulty, AI};
-use game_lib::game::Game;
-use game_lib::piece::Color;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -18,8 +18,8 @@ use uuid::Uuid;
 use crate::room::Room;
 use crate::serverstate::{ServerState, SharedServerState};
 use crate::{send_to_client, send_to_player};
-use game_lib::messages::{ClientMessage, ServerMessage};
-use game_lib::sharedenums::{GameMode, PlayerRole, RoomStatus};
+use engine::messages::{ClientMessage, ServerMessage};
+use engine::sharedenums::{GameMode, PlayerRole, RoomStatus};
 
 pub fn to_player_role(color: Color) -> PlayerRole {
     match color {

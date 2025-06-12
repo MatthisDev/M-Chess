@@ -1,9 +1,9 @@
+use engine::automation::ai::{Difficulty, AI};
+use engine::game::Game;
+use engine::messages::{ClientMessage, ServerMessage};
+use engine::piece::Color;
+use engine::sharedenums::{GameMode, PlayerRole, RoomStatus};
 use futures::{SinkExt, StreamExt};
-use game_lib::automation::ai::{Difficulty, AI};
-use game_lib::game::Game;
-use game_lib::messages::{ClientMessage, ServerMessage};
-use game_lib::piece::Color;
-use game_lib::sharedenums::{GameMode, PlayerRole, RoomStatus};
 use room::RoomCommand;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

@@ -4,18 +4,18 @@ skip_core_tasks = true
 [tasks.run]
 description = "No run task here."
 script = [
-    'echo "No run task in game_lib, please run from root"'
+    'echo "No run task in engine, please run from root"'
 ]
 
 [tasks.build-all]
 description = "No build task here."
 script = [
-    'echo "No build task in game_lib, please run from root"'
+    'echo "No build task in engine, please run from root"'
 ]
 
 [tasks.stop]
 description = "Stop backend and frontend"
 script = [
 
-    'echo "No stop task in game_lib, please run from root"'
+    'echo "No stop task in engine, please run from root"'
 ]

@@ -17,6 +17,6 @@ log = "0.4"
 wasm-bindgen-futures = "0.4"
 web-sys = { version = "0.3", features = ["Window", "Location"] }
 console_log = "1.0"
-game_lib = {path = "../game_lib"}
+engine = {path = "../engine"}
 gloo-utils = "0.2.0"
 gloo-storage =  "0.3"

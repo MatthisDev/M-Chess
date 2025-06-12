@@ -3,12 +3,12 @@ use crate::{
     room::{Room, RoomCommand},
     utils::{Client, Player, PlayerType},
 };
-use game_lib::{
+use engine::{
     automation::ai::{Difficulty, AI},
     game::Game,
     piece::Color,
 };
-use game_lib::{
+use engine::{
     messages::ServerMessage,
     sharedenums::{GameMode, PlayerRole, RoomStatus},
 };

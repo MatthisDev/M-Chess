@@ -4,13 +4,13 @@ use crate::{
     utils::{Player, PlayerType},
 };
 
-use game_lib::{
+use engine::{
     automation::ai::{Difficulty, AI},
     board,
     game::Game,
     piece::Color,
 };
-use game_lib::{
+use engine::{
     messages::ServerMessage,
     sharedenums::{GameMode, PlayerRole, RoomStatus},
 };

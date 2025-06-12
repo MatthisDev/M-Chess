@@ -1,6 +1,6 @@
 use std::sync::{atomic::AtomicU64, Arc};
 
-use game_lib::{automation::ai::AI, sharedenums::PlayerRole};
+use engine::{automation::ai::AI, sharedenums::PlayerRole};
 use tokio::sync::mpsc::UnboundedSender;
 use tokio_tungstenite::tungstenite::Message;
 use uuid::Uuid;
