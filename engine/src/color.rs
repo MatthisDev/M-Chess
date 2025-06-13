@@ -1,3 +1,4 @@
+use std::convert::TryFrom;
 use std::error::Error;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::str::FromStr;
@@ -51,12 +52,14 @@ impl FromStr for Color {
     }
 }
 
-// Convert u8 to color
-impl From<u8> for Color {
-    fn from(value: u8) -> Color {
+impl TryFrom<u8> for Color {
+    type Error = ParseColorError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0 => Color::Black,
-            _ => Color::White,
+            0 => Ok(Color::White),
+            1 => Ok(Color::Black),
+            _ => Err(ParseColorError),
         }
     }
 }
@@ -78,11 +81,16 @@ mod tests {
     }
 
     #[test]
-    fn t_from_string() {
+    fn t_parse_string() {
         assert_eq!("b".parse::<Color>(), Ok(Color::Black));
         assert_eq!("w".parse::<Color>(), Ok(Color::White));
         assert_eq!("r".parse::<Color>(), Err(ParseColorError));
     }
 
-    fn t_from_u8() {}
+    #[test]
+    fn t_try_from_u8() {
+        assert_eq!(Color::try_from(0), Ok(Color::White));
+        assert_eq!(Color::try_from(1), Ok(Color::Black));
+        assert_eq!(Color::try_from(250), Err(ParseColorError));
+    }
 }
