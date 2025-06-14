@@ -1,10 +1,11 @@
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::error::Error;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::str::FromStr;
 
 // Color enum for teams
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Color {
     Black,
     White,
@@ -25,6 +26,7 @@ impl Color {
 }
 
 // Convert color
+// Display impl ToString we can do .to_string()
 impl Display for Color {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
         match self {

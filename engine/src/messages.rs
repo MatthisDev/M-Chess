@@ -1,8 +1,9 @@
+use crate::automation::ai::Difficulty;
+use crate::color::Color;
 use crate::position::Position;
 use crate::sharedenums::GameMode;
 use crate::sharedenums::PlayerRole;
 use crate::sharedenums::RoomStatus;
-use crate::{automation::ai::Difficulty, piece::Color};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 

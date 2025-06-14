@@ -1,37 +1,11 @@
-use super::color::*;
-use serde::{Deserialize, Serialize};
+use super::board::Board;
+use super::color::Color;
+use super::position::Position;
 
-// Color enum for teams
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Color {
-    Black,
-    White,
-}
-impl Color {
-    pub fn opposite(&self) -> Color {
-        match self {
-            Color::White => Color::Black,
-            Color::Black => Color::White,
-        }
-    }
+pub trait Move {
+    fn is_move(&self, to: &Position, board: &Board) -> bool;
+    fn get_moves(&self, to: &Position, board: &Board) -> Vec<Position>;
 }
 
-impl From<u8> for Color {
-    fn from(value: u8) -> Color {
-        match value {
-            0 => Color::Black,
-            _ => Color::White,
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum PieceType {}
-
-impl PieceType {}
-
-//class Piece
-#[derive(Debug, Clone, PartialEq)]
 pub struct Piece {}
-
-impl Piece {}
+pub enum PieceType {}
