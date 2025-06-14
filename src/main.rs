@@ -1,7 +1,7 @@
 use engine::automation::ai::{Difficulty, AI};
 use engine::game::Game;
 use engine::messages::{ClientMessage, ServerMessage};
-use engine::piece::Color;
+use engine::color::Color;
 use engine::sharedenums::{GameMode, PlayerRole, RoomStatus};
 use futures::{SinkExt, StreamExt};
 use room::RoomCommand;

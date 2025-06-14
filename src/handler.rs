@@ -1,6 +1,6 @@
 use engine::automation::ai::{Difficulty, AI};
 use engine::game::Game;
-use engine::piece::Color;
+use engine::color::Color;
 use futures::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

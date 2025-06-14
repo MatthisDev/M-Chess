@@ -6,7 +6,7 @@ use crate::{
 use engine::{
     automation::ai::{Difficulty, AI},
     game::Game,
-    piece::Color,
+    color::Color,
 };
 use engine::{
     messages::ServerMessage,

@@ -1,6 +1,6 @@
-use super::board::Board;
-use super::color::Color;
-use super::position::Position;
+use crate::board::Board;
+use crate::color::Color;
+use crate::position::Position;
 
 pub trait Move {
     fn is_move(&self, to: &Position, board: &Board) -> bool;
